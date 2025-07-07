@@ -1,0 +1,7 @@
+*.efi
+*.elf
+*.o
+*.so
+*.bin
+
+/EFI/
