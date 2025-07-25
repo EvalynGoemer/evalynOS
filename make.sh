@@ -1,4 +1,4 @@
-gcc -ffreestanding -fPIC -nostdlib -fno-asynchronous-unwind-tables -fno-stack-protector -c kernel.c -o kernel.o
+gcc -ffreestanding -fPIC -nostdlib -fno-asynchronous-unwind-tables -fno-stack-protector -mgeneral-regs-only -c kernel.c -o kernel.o
 ld -nostdlib -pie -T kernel.ld -o kernel.elf kernel.o
 objcopy -O binary kernel.elf kernel.bin
 
