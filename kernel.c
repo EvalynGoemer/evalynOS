@@ -64,17 +64,28 @@ static struct GDTR gdtr;
 static struct IDTEntry idt[256];
 static struct IDTR idtr;
 
-int interuptsTriggered = 0;
+static inline void outb(unsigned short port, unsigned char val) {
+    __asm__ volatile ( "outb %0, %1" : : "a"(val), "Nd"(port) );
+}
 
+static inline unsigned char inb(unsigned short port) {
+    unsigned char ret;
+    __asm__ volatile ( "inb %1, %0"
+    : "=a"(ret)
+    : "Nd"(port) );
+    return ret;
+}
+
+int genericInteruptsTriggered = 0;
 __attribute__((interrupt))
 void default_isr(void* frame) {
-    interuptsTriggered++;
+    genericInteruptsTriggered++;
 
     char result[2048];
-    int num = interuptsTriggered;
+    int num = genericInteruptsTriggered;
 
     char *p = result;
-    const char *base = "interuptsTriggered: ";
+    const char *base = "genericInteruptsTriggered: ";
     while (*base) *p++ = *base++;
 
     char temp[256];
@@ -94,7 +105,106 @@ void default_isr(void* frame) {
     *p = '\0';
 
 
-    printString(result, 10, 50);
+    printString(result, 10, 300);
+
+    outb(0x20,0x20);
+    outb(0xa0,0x20);
+}
+
+int pitInteruptsTriggered = 0;
+__attribute__((interrupt))
+void pit_isr(void* frame) {
+    pitInteruptsTriggered++;
+
+    char result[2048];
+    int num = pitInteruptsTriggered;
+
+    char *p = result;
+    const char *base = "pitInteruptsTriggered: ";
+    while (*base) *p++ = *base++;
+
+    char temp[256];
+    int i = 0;
+    if (num == 0) {
+        temp[i++] = '0';
+    } else {
+        while (num > 0) {
+            temp[i++] = (num % 10) + '0';
+            num /= 10;
+        }
+    }
+
+    while (i > 0) {
+        *p++ = temp[--i];
+    }
+    *p = '\0';
+
+
+    printString(result, 10, 310);
+
+    outb(0x20,0x20);
+    outb(0xa0,0x20);
+}
+
+int ps2InteruptsTriggered = 0;
+__attribute__((interrupt))
+void ps2_isr(void* frame) {
+    ps2InteruptsTriggered++;
+
+    char result[2048];
+    int num = ps2InteruptsTriggered;
+
+    char *p = result;
+    const char *base = "ps2InteruptsTriggered: ";
+    while (*base) *p++ = *base++;
+
+    char temp[256];
+    int i = 0;
+    if (num == 0) {
+        temp[i++] = '0';
+    } else {
+        while (num > 0) {
+            temp[i++] = (num % 10) + '0';
+            num /= 10;
+        }
+    }
+
+    while (i > 0) {
+        *p++ = temp[--i];
+    }
+    *p = '\0';
+
+    printString(result, 10, 320);
+
+    char result2[512];
+    int num2 = inb(0x60);
+
+    char *p2 = result2;
+    const char *base2 = "PS/2 Keyboard Event: ";
+    while (*base2) *p2++ = *base2++;
+
+    char temp2[64];
+    int i2 = 0;
+    if (num2 == 0) {
+        temp2[i2++] = '0';
+    } else {
+        while (num2 > 0) {
+            temp2[i2++] = (num2 % 10) + '0';
+            num2 /= 10;
+        }
+    }
+
+    while (i2 > 0) {
+        *p2++ = temp2[--i2];
+    }
+    *p2 = '\0';
+
+    printString("                                                                ", 10, 330);
+    printString(result2, 10, 330);
+
+
+    outb(0x20,0x20);
+    outb(0xa0,0x20);
 }
 
 void setup_gdt() {
@@ -158,10 +268,125 @@ void setup_idt() {
     for (int i = 0; i < 256; ++i)
         set_idt_entry(i, (void (*)())default_isr);
 
+    set_idt_entry(0x20, (void (*)())pit_isr);
+    set_idt_entry(0x21, (void (*)())ps2_isr);
+
     idtr.limit = sizeof(idt) - 1;
     idtr.base = (uint64_t)&idt;
 
     asm volatile ("lidt %0" : : "m"(idtr));
+}
+
+#define PIC1_COMMAND 0x20
+#define PIC1_DATA    0x21
+#define PIC2_COMMAND 0xA0
+#define PIC2_DATA    0xA1
+
+#define ICW1_INIT    0x10
+#define ICW1_ICW4    0x01
+
+#define ICW4_8086    0x01
+
+void setup_pic(int offset1, int offset2) {
+    // Save masks
+    unsigned char a1 = inb(PIC1_DATA);
+    unsigned char a2 = inb(PIC2_DATA);
+
+    // Start initialization sequence
+    outb(PIC1_COMMAND, ICW1_INIT | ICW1_ICW4);
+    outb(PIC2_COMMAND, ICW1_INIT | ICW1_ICW4);
+
+    // Set vector offsets
+    outb(PIC1_DATA, offset1); // Master PIC vector offset
+    outb(PIC2_DATA, offset2); // Slave PIC vector offset
+
+    // Tell Master PIC about Slave PIC at IRQ2 (0000 0100)
+    outb(PIC1_DATA, 0x04);
+    // Tell Slave PIC its cascade identity (0000 0010)
+    outb(PIC2_DATA, 0x02);
+
+    // Set PICs to 8086 mode
+    outb(PIC1_DATA, ICW4_8086);
+    outb(PIC2_DATA, ICW4_8086);
+
+    // Restore saved masks
+    outb(PIC1_DATA, a1);
+    outb(PIC2_DATA, a2);
+}
+
+#define PIT_CONTROL_PORT 0x43
+#define PIT_CHANNEL0_PORT 0x40
+#define PIT_FREQUENCY 1193182
+#define IRQ0_VECTOR 32
+
+void setup_pit(unsigned int frequency) {
+    unsigned int divisor = PIT_FREQUENCY / frequency;
+    outb(PIT_CONTROL_PORT, 0x36);          // Channel 0, access mode: lobyte/hibyte, mode 2
+    outb(PIT_CHANNEL0_PORT, divisor & 0xFF);  // Low byte of divisor
+    outb(PIT_CHANNEL0_PORT, divisor >> 8);    // High byte of divisor
+
+    // Unmask IRQ0 (timer)
+    unsigned char mask = inb(0x21);
+    mask = inb(PIC1_DATA);
+    mask &= ~(1 << 0);
+    outb(0x21, mask);
+}
+
+#define PS2_DATA_PORT 0x60
+#define PS2_STATUS_PORT 0x64
+#define PS2_COMMAND_PORT 0x64
+
+#define PS2_STATUS_INPUT_BUFFER_FULL 0x02
+#define PS2_STATUS_OUTPUT_BUFFER_FULL 0x01
+
+static void ps2_wait_input_empty() {
+    while (inb(PS2_STATUS_PORT) & PS2_STATUS_INPUT_BUFFER_FULL);
+}
+
+static void ps2_wait_output_full() {
+    while (!(inb(PS2_STATUS_PORT) & PS2_STATUS_OUTPUT_BUFFER_FULL));
+}
+
+void setup_ps2() {
+    ps2_wait_input_empty();
+    outb(PS2_COMMAND_PORT, 0xAD); // Disable first PS/2 port
+    ps2_wait_input_empty();
+    outb(PS2_COMMAND_PORT, 0xA7); // Disable second PS/2 port
+
+    while (inb(PS2_STATUS_PORT) & PS2_STATUS_OUTPUT_BUFFER_FULL)
+        (void)inb(PS2_DATA_PORT);
+
+    ps2_wait_input_empty();
+    outb(PS2_COMMAND_PORT, 0xAA);
+    ps2_wait_output_full();
+    unsigned char result = inb(PS2_DATA_PORT);
+    if (result != 0x55) {
+        return;
+    }
+    ps2_wait_input_empty();
+    outb(PS2_COMMAND_PORT, 0xAE); // Enable first PS/2 port
+
+
+    ps2_wait_input_empty();
+    outb(PS2_COMMAND_PORT, 0x20);  // Read Controller Configuration Byte
+    ps2_wait_output_full();
+    unsigned char config = inb(PS2_DATA_PORT);
+
+    config |= 1 << 0;  // Enable IRQ1 (keyboard)
+
+    ps2_wait_input_empty();
+    outb(PS2_COMMAND_PORT, 0x60);  // Write Controller Configuration Byte
+    ps2_wait_input_empty();
+    outb(PS2_DATA_PORT, config);
+
+    ps2_wait_input_empty();
+    outb(PS2_DATA_PORT, 0xF4); // Send "Enable Scanning" command to keyboard
+
+    // Unmask IRQ1 (keyboard)
+    unsigned char mask;
+    mask = inb(PIC1_DATA);
+    mask &= ~(1 << 1);
+    outb(PIC1_DATA, mask);
 }
 
 void kernel_main(uint64_t fbb, uint32_t pps) __attribute__((section(".entry")));
@@ -169,18 +394,26 @@ void kernel_main(uint64_t fbb, uint32_t pps) {
     frameBufferBase = fbb;
     pixelsPerScanLine = pps;
 
+    genericInteruptsTriggered = 0;
+    pitInteruptsTriggered = 0;
+    ps2InteruptsTriggered = 0;
+
     printString("Kernel: Kernel Started", 10, 10);
 
     setup_gdt();
     setup_idt();
-
     printString("Kernel: Basic GDT & IDT Setup", 10, 10 + 8);
 
-    printString("Kernel: Starting Infinite Divide by Zero to test ISR", 10, 10 + 16);
+    setup_pic(0x20, 0x28);
+    printString("Kernel: PIC Setup", 10, 10 + 16);
+
+    setup_pit(1000);
+    printString("Kernel: PIT Setup", 10, 10 + 24);
+
+    setup_ps2();
+    printString("Kernel: PS/2 Keyboard Setup", 10, 10 + 32);
 
     while (1) {
-        volatile int a = 1;
-        volatile int b = 0;
-        volatile int c = a / b; // Divide by Zero to trigger ISR
+        __asm__ __volatile__("hlt");
     }
 }
