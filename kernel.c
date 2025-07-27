@@ -470,6 +470,10 @@ void kernel_main(uint64_t fbb, uint32_t pps) {
 
     char charBuffer[256];
 
+    for (int i = 0; i < 256 - 1; ++i) {
+        charBuffer[i] = 0;
+    }
+
     for (int i = 0; i < 220; ++i) {
         charBuffer[i] = ' ';
     }
