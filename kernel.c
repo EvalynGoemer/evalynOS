@@ -29,6 +29,39 @@ void printString(const char* str, int x, int y) {
     }
 }
 
+void drawImage(const uint32_t* image, int width, int height, int x0, int y0) {
+    for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+            int color = image[y * width + x];
+            plotPixel(x0 + x, y0 + y, color);
+        }
+    }
+}
+
+void clearScreen(int width, int height) {
+    for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+            plotPixel(x, y, 0x00000000);
+        }
+    }
+    printString("Kernel Debug Info", 10, 1080 - 64);
+    printString("genericInteruptsTriggered: [Not Updated]", 10, 1080 - 56);
+    printString("pitInteruptsTriggered:", 10, 1080 - 48);
+    printString("ps2InteruptsTriggered: [Not Updated]", 10, 1080 - 40);
+    printString("PS/2 Keyboard Event: [Not Updated]", 10, 1080 - 32);
+}
+
+int nnstrcmp(const char *input, const char *reference) {
+    int i = 0;
+    while (input[i] != '\0') {
+        if (input[i] != reference[i]) {
+            return (unsigned char)input[i] - (unsigned char)reference[i];
+        }
+        i++;
+    }
+    return 0;
+}
+
 struct __attribute__((packed)) GDTEntry {
     uint16_t limit_low;
     uint16_t base_low;
@@ -80,7 +113,6 @@ int genericInteruptsTriggered = 0;
 __attribute__((interrupt))
 void default_isr(void* frame) {
     genericInteruptsTriggered++;
-
     char result[2048];
     int num = genericInteruptsTriggered;
 
@@ -104,8 +136,8 @@ void default_isr(void* frame) {
     }
     *p = '\0';
 
-
-    printString(result, 10, 300);
+    printString("                                                                ", 10, 1080 - 56);
+    printString(result, 10, 1080 - 56);
 
     outb(0x20,0x20);
     outb(0xa0,0x20);
@@ -139,17 +171,19 @@ void pit_isr(void* frame) {
     }
     *p = '\0';
 
-
-    printString(result, 10, 310);
+    printString(result, 10, 1080 - 48);
 
     outb(0x20,0x20);
     outb(0xa0,0x20);
 }
 
 int ps2InteruptsTriggered = 0;
+unsigned char ps2LastScanCode = 0;
+int ps2IrqFired = 0;
 __attribute__((interrupt))
 void ps2_isr(void* frame) {
     ps2InteruptsTriggered++;
+    ps2IrqFired = 1;
 
     char result[2048];
     int num = ps2InteruptsTriggered;
@@ -174,11 +208,12 @@ void ps2_isr(void* frame) {
     }
     *p = '\0';
 
-    printString(result, 10, 320);
+    printString("                                                                ", 10, 1080 - 40);
+    printString(result, 10, 1080 - 40);
 
     char result2[512];
-    int num2 = inb(0x60);
-
+    unsigned char num2 = inb(0x60);
+    ps2LastScanCode = num2;
     char *p2 = result2;
     const char *base2 = "PS/2 Keyboard Event: ";
     while (*base2) *p2++ = *base2++;
@@ -199,8 +234,8 @@ void ps2_isr(void* frame) {
     }
     *p2 = '\0';
 
-    printString("                                                                ", 10, 330);
-    printString(result2, 10, 330);
+    printString("                                                                ", 10, 1080 - 32);
+    printString(result2, 10, 1080 - 32);
 
 
     outb(0x20,0x20);
@@ -397,23 +432,89 @@ void kernel_main(uint64_t fbb, uint32_t pps) {
     genericInteruptsTriggered = 0;
     pitInteruptsTriggered = 0;
     ps2InteruptsTriggered = 0;
+    ps2LastScanCode = 0;
+    ps2IrqFired = 0;
 
     printString("Kernel: Kernel Started", 10, 10);
+    printString("Kernel Debug Info", 10, 1080 - 64);
 
     setup_gdt();
     setup_idt();
     printString("Kernel: Basic GDT & IDT Setup", 10, 10 + 8);
+    printString("genericInteruptsTriggered: [Not Updated]", 10, 1080 - 56);
+
 
     setup_pic(0x20, 0x28);
     printString("Kernel: PIC Setup", 10, 10 + 16);
 
     setup_pit(1000);
     printString("Kernel: PIT Setup", 10, 10 + 24);
+    printString("pitInteruptsTriggered:", 10, 1080 - 48);
 
     setup_ps2();
     printString("Kernel: PS/2 Keyboard Setup", 10, 10 + 32);
+    printString("ps2InteruptsTriggered: [Not Updated]", 10, 1080 - 40);
+    printString("PS/2 Keyboard Event: [Not Updated]", 10, 1080 - 32);
+
+    printString("Kernel: No Block Storage Device or Ramdisk With Supported Filesystem & Init Program Found; Press Enter to Start the Builtin Kernel Shell", 10, 10 + 40);
+
+    while (ps2LastScanCode != 28) {
+        __asm__ __volatile__("hlt");
+    }
+
+    ps2LastScanCode = 0;
+
+    clearScreen(1920, 1080);
+
+    static const unsigned char scancode_set1_ascii[256] = { [0x02]='1',[0x03]='2',[0x04]='3',[0x05]='4',[0x06]='5',[0x07]='6',[0x08]='7',[0x09]='8',[0x0A]='9',[0x0B]='0',[0x0C]='-',[0x0D]='=',[0x10]='Q',[0x11]='W',[0x12]='E',[0x13]='R',[0x14]='T',[0x15]='Y',[0x16]='U',[0x17]='I',[0x18]='O',[0x19]='P',[0x1A]='[',[0x1B]=']',[0x1E]='A',[0x1F]='S',[0x20]='D',[0x21]='F',[0x22]='G',[0x23]='H',[0x24]='J',[0x25]='K',[0x26]='L',[0x27]=';',[0x28]='\'',[0x29]='`',[0x2C]='Z',[0x2D]='X',[0x2E]='C',[0x2F]='V',[0x30]='B',[0x31]='N',[0x32]='M',[0x33]=',',[0x34]='.',[0x35]='/',[0x39]=' ' };
+
+    char charBuffer[256];
+
+    for (int i = 0; i < 220; ++i) {
+        charBuffer[i] = ' ';
+    }
+
+    int charBufferIndex = 0;
 
     while (1) {
+        if (ps2IrqFired) {
+            printString("Kernel Shell> ", 10, 1080 - 16);
+            ps2IrqFired = 0;
+
+            if (ps2LastScanCode == 14) { // Backspace
+                if (charBufferIndex > 0) {
+                    charBufferIndex--;
+                    charBuffer[charBufferIndex] = ' ';
+                    printString(charBuffer, 10 + (14 * 8), 1080 - 16);
+                }
+            } else if(ps2LastScanCode == 28) { // Enter
+                if(nnstrcmp("TEST ", charBuffer) == 0) {
+                    for (int i = 0; i < 220 - 1; ++i) {
+                        charBuffer[i] = ' ';
+                    }
+                    printString(charBuffer, 10, 8);
+                    printString("Shell Test Command Ran Successfully", 10, 8);
+                    printString(charBuffer, 10 + (14 * 8), 1080 - 16);
+                    charBufferIndex = 0;
+                } else {
+                    for (int i = 0; i < 220 - 1; ++i) {
+                        charBuffer[i] = ' ';
+                    }
+                    printString(charBuffer, 10, 8);
+                    printString("Invalid Shell Command", 10, 8);
+                    printString(charBuffer, 10 + (14 * 8), 1080 - 16);
+                    charBufferIndex = 0;
+                }
+            } else {
+                char c = scancode_set1_ascii[ps2LastScanCode];
+                if (c != 0 && charBufferIndex < 220 - 1) {
+                    charBuffer[charBufferIndex++] = c;
+                }
+            }
+
+            printString(charBuffer, 10 + (14 * 8), 1080 - 16);
+        }
+
         __asm__ __volatile__("hlt");
     }
 }

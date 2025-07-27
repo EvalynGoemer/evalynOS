@@ -10,7 +10,7 @@ EFI_STATUS getMemoryMap(EFI_MEMORY_DESCRIPTOR **map_buf, UINTN *map_size, UINTN 
     getMap:
     *map_size += sizeof(**map_buf);
 
-    status = uefi_call_wrapper(BS->AllocatePool, 3, EfiLoaderData, *map_size, (void **)map_buf);
+    status = uefi_call_wrapper(BS->AllocatePool, 3, AllocateAnyPages, *map_size, (void **)map_buf);
     if (status != EFI_SUCCESS) {
         Print(L"BOOTLOADER ERROR: Failed to get memory map (Allocate Error); HALTING");
         while(1) {
@@ -80,8 +80,13 @@ EFI_STATUS efi_main(EFI_HANDLE imageHandle, EFI_SYSTEM_TABLE *systemTable){
         numModes = gop->Mode->MaxMode;
     }
 
+    int _1080pSet = 0;
     for (int i = 0; i < numModes; i++) {
         status = uefi_call_wrapper(gop->QueryMode, 4, gop, i, &SizeOfInfo, &info);
+        if (info->HorizontalResolution == 1920 & info->VerticalResolution == 1080) {
+            nativeMode = i;
+            _1080pSet = 1;
+        }
     }
 
     status = uefi_call_wrapper(gop->SetMode, 2, gop, nativeMode);
@@ -91,6 +96,10 @@ EFI_STATUS efi_main(EFI_HANDLE imageHandle, EFI_SYSTEM_TABLE *systemTable){
 
         }
     } else {
+        if (_1080pSet != 1) {
+            Print(L"BOOTLOADER WARNING: Could not set display to 1920x1080\n");
+        }
+
         Print(L"BOOTLOADER: Framebuffer Created\n");
     }
 
@@ -123,7 +132,7 @@ EFI_STATUS efi_main(EFI_HANDLE imageHandle, EFI_SYSTEM_TABLE *systemTable){
     while ((void *)desc < (void *)buf + size) {
         mapping_size = desc->NumberOfPages * PAGE_SIZE;
 
-        if(desc->Type == 7 && mapping_size > 256000) {
+        if(desc->Type == 7 && mapping_size > 64000000) {
             Print(L"BOOTLOADER: Found memory to put kernel at %016llx-%016llx\n", desc->PhysicalStart, desc->PhysicalStart + mapping_size);
             foundGoodMemory = 1;
             goodRamStart = (void*)desc->PhysicalStart;
@@ -145,7 +154,7 @@ EFI_STATUS efi_main(EFI_HANDLE imageHandle, EFI_SYSTEM_TABLE *systemTable){
     uefi_call_wrapper(BS->ExitBootServices, 2, imageHandle, map_key);
 
     void* kernel_entry = cpymem(goodRamStart, fileData, fileSize);
-    void* stack_top = (void*)(desc->PhysicalStart + 0x18000);
+    void* stack_top = (void*)(desc->PhysicalStart + 0x1000000);
     uint64_t fbb = gop->Mode->FrameBufferBase;
     uint32_t fbpps = gop->Mode->Info->PixelsPerScanLine;
 
