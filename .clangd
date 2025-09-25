@@ -1,0 +1,5 @@
+CompileFlags:
+  Add: [-Wall, -Wextra, -Wno-unknown-pragmas]
+
+Diagnostics:
+  Suppress: ["unused-includes", "misc-definitions-in-headers"]

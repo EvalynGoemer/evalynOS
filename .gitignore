@@ -1,7 +1,19 @@
+# Compiled Files
 *.efi
 *.elf
 *.o
 *.so
 *.bin
-
 /EFI/
+/obj*/
+/bin*/
+
+# QEMU Files
+OVMF*
+NvVars
+
+# Deps
+.deps-obtained
+/cc-runtime/
+/limine*/
+/freestnd-c-hdrs/

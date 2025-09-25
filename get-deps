@@ -1,0 +1,60 @@
+# This file was taken and modified from https://codeberg.org/Limine/limine-c-template/raw/commit/c8bc5a2b93397a19272a19a6004b0eeb1e90d982/kernel/get-deps
+#!/bin/sh
+
+set -e
+
+srcdir="$(dirname "$0")"
+test -z "$srcdir" && srcdir=.
+
+cd "$srcdir"
+
+clone_repo_commit() {
+    if test -d "$2/.git"; then
+        git -C "$2" reset --hard
+        git -C "$2" clean -fd
+        if ! git -C "$2" -c advice.detachedHead=false checkout $3; then
+            rm -rf "$2"
+        fi
+    else
+        if test -d "$2"; then
+            echo "error: '$2' is not a Git repository" 1>&2
+            exit 1
+        fi
+    fi
+    if ! test -d "$2"; then
+        git clone $1 "$2"
+        if ! git -C "$2" -c advice.detachedHead=false checkout $3; then
+            rm -rf "$2"
+            exit 1
+        fi
+    fi
+}
+
+rm -f .deps-obtained
+
+clone_repo_commit \
+    https://codeberg.org/OSDev/freestnd-c-hdrs-0bsd.git \
+    freestnd-c-hdrs \
+    5e4e9e70278fe89ea328d359a58aff4f4a94b165
+
+clone_repo_commit \
+    https://codeberg.org/OSDev/cc-runtime.git \
+    cc-runtime \
+    dae79833b57a01b9fd3e359ee31def69f5ae899b
+
+clone_repo_commit \
+    https://codeberg.org/Limine/limine-protocol.git \
+    limine-protocol \
+    fedf97facd1c473ee8720f8dfd5a71d03490d928
+
+touch .deps-obtained
+
+set +e
+
+mkdir ./EFI
+mkdir ./EFI/BOOT
+cp /usr/share/limine/BOOTX64.EFI ./EFI/BOOT/
+cp /usr/share/edk2/x64/OVMF_CODE.4m.fd .
+cp /usr/share/edk2/x64/OVMF_VARS.4m.fd .
+
+printf "\nDependencies obtained successfully.\n"
