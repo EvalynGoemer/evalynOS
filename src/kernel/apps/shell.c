@@ -3,6 +3,7 @@
 #include "../kernel.h"
 #include "../renderer/fb_renderer.h"
 #include "../interupts/ps2.h"
+#include "../memory/memory_debug.h"
 
 #ifdef INCLUDE_DEMOS
     #include "../demos/demos.h"
@@ -41,6 +42,22 @@ void start_shell() {
                     }
                     printString(charBuffer, 10, 8);
                     printString("Shell Test Command Ran Successfully", 10, 8);
+                    printString(charBuffer, 10 + (14 * 8), FB_HEIGHT - 16);
+                    charBufferIndex = 0;
+                } else if(strncmp("CLEAR", charBuffer, 5) == 0 || strncmp("CLS", charBuffer, 3) == 0) {
+                    for (int i = 0; i < 62 - 1; ++i) {
+                        charBuffer[i] = ' ';
+                    }
+                    clearScreen(FB_WIDTH, FB_HEIGHT);
+                    printString("Screen Cleared", 10, 8);
+                    charBufferIndex = 0;
+                } else if(strncmp("MEMORY MAP", charBuffer, 10) == 0) {
+                    for (int i = 0; i < 62 - 1; ++i) {
+                        charBuffer[i] = ' ';
+                    }
+                    printString(charBuffer, 10, 8);
+                    printString("Memory Map Printed", 10, 8);
+                    printMemoryMap();
                     printString(charBuffer, 10 + (14 * 8), FB_HEIGHT - 16);
                     charBufferIndex = 0;
                 } else {

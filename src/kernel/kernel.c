@@ -1,11 +1,14 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
+
+#define LIMINE_API_REVISION 3
 #include <limine.h>
 
 #include "hardware/hardware.h"
 #include "interupts/interupts.h"
 #include "renderer/fb_renderer.h"
+#include "memory/memory.h"
 
 #include "apps/shell.h"
 
@@ -23,6 +26,18 @@ __attribute__((used, section(".limine_requests")))
 static volatile struct limine_framebuffer_request framebuffer_request = {
     .id = LIMINE_FRAMEBUFFER_REQUEST,
     .revision = 0
+};
+
+__attribute__((used, section(".limine_requests")))
+volatile struct limine_hhdm_request hhdm_request = {
+    .id = LIMINE_HHDM_REQUEST,
+    .revision = 0,
+};
+
+__attribute__((used, section(".limine_requests")))
+volatile struct limine_memmap_request memmap_request = {
+    .id = LIMINE_MEMMAP_REQUEST,
+    .revision = 0,
 };
 
 __attribute__((used, section(".limine_requests_start")))
@@ -79,6 +94,8 @@ void kmain(void) {
     printString("PS/2 Keyboard Event: [Not Updated]", 10, FB_HEIGHT - 32);
 
     printString("Kernel: No Block Storage Device or Ramdisk With Supported Filesystem & Init Program Found; Press Enter to Start the Builtin Kernel Shell", 10, 10 + 40);
+
+    printMemoryMap();
 
     #ifdef SKIP_TO_DEMOS
         char charBuffer[64];

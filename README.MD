@@ -25,7 +25,7 @@ Compile with the included make file and if you wish to build with the demos and 
 
 This kernel is designed to be able to run on *REAL* hardware if it meets the following requirements
 - x86-64 CPU
-- 512GB Memory
+- 512MB Memory
 - A 1920x1080 Monitor (If needed source files can be edited for slightly smaller resolutions to better fir but YMMV)
 - A PS/2 keyboard
 - A PC speaker
@@ -33,7 +33,9 @@ This kernel is designed to be able to run on *REAL* hardware if it meets the fol
 Copy the `EFI` folder and `limine.conf` and `kernel.elf` to the root of a GPT formatted USB stick with the boot and esp flags set and then boot to it
 
 ## Kernel Mode Shell Commands
-- TEST: Prints a test message
+- `TEST`: Prints a test message
+- `CLEAR`: Clears the screen (ALIAS: `CLS`)
+- `MEMORY MAP`: Prints the memory map provided by the bootloader
 
 ## Kernel Mode Shell Demos
 - BADAPPLE: Plays the Bad Apple music video on your screen with audio via PC speaker
