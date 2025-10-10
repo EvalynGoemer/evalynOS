@@ -5,6 +5,7 @@
 #define LIMINE_API_REVISION 3
 #include <limine.h>
 
+#include "libc/stdio.h"
 #include "hardware/hardware.h"
 #include "interupts/interupts.h"
 #include "renderer/fb_renderer.h"
@@ -29,15 +30,30 @@ static volatile struct limine_framebuffer_request framebuffer_request = {
 };
 
 __attribute__((used, section(".limine_requests")))
+volatile struct limine_memmap_request memmap_request = {
+    .id = LIMINE_MEMMAP_REQUEST,
+    .revision = 0,
+};
+
+__attribute__((used, section(".limine_requests")))
 volatile struct limine_hhdm_request hhdm_request = {
     .id = LIMINE_HHDM_REQUEST,
     .revision = 0,
 };
 
 __attribute__((used, section(".limine_requests")))
-volatile struct limine_memmap_request memmap_request = {
-    .id = LIMINE_MEMMAP_REQUEST,
+volatile struct limine_executable_address_request executable_address_request = {
+    .id = LIMINE_EXECUTABLE_ADDRESS_REQUEST,
     .revision = 0,
+};
+
+__attribute__((used, section(".limine_requests")))
+volatile struct limine_paging_mode_request paging_mode_request = {
+    .id = LIMINE_PAGING_MODE_REQUEST,
+    .revision = 3,
+    .mode = LIMINE_PAGING_MODE_X86_64_4LVL,
+    .max_mode = LIMINE_PAGING_MODE_X86_64_4LVL,
+    .min_mode = LIMINE_PAGING_MODE_X86_64_4LVL
 };
 
 __attribute__((used, section(".limine_requests_start")))
@@ -46,7 +62,7 @@ static volatile LIMINE_REQUESTS_START_MARKER;
 __attribute__((used, section(".limine_requests_end")))
 static volatile LIMINE_REQUESTS_END_MARKER;
 
-struct limine_framebuffer *framebuffer;
+volatile struct limine_framebuffer *framebuffer;
 
 void kmain(void) {
     if (LIMINE_BASE_REVISION_SUPPORTED == false) {
@@ -62,7 +78,7 @@ void kmain(void) {
 
     // Limine boilerplate end
 
-    printString("Kernel: Kernel Started", 10, 10);
+    printf("Kernel: Kernel Started");
     printString("Kernel Debug Info", 10, FB_HEIGHT - 64);
 
     // Enable fxsave & fxstor instructions
@@ -78,24 +94,30 @@ void kmain(void) {
     setup_gdt();
     setup_idt();
 
-    printString("Kernel: Basic GDT & IDT Setup", 10, 10 + 8);
+    printf("Kernel: Basic GDT & IDT Setup");
     printString("genericInteruptsTriggered: [Not Updated]", 10, FB_HEIGHT - 56);
 
     setup_pic(0x20, 0x28);
-    printString("Kernel: PIC Setup", 10, 10 + 16);
+    printf("Kernel: PIC Setup");
 
     setup_pit(1000);
-    printString("Kernel: PIT Setup", 10, 10 + 24);
+    printf("Kernel: PIT Setup");
     printString("pitInteruptsTriggered: [Logging Stripped For Preformance]", 10, FB_HEIGHT - 48);
 
     setup_ps2();
-    printString("Kernel: PS/2 Keyboard Setup", 10, 10 + 32);
+    printf("Kernel: PS/2 Keyboard Setup");
     printString("ps2InteruptsTriggered: [Not Updated]", 10, FB_HEIGHT - 40);
     printString("PS/2 Keyboard Event: [Not Updated]", 10, FB_HEIGHT - 32);
 
-    printString("Kernel: No Block Storage Device or Ramdisk With Supported Filesystem & Init Program Found; Press Enter to Start the Builtin Kernel Shell", 10, 10 + 40);
+    printf("Kernel: Basic Bump Allocator Setup");
+    kbump_alloc_init(0x1000000);
+
+    vmm_init();
+    printf("Kernel: Virtual Memory Manager Setup");
 
     printMemoryMap();
+
+    printf("Kernel: Press Enter to Start the Builtin Kernel Test CLI");
 
     #ifdef SKIP_TO_DEMOS
         char charBuffer[64];

@@ -20,3 +20,5 @@ NvVars
 
 # Misc
 *.kate-swp
+*.zip
+*.tar.gz

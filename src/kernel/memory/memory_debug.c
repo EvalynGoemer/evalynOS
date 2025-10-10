@@ -5,7 +5,7 @@
 #include "../kernel.h"
 
 char* int_to_hex(unsigned long num) {
-    static const char hex[] = "0123456789abcdef";
+    static const char hex[] = "0123456789ABCDEF";
     static char out[17];
 
     int i = 16;

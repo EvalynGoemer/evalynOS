@@ -2,7 +2,6 @@
 #include <stddef.h>
 
 // This following four functions were taken from https://codeberg.org/Limine/limine-c-template/raw/commit/c8bc5a2b93397a19272a19a6004b0eeb1e90d982/kernel/src/main.c
-
 void *memcpy(void *restrict dest, const void *restrict src, size_t n) {
     uint8_t *restrict pdest = (uint8_t *restrict)dest;
     const uint8_t *restrict psrc = (const uint8_t *restrict)src;
@@ -74,4 +73,11 @@ int strncmp(const char *s1, const char *s2, unsigned long n) {
     }
 
     return (unsigned char)s1[i] - (unsigned char)s2[i];
+}
+
+// Taken from https://stackoverflow.com/a/20190538
+char *strcpy(char *strDest, const char *strSrc) {
+    char *temp = strDest;
+    while ((*strDest++ = *strSrc++) != '\0');
+    return temp;
 }

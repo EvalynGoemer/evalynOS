@@ -1,3 +1,6 @@
+#include <stddef.h>
+
+#include "../libc/stdio.h"
 #include "../renderer/fb_renderer.h"
 #include "../hardware/ports.h"
 
@@ -8,6 +11,16 @@ __attribute__((interrupt))
 __attribute__((target("general-regs-only")))
 void pit_isr(__attribute__((unused)) void* frame) {
     pitInteruptsTriggered++;
+
+    if (term_updated == 1) {
+        for (int y = 0; y < TERM_HEIGHT; y++) {
+            for (int x = 0; x < TERM_WIDTH; x++) {
+                char c = terminal[y][x];
+                    printChar(c, 8 + x * 8, 8 + y * 10);
+            }
+        }
+        term_updated = 0;
+    }
 
     if (pitInteruptsTriggered % 100 == 0) {
         char result[LINE_WIDTH + 1];

@@ -34,8 +34,10 @@ Copy the `EFI` folder and `limine.conf` and `kernel.elf` to the root of a GPT fo
 
 ## Kernel Mode Shell Commands
 - `TEST`: Prints a test message
-- `CLEAR`: Clears the screen (ALIAS: `CLS`)
-- `MEMORY MAP`: Prints the memory map provided by the bootloader
+- `CLEAR`: Clears the terminal (ALIAS: `CLS`)
+- `CLEARFB`: Clears the framebufer (ALIAS: `CLSFB`)
+- `MMAP`: Prints the memory map provided by the bootloader
+- `PANIC`: Causes a kernel panic
 
 ## Kernel Mode Shell Demos
-- BADAPPLE: Plays the Bad Apple music video on your screen with audio via PC speaker
+- `BADAPPLE`: Plays the Bad Apple music video on your screen with audio via PC speaker

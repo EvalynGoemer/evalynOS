@@ -8,6 +8,9 @@
 #include "../../interupts/interupts.h"
 
 void playBadApple(char charBuffer[64]) {
+    clearScreen(FB_WIDTH, FB_HEIGHT);
+
+    printString("Kernel Shell> ", 10, FB_HEIGHT - 16);
     printString(charBuffer, 10, 8);
     printString("Started Playing BAD APPLE", 10, 8);
     printString(charBuffer, 10 + (14 * 8), FB_HEIGHT - 16);

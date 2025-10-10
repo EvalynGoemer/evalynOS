@@ -1,9 +1,11 @@
 #include "../libc/string.h"
 
 #include "../kernel.h"
+#include "../libc/stdio.h"
 #include "../renderer/fb_renderer.h"
 #include "../interupts/ps2.h"
 #include "../memory/memory_debug.h"
+#include "../panic.h"
 
 #ifdef INCLUDE_DEMOS
     #include "../demos/demos.h"
@@ -40,41 +42,50 @@ void start_shell() {
                     for (int i = 0; i < 62 - 1; ++i) {
                         charBuffer[i] = ' ';
                     }
-                    printString(charBuffer, 10, 8);
-                    printString("Shell Test Command Ran Successfully", 10, 8);
+                    printf("Test command works");
                     printString(charBuffer, 10 + (14 * 8), FB_HEIGHT - 16);
                     charBufferIndex = 0;
-                } else if(strncmp("CLEAR", charBuffer, 5) == 0 || strncmp("CLS", charBuffer, 3) == 0) {
+                } else if(strncmp("CLEARFB", charBuffer, 7) == 0 || strncmp("CLSFB", charBuffer, 5) == '\0') {
                     for (int i = 0; i < 62 - 1; ++i) {
                         charBuffer[i] = ' ';
                     }
                     clearScreen(FB_WIDTH, FB_HEIGHT);
-                    printString("Screen Cleared", 10, 8);
+                    printf("Screen Cleared");
                     charBufferIndex = 0;
-                } else if(strncmp("MEMORY MAP", charBuffer, 10) == 0) {
+                } else if (strncmp("CLEAR", charBuffer, 5) == 0 || strncmp("CLS", charBuffer, 3) == '\0') {
+                    for (int i = 0; i < 62 - 1; ++i) {
+                        charBuffer[i] = ' ';
+                    }
+                    cleark();
+                    printf("Cleared Terminal");
+                    printString(charBuffer, 10 + (14 * 8), FB_HEIGHT - 16);
+                    charBufferIndex = 0;
+                }  else if(strncmp("MMAP", charBuffer, 4) == 0) {
                     for (int i = 0; i < 62 - 1; ++i) {
                         charBuffer[i] = ' ';
                     }
                     printString(charBuffer, 10, 8);
-                    printString("Memory Map Printed", 10, 8);
+                    printf("Memory Map Printed");
                     printMemoryMap();
                     printString(charBuffer, 10 + (14 * 8), FB_HEIGHT - 16);
                     charBufferIndex = 0;
+                } else if(strncmp("PANIC", charBuffer, 5) == 0) {
+                    panic("You asked for this lmao");
                 } else {
                     int validCommand = 0;
                     #ifdef INCLUDE_DEMOS
                     validCommand = handle_demos(charBuffer);
                     #endif
+                    if(!validCommand && charBuffer[0] != ' ') {
+                        printString(charBuffer, 10, 8);
+                        printf("Invalid Shell Command: %s", charBuffer);
+                        printString(charBuffer, 10 + (14 * 8), FB_HEIGHT - 16);
+                    }
+
                     for (int i = 0; i < 62 - 1; ++i) {
                         charBuffer[i] = ' ';
                     }
                     charBufferIndex = 0;
-
-                    if(!validCommand) {
-                        printString(charBuffer, 10, 8);
-                        printString("Invalid Shell Command", 10, 8);
-                        printString(charBuffer, 10 + (14 * 8), FB_HEIGHT - 16);
-                    }
                 }
             } else {
                 char c = scancode_set1_ascii[ps2LastScanCode];

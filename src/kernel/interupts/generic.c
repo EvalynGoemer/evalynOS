@@ -1,5 +1,6 @@
 #include "../renderer/fb_renderer.h"
 #include "../hardware/ports.h"
+#include "../panic.h"
 
 #define LINE_WIDTH 80
 volatile int genericInteruptsTriggered = 0;
@@ -8,6 +9,10 @@ __attribute__((interrupt))
 __attribute__((target("general-regs-only")))
 void generic_isr(__attribute__((unused)) void* frame) {
     genericInteruptsTriggered++;
+
+    if(genericInteruptsTriggered > 10) {
+        panic("Too many unhandled interupts");
+    }
 
     if (genericInteruptsTriggered % 100 == 0) {
         char result[LINE_WIDTH + 1];

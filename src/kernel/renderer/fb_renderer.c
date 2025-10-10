@@ -1,7 +1,10 @@
-#include <stdint.h>
+#include <stdarg.h>
 #include <stddef.h>
+#include <stdint.h>
 
 #include "../kernel.h"
+#include "../libc/string.h"
+#include "../libc/stdio.h"
 #include "font8x8_basic.h"
 
 // Reemember to also change in fb_renderer.h
@@ -11,9 +14,8 @@
 __attribute__((no_caller_saved_registers))
 __attribute__((target("general-regs-only")))
 void plotPixel(size_t x, size_t y, uint32_t color) {
-    *((volatile uint32_t *)framebuffer->address + y * (framebuffer->pitch >> 2) + x) = color;
+    *((volatile uint32_t*)framebuffer->address + y * (framebuffer->pitch >> 2) + x) = color;
 }
-
 
 __attribute__((no_caller_saved_registers))
 __attribute__((target("general-regs-only")))
@@ -42,17 +44,23 @@ void printString(const char* str, int x, int y) {
 
 __attribute__((no_caller_saved_registers))
 __attribute__((target("general-regs-only")))
-void drawImage(const uint32_t* image, int width, int height, int x0, int y0) {
+void drawImage(const uint32_t* image, int width, int height, int x0, int y0, int scale) {
+    if (scale <= 0) scale = 1;
+
     for (int y = 0; y < height; y++) {
         for (int x = 0; x < width; x++) {
             int color = image[y * width + x];
-            plotPixel(x0 + x, y0 + y, color);
+            for (int dy = 0; dy < scale; dy++) {
+                for (int dx = 0; dx < scale; dx++) {
+                    plotPixel(x0 + x * scale + dx, y0 + y * scale + dy, color);
+                }
+            }
         }
     }
 }
 
 static unsigned int prevFrame[120 * 90];
-void drawFrame(const unsigned char *rleData, int rleLength, int frameWidth, int frameHeight, int startX, int startY, int scale) {
+void drawFrame(const unsigned char* rleData, int rleLength, int frameWidth, int frameHeight, int startX, int startY, int scale) {
     int x = 0, y = 0;
     int pos = 0;
 
@@ -69,7 +77,7 @@ void drawFrame(const unsigned char *rleData, int rleLength, int frameWidth, int 
 
                 int px = startX + x * scale;
                 int py = startY + y * scale;
-                int scaledWidth  = scale;
+                int scaledWidth = scale;
                 int scaledHeight = scale;
 
                 for (int dy = 0; dy < scaledHeight; dy++) {
@@ -90,13 +98,15 @@ void drawFrame(const unsigned char *rleData, int rleLength, int frameWidth, int 
 }
 
 void clearScreen(int width, int height) {
+    cleark();
+
     for (int y = 0; y < height; y++) {
         for (int x = 0; x < width; x++) {
             plotPixel(x, y, 0x00000000);
         }
     }
 
-    printString("Kernel Debug Info", 10, FB_HEIGHT - 64 );
+    printString("Kernel Debug Info", 10, FB_HEIGHT - 64);
     printString("genericInteruptsTriggered: [Not Updated]", 10, FB_HEIGHT - 56);
     printString("pitInteruptsTriggered: [Logging Stripped For Preformance]", 10, FB_HEIGHT - 48);
     printString("ps2InteruptsTriggered: [Not Updated]", 10, FB_HEIGHT - 40);
