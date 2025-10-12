@@ -7,9 +7,9 @@
 #include "../libc/stdio.h"
 #include "font8x8_basic.h"
 
-// Reemember to also change in fb_renderer.h
-#define FB_WIDTH 1920
-#define FB_HEIGHT 1080
+volatile struct limine_framebuffer *framebuffer;
+int FB_WIDTH;
+int FB_HEIGHT;
 
 __attribute__((no_caller_saved_registers))
 __attribute__((target("general-regs-only")))
@@ -44,15 +44,16 @@ void printString(const char* str, int x, int y) {
 
 __attribute__((no_caller_saved_registers))
 __attribute__((target("general-regs-only")))
-void drawImage(const uint32_t* image, int width, int height, int x0, int y0, int scale) {
-    if (scale <= 0) scale = 1;
+void drawImage(const uint32_t* image, int width, int height, int x0, int y0, int scaleX, int scaleY) {
+    if (scaleX <= 0) scaleX = 1;
+    if (scaleY <= 0) scaleY = 1;
 
     for (int y = 0; y < height; y++) {
         for (int x = 0; x < width; x++) {
             int color = image[y * width + x];
-            for (int dy = 0; dy < scale; dy++) {
-                for (int dx = 0; dx < scale; dx++) {
-                    plotPixel(x0 + x * scale + dx, y0 + y * scale + dy, color);
+            for (int dy = 0; dy < scaleY; dy++) {
+                for (int dx = 0; dx < scaleX; dx++) {
+                    plotPixel(x0 + x * scaleX + dx, y0 + y * scaleY + dy, color);
                 }
             }
         }

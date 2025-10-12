@@ -62,8 +62,6 @@ static volatile LIMINE_REQUESTS_START_MARKER;
 __attribute__((used, section(".limine_requests_end")))
 static volatile LIMINE_REQUESTS_END_MARKER;
 
-volatile struct limine_framebuffer *framebuffer;
-
 void kmain(void) {
     if (LIMINE_BASE_REVISION_SUPPORTED == false) {
         __asm__ __volatile__("hlt");
@@ -75,6 +73,8 @@ void kmain(void) {
     }
 
     framebuffer = framebuffer_request.response->framebuffers[0];
+    FB_WIDTH = framebuffer_request.response->framebuffers[0]->width;
+    FB_HEIGHT = framebuffer_request.response->framebuffers[0]->height;
 
     // Limine boilerplate end
 

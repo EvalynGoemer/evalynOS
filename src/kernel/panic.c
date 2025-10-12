@@ -2,6 +2,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "kernel.h"
 #include "libc/stdio.h"
 #include "renderer/fb_renderer.h"
 #include "renderer/kpanic_image.h"
@@ -78,7 +79,12 @@ void panic(char* message, int vector, struct interrupt_frame* frame, __attribute
         : "=m"(ldt), "=m"(tr)
     );
 
-    drawImage(kernel_panic_image, kernel_panic_image_data_width, kernel_panic_image_data_height, 0, 0, 60);
+    int scaleX = framebuffer->width / kernel_panic_image_data_width;
+    int scaleY = framebuffer->height / kernel_panic_image_data_height;
+    if (scaleX < 1) scaleX = 1;
+    if (scaleY < 1) scaleY = 1;
+
+    drawImage(kernel_panic_image, kernel_panic_image_data_width, kernel_panic_image_data_height, 0, 0, scaleX, scaleY);
     printString("The kernel is fucked dawg", 8, 8);
 
     char result[128];

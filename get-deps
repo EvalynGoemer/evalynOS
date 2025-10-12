@@ -49,10 +49,10 @@ clone_repo_commit \
 
 touch .deps-obtained
 
-set +e
-
+rm -rf ./EFI
 mkdir ./EFI
 mkdir ./EFI/BOOT
+
 cp /usr/share/limine/BOOTX64.EFI ./EFI/BOOT/
 cp /usr/share/edk2/x64/OVMF_CODE.4m.fd .
 cp /usr/share/edk2/x64/OVMF_VARS.4m.fd .

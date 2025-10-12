@@ -28,7 +28,7 @@ Add these flags to the `GNUmakefile` `CFLAGS` section
 This kernel is designed to be able to run on *REAL* hardware if it meets the following requirements
 - x86-64 CPU
 - 512MB Memory
-- A 1920x1080 Monitor (If needed source files can be edited for slightly smaller resolutions to better fir but YMMV)
+- A 1280x720 or higher monitor (1920x1080 recommended)
 - A PS/2 keyboard
 - A PC speaker
 
