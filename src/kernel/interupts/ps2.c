@@ -13,6 +13,9 @@ void ps2_isr(__attribute__((unused)) void* frame) {
     ps2InteruptsTriggered++;
     ps2IrqFired = 1;
 
+    unsigned char scancode = inb(0x60);
+    ps2LastScanCode = scancode;
+
     char result[LINE_WIDTH + 1];
     int len = 0;
     const char *prefix = "ps2InteruptsTriggered: ";
@@ -34,9 +37,6 @@ void ps2_isr(__attribute__((unused)) void* frame) {
     while (len < LINE_WIDTH) result[len++] = ' ';
     result[len] = '\0';
     printString(result, 10, FB_HEIGHT - 40);
-
-    unsigned char scancode = inb(0x60);
-    ps2LastScanCode = scancode;
 
     char result2[LINE_WIDTH + 1];
     len = 0;

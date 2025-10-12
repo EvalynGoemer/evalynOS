@@ -1,5 +1,6 @@
 #include "ports.h"
 #include "pic.h"
+#include "pit.h"
 
 #define PS2_DATA_PORT 0x60
 #define PS2_STATUS_PORT 0x64
@@ -8,58 +9,63 @@
 #define PS2_STATUS_INPUT_BUFFER_FULL 0x02
 #define PS2_STATUS_OUTPUT_BUFFER_FULL 0x01
 
-static void ps2_wait_input_empty() {
-    while (inb(PS2_STATUS_PORT) & PS2_STATUS_INPUT_BUFFER_FULL);
+void io_wait() {
+    outb(0x80, 0);
 }
 
-static void ps2_wait_output_full() {
-    while (!(inb(PS2_STATUS_PORT) & PS2_STATUS_OUTPUT_BUFFER_FULL));
-}
-
+// Taken and cleaned up and ported from "init_keyboard()" from https://codeberg.org/NerdNextDoor/arikoto/src/commit/ad2620feab9658b2b28a5abc346a8d7fc565bd9b/kernel/src/misc/keyboard.c
+// Copyright (c) 2025 NerdNextDoor All rights reserved.
+// NCSA/University of Illinois Open Source License: https://codeberg.org/NerdNextDoor/arikoto/src/branch/master/LICENSE.md
 void setup_ps2() {
-    __asm__ __volatile__("cli");
-    ps2_wait_input_empty();
     outb(PS2_COMMAND_PORT, 0xAD);
-    ps2_wait_input_empty();
+    io_wait();
     outb(PS2_COMMAND_PORT, 0xA7);
+    io_wait();
 
-    while (inb(PS2_STATUS_PORT) & PS2_STATUS_OUTPUT_BUFFER_FULL)
-        (void)inb(PS2_DATA_PORT);
+    inb(PS2_DATA_PORT);
+    io_wait();
 
-    ps2_wait_input_empty();
-    outb(PS2_COMMAND_PORT, 0xAA);
-    ps2_wait_output_full();
-    unsigned char result = inb(PS2_DATA_PORT);
-    if (result != 0x55) {
-        return;
-    }
-    ps2_wait_input_empty();
-    outb(PS2_COMMAND_PORT, 0xAE);
-
-
-    ps2_wait_input_empty();
     outb(PS2_COMMAND_PORT, 0x20);
-    ps2_wait_output_full();
-    unsigned char config = inb(PS2_DATA_PORT);
+    io_wait();
 
-    config |= 1 << 0;
+    uint8_t status = inb(PS2_DATA_PORT);
+    io_wait();
+    status |=1;
+    status &= ~(1 << 1);
 
-    ps2_wait_input_empty();
     outb(PS2_COMMAND_PORT, 0x60);
-    ps2_wait_input_empty();
-    outb(PS2_DATA_PORT, config);
+    io_wait();
+    outb(PS2_DATA_PORT, status);
+    io_wait();
 
-    ps2_wait_input_empty();
-    outb(PS2_DATA_PORT, 0xF4);
+    outb(PS2_COMMAND_PORT, 0xAE);
+    io_wait();
+
+    outb(PS2_DATA_PORT, 0xFF);
+    io_wait();
+
+    int timeout = 1000;
+    uint8_t response;
+    while (timeout--) {
+        if ((inb(PS2_STATUS_PORT) & 1) != 0) {
+            response = inb(PS2_DATA_PORT);
+            if (response == 0xFA) break;
+        }
+        pit_sleep_ms(1);
+    }
+
+    outb(PS2_DATA_PORT, 0xF0);
+    io_wait();
+    outb(PS2_DATA_PORT, 0x02);
+    io_wait();
+
+    while ((inb(PS2_STATUS_PORT) & 1) != 0) {
+        inb(PS2_DATA_PORT);
+    }
 
     unsigned char mask;
     mask = inb(PIC1_DATA);
     mask &= ~(1 << 1);
     outb(PIC1_DATA, mask);
-
-    ps2_wait_input_empty();
-    outb(PS2_DATA_PORT, 0xF0);
-    ps2_wait_input_empty();
-    outb(PS2_DATA_PORT, 0x00);
     __asm__ __volatile__("sti");
 }

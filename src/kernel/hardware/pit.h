@@ -7,3 +7,4 @@
 #define IRQ0_VECTOR 32
 
 extern void setup_pit(unsigned int frequency);
+void pit_sleep_ms(unsigned int ms);
