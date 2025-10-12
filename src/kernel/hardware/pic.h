@@ -1,5 +1,7 @@
 #pragma once
 
+#include "stdint.h"
+
 #define PIC1_COMMAND 0x20
 #define PIC1_DATA    0x21
 #define PIC2_COMMAND 0xA0
@@ -11,3 +13,5 @@
 #define ICW4_8086    0x01
 
 extern void setup_pic(int offset1, int offset2);
+extern void irq_set_mask(uint8_t IRQline);
+extern void irq_clear_mask(uint8_t IRQline);

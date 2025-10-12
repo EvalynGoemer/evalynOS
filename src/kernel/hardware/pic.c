@@ -11,6 +11,7 @@
 #define ICW4_8086    0x01
 
 void setup_pic(int offset1, int offset2) {
+    __asm__ __volatile__("cli");
     unsigned char mask = inb(PIC1_DATA);
     mask &= ~(1 << 0);
     outb(0x21, mask);
@@ -32,4 +33,5 @@ void setup_pic(int offset1, int offset2) {
 
     outb(PIC1_DATA, a1);
     outb(PIC2_DATA, a2);
+    __asm__ __volatile__("sti");
 }

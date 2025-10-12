@@ -1,28 +1,30 @@
 # EvalynOS
-This is a very W.I.P project
+A W.I.P 64 Bit OS Kernel
 
-There will be ~~no~~ *some* help given in its current state
-
-This repo is just to track history incase of oopsies
-
-## Some Help
+## Compiling & Running
 
 You will need to install the following arch packages to compile (Non inclusive, More testing needs to be done)
 - base-devel
+- python3
 - qemu-desktop
 - edk2-ovmf
 - limine
 
 You will need to run the `get-deps` script before starting
 
-Compile with `make` and run with `make run`
+Compile with `make`
 
-`make run` will always run a `make clean` and `make run` to have a fresh compile
+Run and compile with `make run`
 
-Compile with the included make file and if you wish to build with the demos and or have the demos automaticaly start if the keyboard drivers fail on your hardware edit the makefile (GNUmakefile) at CFLAGS and add -DINCLUDE_DEMOS to have the demos bundled and launchable from the shell and add -DSKIP_TO_DEMOS ontop to have them automaticaly play
+Run and compile and generate symbols (Compiles twice) with `make debug`
+
+## Compile Flags
+- `-DINCLUDE_DEMOS`: Compiles the demos to be bundled with the kernel (Large, Will be moved to userspace later)
+- `-DSKIP_TO_DEMOS`: Have kernel automaticaly launch demos if keyboard drivers are not working on your hardware (Will be implemented into userspace with an init system later)
+- `-DMUTE_KERNEL_PANIC`: Disables the 1khz tone played on a kernel panic for when doing active work on the kernel
+Add these flags to the `GNUmakefile` `CFLAGS` section
 
 ## Real Hardware
-
 This kernel is designed to be able to run on *REAL* hardware if it meets the following requirements
 - x86-64 CPU
 - 512MB Memory
@@ -38,6 +40,7 @@ Copy the `EFI` folder and `limine.conf` and `kernel.elf` to the root of a GPT fo
 - `CLEARFB`: Clears the framebufer (ALIAS: `CLSFB`)
 - `MMAP`: Prints the memory map provided by the bootloader
 - `PANIC`: Causes a kernel panic
+- `FAULT`: Causes a Page Fault to panic with extended info
 
 ## Kernel Mode Shell Demos
 - `BADAPPLE`: Plays the Bad Apple music video on your screen with audio via PC speaker

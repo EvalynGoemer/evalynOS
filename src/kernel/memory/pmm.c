@@ -53,7 +53,7 @@ void kbump_alloc_init(unsigned long min_heap_size) {
     }
 
     if(bump_alloc_base == (void *)0xDEADBEEF) {
-        panic("OUT OF MEMORY");
+        panic("OUT OF MEMORY", 0, 0, 0, 0);
     }
 }
 

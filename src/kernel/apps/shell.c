@@ -69,8 +69,11 @@ void start_shell() {
                     printMemoryMap();
                     printString(charBuffer, 10 + (14 * 8), FB_HEIGHT - 16);
                     charBufferIndex = 0;
+                } else if(strncmp("FAULT", charBuffer, 5) == 0) {
+                    volatile uint64_t *fault = (volatile uint64_t *)0xDEADBEEF;
+                    *fault = 0xDEADBEEF;
                 } else if(strncmp("PANIC", charBuffer, 5) == 0) {
-                    panic("You asked for this lmao");
+                    panic("You asked for this lmao", 0, 0, 0, 0);
                 } else {
                     int validCommand = 0;
                     #ifdef INCLUDE_DEMOS

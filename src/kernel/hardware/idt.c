@@ -35,11 +35,14 @@ void set_idt_entry(int index, void (*handler)()) {
 }
 
 void setup_idt() {
-    for (int i = 0; i < 256; ++i)
+    for (int i = 0x1F; i < 256; ++i)
         set_idt_entry(i, (void (*)())generic_isr);
 
-    set_idt_entry(0x20, (void (*)())pit_isr);
-    set_idt_entry(0x21, (void (*)())ps2_isr);
+    set_idt_entry(INTERRUPT_HANDLER_DOUBLE_FAULT, (void (*)())double_fault_isr);
+    set_idt_entry(INTERRUPT_HANDLER_GENERAL_PROTECTION_FAULT, (void (*)())gp_fault_isr);
+    set_idt_entry(INTERRUPT_HANDLER_PAGE_FAULT, (void (*)())page_fault_isr);
+    set_idt_entry(INTERRUPT_HANDLER_PIT, (void (*)())pit_isr);
+    set_idt_entry(INTERRUPT_HANDLER_PS2, (void (*)())ps2_isr);
 
     idtr.limit = sizeof(idt) - 1;
     idtr.base = (uint64_t)&idt;

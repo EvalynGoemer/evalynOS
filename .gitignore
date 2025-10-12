@@ -8,6 +8,9 @@
 /obj*/
 /bin*/
 
+# Generated files
+/src/generated/*.c
+
 # QEMU Files
 OVMF*
 NvVars

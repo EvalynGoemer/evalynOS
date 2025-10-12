@@ -1,6 +1,6 @@
 # This file was taken and modified from https://codeberg.org/Limine/limine-c-template/raw/commit/c8bc5a2b93397a19272a19a6004b0eeb1e90d982/kernel/GNUmakefile
 
-CFLAGS := -O2 -DINCLUDE_DEMOS # -DSKIP_TO_DEMOS
+CFLAGS := -O2 -g -fno-omit-frame-pointer -DINCLUDE_DEMOS -DMUTE_KERNEL_PANIC # -DSKIP_TO_DEMOS
 
 # Nuke built-in rules.
 .SUFFIXES:
@@ -78,7 +78,7 @@ override CFLAGS += \
     -fno-lto \
     -fno-PIC \
     -ffunction-sections \
-    -fdata-sections
+    -fdata-sections \
 
 # Internal C preprocessor flags that should not be changed by the user.
 override CPPFLAGS := \
@@ -216,12 +216,18 @@ endif
 # Remove object files and the final executable.
 .PHONY: clean
 clean:
-	rm -rf bin-$(ARCH) obj-$(ARCH)
+	rm -rf ./bin-$(ARCH)
+	rm -rf ./obj-$(ARCH)
+	rm -rf ./kernel.elf
 
-# Remove everything built and generated including downloaded dependencies.
-.PHONY: distclean
-distclean:
-	rm -rf bin-* obj-* .deps-obtained freestnd-c-hdrs cc-runtime limine-protocol
+.PHONY: genclean
+genclean:
+	rm -rf ./src/generated/*.c
+
+# Remove downloaded dependencies.
+.PHONY: depclean
+depclean:
+	rm -rf .deps-obtained freestnd-c-hdrs cc-runtime limine-protocol
 
 # Install the final built executable to its final on-root location.
 .PHONY: install
@@ -235,9 +241,31 @@ uninstall:
 	rm -f "$(DESTDIR)$(PREFIX)/share/$(OUTPUT)/$(OUTPUT)-$(ARCH)"
 	-rmdir "$(DESTDIR)$(PREFIX)/share/$(OUTPUT)"
 
+.PHONY: debug
+debug:
+	make clean
+	make genclean
+	./src/build-scripts/generate-all.sh
+	make -j${nproc}
+	cp ./bin-x86_64/kernel.elf ./kernel.elf
+	./src/build-scripts/generate-symbols.py
+	make clean
+	make -j${nproc}
+	cp ./bin-x86_64/kernel.elf ./kernel.elf
+	qemu-system-x86_64 \
+		-machine q35,accel=kvm \
+		-cpu host \
+		-m 512M \
+		-drive if=pflash,format=raw,readonly=on,file=./OVMF_CODE.4m.fd \
+		-drive if=pflash,format=raw,readonly=on,file=./OVMF_VARS.4m.fd \
+		-drive format=raw,file=fat:rw:. \
+		-boot d \
+		-audiodev pa,id=speaker -machine pcspk-audiodev=speaker
+
 .PHONY: run
 run:
 	make clean
+	./src/build-scripts/generate-all.sh
 	make -j${nproc}
 	cp ./bin-x86_64/kernel.elf ./kernel.elf
 	qemu-system-x86_64 \

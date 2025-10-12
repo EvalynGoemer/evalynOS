@@ -17,6 +17,7 @@ static void ps2_wait_output_full() {
 }
 
 void setup_ps2() {
+    __asm__ __volatile__("cli");
     ps2_wait_input_empty();
     outb(PS2_COMMAND_PORT, 0xAD);
     ps2_wait_input_empty();
@@ -60,4 +61,5 @@ void setup_ps2() {
     outb(PS2_DATA_PORT, 0xF0);
     ps2_wait_input_empty();
     outb(PS2_DATA_PORT, 0x00);
+    __asm__ __volatile__("sti");
 }
