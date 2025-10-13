@@ -2,6 +2,10 @@
 #include "pic.h"
 #include "pit.h"
 
+#include "../filesystem/devfs/devfs.h"
+#include "../memory/pmm.h"
+#include "../libc/string.h"
+
 #define PS2_DATA_PORT 0x60
 #define PS2_STATUS_PORT 0x64
 #define PS2_COMMAND_PORT 0x64
@@ -9,8 +13,24 @@
 #define PS2_STATUS_INPUT_BUFFER_FULL 0x02
 #define PS2_STATUS_OUTPUT_BUFFER_FULL 0x01
 
+volatile uint8_t kbd_buffer_index;
+volatile char kbd_buffer[256] = {'\0'};
+
 void io_wait() {
     outb(0x80, 0);
+}
+
+int kbdDeviceRead(__attribute__((unused)) char* path, char* return_data, int read_length) {
+    for (int i = 0; i < read_length; i++) {
+        return_data[i] = kbd_buffer[kbd_buffer_index];
+        kbd_buffer[kbd_buffer_index] = '\0';
+        kbd_buffer_index--;
+    }
+    return 1;
+}
+
+int kbdDeviceWrite(__attribute__((unused)) char* path, __attribute__((unused)) char* write_data, __attribute__((unused)) int write_length) {
+    return -1;
 }
 
 // Taken and cleaned up and ported from "init_keyboard()" from https://codeberg.org/NerdNextDoor/arikoto/src/commit/ad2620feab9658b2b28a5abc346a8d7fc565bd9b/kernel/src/misc/keyboard.c
@@ -67,5 +87,12 @@ void setup_ps2() {
     mask = inb(PIC1_DATA);
     mask &= ~(1 << 1);
     outb(PIC1_DATA, mask);
+
+    struct device* kbd = kbump_alloc(sizeof(struct device));
+    strcpy(kbd->fullPath, "/dev/ps2/kbd");
+    kbd->read = kbdDeviceRead;
+    kbd->write = kbdDeviceWrite;
+
+    register_device(kbd);
     __asm__ __volatile__("sti");
 }

@@ -2,18 +2,28 @@
 
 #include "../kernel.h"
 #include "../libc/stdio.h"
+#include "../filesystem/filesystem.h"
 #include "../renderer/fb_renderer.h"
-#include "../interupts/ps2.h"
 #include "../memory/memory_debug.h"
+#include "../hardware/pit.h"
 #include "../panic.h"
 
 #ifdef INCLUDE_DEMOS
     #include "../demos/demos.h"
 #endif
 
-void start_shell() {
-    static const unsigned char scancode_set1_ascii[256] = { [0x02]='1',[0x03]='2',[0x04]='3',[0x05]='4',[0x06]='5',[0x07]='6',[0x08]='7',[0x09]='8',[0x0A]='9',[0x0B]='0',[0x0C]='-',[0x0D]='=',[0x10]='Q',[0x11]='W',[0x12]='E',[0x13]='R',[0x14]='T',[0x15]='Y',[0x16]='U',[0x17]='I',[0x18]='O',[0x19]='P',[0x1A]='[',[0x1B]=']',[0x1E]='A',[0x1F]='S',[0x20]='D',[0x21]='F',[0x22]='G',[0x23]='H',[0x24]='J',[0x25]='K',[0x26]='L',[0x27]=';',[0x28]='\'',[0x29]='`',[0x2C]='Z',[0x2D]='X',[0x2E]='C',[0x2F]='V',[0x30]='B',[0x31]='N',[0x32]='M',[0x33]=',',[0x34]='.',[0x35]='/',[0x39]=' ' };
+char *to_upper(char *s) {
+    char *p = s;
+    while (*p) {
+        if (*p >= 'a' && *p <= 'z')
+            *p -= ('a' - 'A');
+        p++;
+    }
+    return s;
+}
 
+
+void start_shell() {
     char charBuffer[64];
 
     for (int i = 0; i < 64 - 1; ++i) {
@@ -27,79 +37,80 @@ void start_shell() {
     int charBufferIndex = 0;
 
     while (1) {
-        if (ps2IrqFired) {
-            printString("Kernel Shell> ", 10, FB_HEIGHT - 16);
-            ps2IrqFired = 0;
+        char keyPressed[1] = {'\0'};
+        fs_read("/dev/ps2/kbd", keyPressed, 1);
 
-            if (ps2LastScanCode == 14) { // Backspace
-                if (charBufferIndex > 0) {
-                    charBufferIndex--;
-                    charBuffer[charBufferIndex] = ' ';
-                    printString(charBuffer, 10 + (14 * 8), FB_HEIGHT - 16);
-                }
-            } else if(ps2LastScanCode == 28) { // Enter
-                if(strncmp("TEST", charBuffer, 4) == 0) {
-                    for (int i = 0; i < 62 - 1; ++i) {
-                        charBuffer[i] = ' ';
-                    }
-                    printf("Test command works");
-                    printString(charBuffer, 10 + (14 * 8), FB_HEIGHT - 16);
-                    charBufferIndex = 0;
-                } else if(strncmp("CLEARFB", charBuffer, 7) == 0 || strncmp("CLSFB", charBuffer, 5) == '\0') {
-                    for (int i = 0; i < 62 - 1; ++i) {
-                        charBuffer[i] = ' ';
-                    }
-                    clearScreen(FB_WIDTH, FB_HEIGHT);
-                    printf("Screen Cleared");
-                    charBufferIndex = 0;
-                } else if (strncmp("CLEAR", charBuffer, 5) == 0 || strncmp("CLS", charBuffer, 3) == '\0') {
-                    for (int i = 0; i < 62 - 1; ++i) {
-                        charBuffer[i] = ' ';
-                    }
-                    cleark();
-                    printf("Cleared Terminal");
-                    printString(charBuffer, 10 + (14 * 8), FB_HEIGHT - 16);
-                    charBufferIndex = 0;
-                }  else if(strncmp("MMAP", charBuffer, 4) == 0) {
-                    for (int i = 0; i < 62 - 1; ++i) {
-                        charBuffer[i] = ' ';
-                    }
-                    printString(charBuffer, 10, 8);
-                    printf("Memory Map Printed");
-                    printMemoryMap();
-                    printString(charBuffer, 10 + (14 * 8), FB_HEIGHT - 16);
-                    charBufferIndex = 0;
-                } else if(strncmp("FAULT", charBuffer, 5) == 0) {
-                    volatile uint64_t *fault = (volatile uint64_t *)0xDEADBEEF;
-                    *fault = 0xDEADBEEF;
-                } else if(strncmp("PANIC", charBuffer, 5) == 0) {
-                    panic("You asked for this lmao", 0, 0, 0, 0);
-                } else {
-                    int validCommand = 0;
-                    #ifdef INCLUDE_DEMOS
-                    validCommand = handle_demos(charBuffer);
-                    #endif
-                    if(!validCommand && charBuffer[0] != ' ') {
-                        printString(charBuffer, 10, 8);
-                        printf("Invalid Shell Command: %s", charBuffer);
-                        printString(charBuffer, 10 + (14 * 8), FB_HEIGHT - 16);
-                    }
+        printString("Kernel Shell> ", 10, FB_HEIGHT - 16);
 
-                    for (int i = 0; i < 62 - 1; ++i) {
-                        charBuffer[i] = ' ';
-                    }
-                    charBufferIndex = 0;
-                }
-            } else {
-                char c = scancode_set1_ascii[ps2LastScanCode];
-                if (c != 0 && charBufferIndex < 62 - 1) {
-                    charBuffer[charBufferIndex++] = c;
-                }
+        if (keyPressed[0] == '\b') {  // Backspace
+            if (charBufferIndex > 0) {
+                charBufferIndex--;
+                charBuffer[charBufferIndex] = ' ';
+                printString(charBuffer, 10 + (14 * 8), FB_HEIGHT - 16);
             }
+        } else if (keyPressed[0] == '\n') {  // Enter
+            if (strncmp("TEST", to_upper(charBuffer), 4) == 0) {
+                for (int i = 0; i < 62 - 1; ++i) {
+                    charBuffer[i] = ' ';
+                }
+                printf("Test command works");
+                printString(charBuffer, 10 + (14 * 8), FB_HEIGHT - 16);
+                charBufferIndex = 0;
+            } else if (strncmp("CLEARFB", to_upper(charBuffer), 7) == 0 || strncmp("CLSFB", charBuffer, 5) == '\0') {
+                for (int i = 0; i < 62 - 1; ++i) {
+                    charBuffer[i] = ' ';
+                }
+                clearScreen(FB_WIDTH, FB_HEIGHT);
+                printf("Screen Cleared");
+                printString("Kernel Shell> ", 10, FB_HEIGHT - 16);
+                charBufferIndex = 0;
+            } else if (strncmp("CLEAR", to_upper(charBuffer), 5) == 0 || strncmp("CLS", charBuffer, 3) == '\0') {
+                for (int i = 0; i < 62 - 1; ++i) {
+                    charBuffer[i] = ' ';
+                }
+                cleark();
+                printf("Cleared Terminal");
+                printString(charBuffer, 10 + (14 * 8), FB_HEIGHT - 16);
+                charBufferIndex = 0;
+            } else if (strncmp("MMAP", to_upper(charBuffer), 4) == 0) {
+                for (int i = 0; i < 62 - 1; ++i) {
+                    charBuffer[i] = ' ';
+                }
+                printString(charBuffer, 10, 8);
+                printf("Memory Map Printed");
+                printMemoryMap();
+                printString(charBuffer, 10 + (14 * 8), FB_HEIGHT - 16);
+                charBufferIndex = 0;
+            } else if (strncmp("FAULT", to_upper(charBuffer), 5) == 0) {
+                volatile uint64_t *fault = (volatile uint64_t *)0xDEADBEEF;
+                *fault = 0xDEADBEEF;
+            } else if (strncmp("PANIC", to_upper(charBuffer), 5) == 0) {
+                panic("You asked for this lmao", 0, 0, 0, 0);
+            } else {
+                int validCommand = 0;
+                #ifdef INCLUDE_DEMOS
+                validCommand = handle_demos(to_upper(charBuffer));
+                #endif
+                if (!validCommand && charBuffer[0] != ' ') {
+                    printString(charBuffer, 10, 8);
+                    printf("Invalid Shell Command: %s", charBuffer);
+                    printString(charBuffer, 10 + (14 * 8), FB_HEIGHT - 16);
+                }
 
-            printString(charBuffer, 10 + (14 * 8), FB_HEIGHT - 16);
+                for (int i = 0; i < 62 - 1; ++i) {
+                    charBuffer[i] = ' ';
+                }
+                charBufferIndex = 0;
+            }
+        } else {
+            char c = keyPressed[0];
+            if (c != 0 && charBufferIndex < 62 - 1) {
+                charBuffer[charBufferIndex++] = c;
+            }
         }
 
-        __asm__ __volatile__("hlt");
+        printString(charBuffer, 10 + (14 * 8), FB_HEIGHT - 16);
     }
+
+    pit_sleep_ms(1);
 }

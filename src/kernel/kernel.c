@@ -10,6 +10,8 @@
 #include "interupts/interupts.h"
 #include "renderer/fb_renderer.h"
 #include "memory/memory.h"
+#include "filesystem/filesystem.h"
+#include "filesystem/devfs/devfs.h"
 
 #include "apps/shell.h"
 
@@ -104,18 +106,20 @@ void kmain(void) {
     printf("Kernel: PIT Setup");
     printString("pitInteruptsTriggered: [Logging Stripped For Preformance]", 10, FB_HEIGHT - 48);
 
-    setup_ps2();
-    printf("Kernel: PS/2 Keyboard Setup");
-    printString("ps2InteruptsTriggered: [Not Updated]", 10, FB_HEIGHT - 40);
-    printString("PS/2 Keyboard Event: [Not Updated]", 10, FB_HEIGHT - 32);
-
     printf("Kernel: Basic Bump Allocator Setup");
     kbump_alloc_init(0x1000000);
 
     vmm_init();
+    printMemoryMap();
     printf("Kernel: Virtual Memory Manager Setup");
 
-    printMemoryMap();
+    init_devfs();
+    printf("Kernel: devFS Mounted");
+
+    setup_ps2();
+    printf("Kernel: PS/2 Keyboard Setup");
+    printString("ps2InteruptsTriggered: [Not Updated]", 10, FB_HEIGHT - 40);
+    printString("PS/2 Keyboard Event: [Not Updated]", 10, FB_HEIGHT - 32);
 
     printf("Kernel: Press Enter to Start the Builtin Kernel Test CLI");
 
@@ -131,11 +135,15 @@ void kmain(void) {
         __asm__ __volatile__("hlt");
     #endif
 
-    while (ps2LastScanCode != 28) {
-        __asm__ __volatile__("hlt");
+    int enterPressed = 0;
+    while (!enterPressed) {
+        char keyPressed[1];
+        fs_read("/dev/ps2/kbd", keyPressed, 1);
+        if (keyPressed[0] == '\n') {
+            enterPressed = 1;
+        }
+        pit_sleep_ms(1);
     }
-
-    ps2LastScanCode = 0;
 
     while (1) {
         clearScreen(FB_WIDTH, FB_HEIGHT);
