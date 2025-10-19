@@ -12,6 +12,7 @@
 #include "memory/memory.h"
 #include "filesystem/filesystem.h"
 #include "filesystem/devfs/devfs.h"
+#include "filesystem/tarfs/tarfs.h"
 
 #include "apps/shell.h"
 
@@ -56,6 +57,12 @@ volatile struct limine_paging_mode_request paging_mode_request = {
     .mode = LIMINE_PAGING_MODE_X86_64_4LVL,
     .max_mode = LIMINE_PAGING_MODE_X86_64_4LVL,
     .min_mode = LIMINE_PAGING_MODE_X86_64_4LVL
+};
+
+__attribute__((used, section(".limine_requests")))
+volatile struct limine_module_request module_request = {
+    .id = LIMINE_MODULE_REQUEST,
+    .revision = 3
 };
 
 __attribute__((used, section(".limine_requests_start")))
@@ -120,6 +127,20 @@ void kmain(void) {
     printf("Kernel: PS/2 Keyboard Setup");
     printString("ps2InteruptsTriggered: [Not Updated]", 10, FB_HEIGHT - 40);
     printString("PS/2 Keyboard Event: [Not Updated]", 10, FB_HEIGHT - 32);
+
+    int status = init_tarfs();
+    if(status == -1) {
+        printf("Kernel: Could not find initramfs.tar; HALTING");
+        while (1) {
+            __asm__ __volatile__("cli");
+            __asm__ __volatile__("hlt");
+        }
+    }
+    printf("Kernel: tarFS as initramfs Mounted");
+
+    char readBuf[512];
+    status = fs_read("/test.txt", readBuf, 512);
+    printf("Kernel: Printing \"test.txt\" from initramfs: %s", readBuf);
 
     printf("Kernel: Press Enter to Start the Builtin Kernel Test CLI");
 

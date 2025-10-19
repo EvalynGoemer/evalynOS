@@ -12,16 +12,19 @@
     #include "../demos/demos.h"
 #endif
 
-char *to_upper(char *s) {
-    char *p = s;
-    while (*p) {
-        if (*p >= 'a' && *p <= 'z')
-            *p -= ('a' - 'A');
-        p++;
-    }
-    return s;
-}
+char *to_upper(const char *s) {
+    static char buf[256];
+    char *p = buf;
 
+    if (!s) return NULL;
+
+    while (*s && (size_t)(p - buf) < sizeof(buf) - 1) {
+        *p++ = (*s >= 'a' && *s <= 'z') ? *s - ('a' - 'A') : *s;
+        s++;
+    }
+    *p = '\0';
+    return buf;
+}
 
 void start_shell() {
     char charBuffer[64];
@@ -54,6 +57,52 @@ void start_shell() {
                     charBuffer[i] = ' ';
                 }
                 printf("Test command works");
+
+                charBufferIndex = 0;
+            } else if (strncmp("CREDITS", to_upper(charBuffer), 7) == 0) {
+                for (int i = 0; i < 62 - 1; ++i) {
+                    charBuffer[i] = ' ';
+                }
+
+                printString("Press any key to scroll one line", 8, 10 * 25);
+
+                char data[16 * 1024];
+                fs_read("/credits.txt", data, 16 * 1024);
+
+                char line[81];
+
+                int i = 0;
+                int lines_printed = 0;
+                while (data[i] != '\0') {
+                    int ix = 0;
+
+                    while (ix < 80 && data[i] != '\0' && data[i] != '\n') {
+                        line[ix] = data[i];
+                        ix++;
+                        i++;
+                    }
+
+                    line[ix] = '\0';
+                    printf("%s", line);
+                    lines_printed++;
+                    if (data[i] == '\n') {
+                        i++;
+                    }
+
+                    if(lines_printed > 23) {
+                        int wasKeyPressed = 0;
+                        while (!wasKeyPressed) {
+                            char keyPressed[1];
+                            fs_read("/dev/ps2/kbd", keyPressed, 1);
+                            if (keyPressed[0] != '\0') {
+                                wasKeyPressed = 1;
+                            }
+                            pit_sleep_ms(1);
+                        }
+                    }
+                }
+
+                printString("                                                  ", 8, 10 * 25);
                 printString(charBuffer, 10 + (14 * 8), FB_HEIGHT - 16);
                 charBufferIndex = 0;
             } else if (strncmp("CLEARFB", to_upper(charBuffer), 7) == 0 || strncmp("CLSFB", charBuffer, 5) == '\0') {

@@ -3,6 +3,7 @@
 
 #include "../renderer/fb_renderer.h"
 #include "../kernel.h"
+#include "../libc/stdio.h"
 
 char* int_to_hex(unsigned long num) {
     static const char hex[] = "0123456789ABCDEF";
@@ -28,6 +29,11 @@ void printMemoryMap() {
     const int column_spacing = 150;
     const int row_height = 10;
     const uint64_t entry_count = memmap_request.response->entry_count;
+
+    if (entry_count > 48) {
+        printf("Kernel: Error too many entries to print");
+        return;
+    }
 
     int start_y = FB_HEIGHT - (row_height * (entry_count + 1)) - 10;
     int start_x = FB_WIDTH - ((column_spacing * 2) + 176) - 10;

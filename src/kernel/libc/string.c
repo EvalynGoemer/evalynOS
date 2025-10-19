@@ -81,3 +81,12 @@ char *strcpy(char *strDest, const char *strSrc) {
     while ((*strDest++ = *strSrc++) != '\0');
     return temp;
 }
+
+
+size_t strlen(const char *str) {
+    const char *s = str;
+    while (*s) {
+        s++;
+    }
+    return s - str;
+}

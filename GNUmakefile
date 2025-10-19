@@ -223,6 +223,7 @@ clean:
 .PHONY: genclean
 genclean:
 	rm -rf ./src/generated/*.c
+	rm -rf ./src/generated/*.hash
 
 # Remove downloaded dependencies.
 .PHONY: depclean

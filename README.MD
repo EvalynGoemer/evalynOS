@@ -22,6 +22,7 @@ Run and compile and generate symbols (Compiles twice) with `make debug`
 - `-DINCLUDE_DEMOS`: Compiles the demos to be bundled with the kernel (Large, Will be moved to userspace later)
 - `-DSKIP_TO_DEMOS`: Have kernel automaticaly launch demos if keyboard drivers are not working on your hardware (Will be implemented into userspace with an init system later)
 - `-DMUTE_KERNEL_PANIC`: Disables the 1khz tone played on a kernel panic for when doing active work on the kernel
+
 Add these flags to the `GNUmakefile` `CFLAGS` section
 
 ## Real Hardware
@@ -36,6 +37,7 @@ Copy the `EFI` folder and `limine.conf` and `kernel.elf` to the root of a GPT fo
 
 ## Kernel Mode Shell Commands
 - `TEST`: Prints a test message
+- `CREDITS`: Prints credits.txt
 - `CLEAR`: Clears the terminal (ALIAS: `CLS`)
 - `CLEARFB`: Clears the framebufer (ALIAS: `CLSFB`)
 - `MMAP`: Prints the memory map provided by the bootloader

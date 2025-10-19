@@ -11,3 +11,4 @@ extern int strcmp(const char *s1, const char *s2);
 extern int strncmp(const char *s1, const char *s2, unsigned long n);
 
 extern char *strcpy(char *strDest, const char *strSrc);
+extern size_t strlen(const char *str);

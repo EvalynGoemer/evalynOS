@@ -92,7 +92,7 @@ void setup_ps2() {
     strcpy(kbd->fullPath, "/dev/ps2/kbd");
     kbd->read = kbdDeviceRead;
     kbd->write = kbdDeviceWrite;
-
     register_device(kbd);
+
     __asm__ __volatile__("sti");
 }

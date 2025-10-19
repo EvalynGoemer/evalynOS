@@ -10,6 +10,8 @@
 
 # Generated files
 /src/generated/*.c
+/src/generated/*.hash
+initramfs.tar
 
 # QEMU Files
 OVMF*
