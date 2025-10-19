@@ -2,6 +2,7 @@
 
 #include "../kernel.h"
 #include "../libc/stdio.h"
+#include "../libc/stdlib.h"
 #include "../filesystem/filesystem.h"
 #include "../renderer/fb_renderer.h"
 #include "../memory/memory_debug.h"
@@ -66,7 +67,7 @@ void start_shell() {
 
                 printString("Press any key to scroll one line", 8, 10 * 25);
 
-                char data[16 * 1024];
+                char *data = malloc(16 * 1024);
                 fs_read("/credits.txt", data, 16 * 1024);
 
                 char line[81];
@@ -89,7 +90,7 @@ void start_shell() {
                         i++;
                     }
 
-                    if(lines_printed > 23) {
+                    if (lines_printed > 23) {
                         int wasKeyPressed = 0;
                         while (!wasKeyPressed) {
                             char keyPressed[1];
@@ -102,10 +103,12 @@ void start_shell() {
                     }
                 }
 
+                free(data);
+
                 printString("                                                  ", 8, 10 * 25);
                 printString(charBuffer, 10 + (14 * 8), FB_HEIGHT - 16);
                 charBufferIndex = 0;
-            } else if (strncmp("CLEARFB", to_upper(charBuffer), 7) == 0 || strncmp("CLSFB", charBuffer, 5) == '\0') {
+            } else if (strncmp("CLEARFB", to_upper(charBuffer), 7) == 0 || strncmp("CLSFB", to_upper(charBuffer), 5) == '\0') {
                 for (int i = 0; i < 62 - 1; ++i) {
                     charBuffer[i] = ' ';
                 }
@@ -113,7 +116,7 @@ void start_shell() {
                 printf("Screen Cleared");
                 printString("Kernel Shell> ", 10, FB_HEIGHT - 16);
                 charBufferIndex = 0;
-            } else if (strncmp("CLEAR", to_upper(charBuffer), 5) == 0 || strncmp("CLS", charBuffer, 3) == '\0') {
+            } else if (strncmp("CLEAR", to_upper(charBuffer), 5) == 0 || strncmp("CLS", to_upper(charBuffer), 3) == '\0') {
                 for (int i = 0; i < 62 - 1; ++i) {
                     charBuffer[i] = ' ';
                 }
@@ -160,6 +163,5 @@ void start_shell() {
 
         printString(charBuffer, 10 + (14 * 8), FB_HEIGHT - 16);
     }
-
     pit_sleep_ms(1);
 }

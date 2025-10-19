@@ -45,17 +45,12 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "../panic.h"
-#include "../libc/string.h"
 #include "../libc/stdio.h"
+#include "../libc/string.h"
+#include "../panic.h"
 #include "../renderer/fb_renderer.h"
-#include "vmm.h"
 #include "pmm.h"
-
-void free_page(void* _stub ,...) {
-    // let it leak let it leak, let it leak and shrivel up and crash
-    (void)_stub;
-}
+#include "vmm.h"
 
 extern uint8_t _text_start[], _text_end[];
 extern uint8_t _rodata_start[], _rodata_end[];
@@ -84,29 +79,23 @@ static uint64_t *vmm_get_next_level(uint64_t *current_level_virt, size_t index, 
         return NULL;
     }
 
-    void *next_level_phys = kbump_alloc_phys(PAGE_SIZE);
+    void *next_level_phys = allocate_page();
     if (next_level_phys == NULL) {
-        printf(
-            "VMM: Failed to allocate page for new page table level (index "
-            "%u)\n",
-            (unsigned)index);
+        printf("Kernel: Failed to allocate page for new page table level (index %u)\n", (unsigned)index);
         return NULL;
     }
 
-    uint64_t *next_level_virt =
-        (uint64_t *)((uintptr_t)next_level_phys + VMM_HIGHER_HALF);
+    uint64_t *next_level_virt = (uint64_t *)((uintptr_t)next_level_phys + VMM_HIGHER_HALF);
     memset(next_level_virt, 0, PAGE_SIZE);
 
-    uint64_t new_entry_flags =
-        alloc_entry_flags ? alloc_entry_flags : (PTE_PRESENT | PTE_WRITABLE);
+    uint64_t new_entry_flags = alloc_entry_flags ? alloc_entry_flags : (PTE_PRESENT | PTE_WRITABLE);
 
-    current_level_virt[index] =
-        (uint64_t)(uintptr_t)next_level_phys | new_entry_flags;
+    current_level_virt[index] = (uint64_t)(uintptr_t)next_level_phys | new_entry_flags;
 
     return next_level_virt;
 }
 
-bool vmm_map_page(pagemap_t *pagemap, uintptr_t virt_addr, uintptr_t phys_addr,uint64_t flags) {
+bool vmm_map_page(pagemap_t *pagemap, uintptr_t virt_addr, uintptr_t phys_addr, uint64_t flags) {
     virt_addr &= ~(PAGE_SIZE - 1);
     phys_addr &= ~(PAGE_SIZE - 1);
 
@@ -131,15 +120,14 @@ bool vmm_map_page(pagemap_t *pagemap, uintptr_t virt_addr, uintptr_t phys_addr,u
     asm volatile("invlpg (%0)" ::"r"(virt_addr) : "memory");
     return true;
 
-fail:
-    printf("VMM Error: Failed to map page for virt %p\n", (void *)virt_addr);
+    fail:
+    printf("Kernel: Failed to map page for virt %p\n", (void *)virt_addr);
     return false;
 }
 
 bool vmm_unmap_page(pagemap_t *pagemap, uintptr_t virt_addr) {
     if (virt_addr % PAGE_SIZE != 0) {
-        printf("Warning: vmm_unmap_page called with non-aligned virt %p\n",
-               (void *)virt_addr);
+        printf("Kernel: vmm_unmap_page called with non-aligned virt %p\n", (void *)virt_addr);
         return false;
     }
 
@@ -243,7 +231,7 @@ void vmm_switch_to(pagemap_t *pagemap) {
     asm volatile("mov %0, %%cr3" ::"r"(pml4_phys) : "memory");
 }
 
-void vmm_init(void) {
+void setup_vmm() {
     if (hhdm_request.response == NULL) {
         panic("HHDM request response missing\n", 0, 0, 0, 0);
     }
@@ -254,7 +242,7 @@ void vmm_init(void) {
         panic("Memory Map request response missing\n", 0, 0, 0, 0);
     }
 
-    void *pml4_phys = kbump_alloc_phys(PAGE_SIZE);
+    void *pml4_phys = allocate_page();
     if (pml4_phys == NULL) {
         panic("Failed to allocate kernel PML4 table page\n", 0, 0, 0, 0);
     }
@@ -278,8 +266,7 @@ void vmm_init(void) {
 
     uintptr_t kernel_virt_end = data_end_addr;
 
-    for (uintptr_t p_virt = kernel_virt_base; p_virt < kernel_virt_end;
-         p_virt += PAGE_SIZE) {
+    for (uintptr_t p_virt = kernel_virt_base; p_virt < kernel_virt_end; p_virt += PAGE_SIZE) {
         uintptr_t p_phys = (p_virt - kernel_virt_base) + kernel_phys_base;
         uint64_t flags = PTE_PRESENT;
 
@@ -309,19 +296,16 @@ void vmm_init(void) {
         if (map_top <= map_base) continue;
 
         for (uintptr_t p = map_base; p < map_top; p += PAGE_SIZE) {
-            if (!vmm_map_page(kernel_pagemap, p + VMM_HIGHER_HALF, p,
-                              PTE_PRESENT | PTE_WRITABLE | PTE_NX)) {
+            if (!vmm_map_page(kernel_pagemap, p + VMM_HIGHER_HALF, p, PTE_PRESENT | PTE_WRITABLE | PTE_NX)) {
                 panic("Failed to map HHDM page", 0, 0, 0, 0);
             }
         }
 
         const uintptr_t IDENTITY_MAP_LIMIT = 0x00100000;
         if (map_base < IDENTITY_MAP_LIMIT) {
-            uintptr_t identity_top =
-                (map_top > IDENTITY_MAP_LIMIT) ? IDENTITY_MAP_LIMIT : map_top;
+            uintptr_t identity_top = (map_top > IDENTITY_MAP_LIMIT) ? IDENTITY_MAP_LIMIT : map_top;
             for (uintptr_t p = map_base; p < identity_top; p += PAGE_SIZE) {
-                if (!vmm_map_page(kernel_pagemap, p, p,
-                                  PTE_PRESENT | PTE_WRITABLE | PTE_NX)) {
+                if (!vmm_map_page(kernel_pagemap, p, p, PTE_PRESENT | PTE_WRITABLE | PTE_NX)) {
                     panic("Failed to identity map low page", 0, 0, 0, 0);
                 }
             }

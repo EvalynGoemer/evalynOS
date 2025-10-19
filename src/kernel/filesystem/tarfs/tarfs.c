@@ -1,6 +1,6 @@
 #include "../filesystem.h"
-#include "../../memory/pmm.h"
 #include "../../libc/string.h"
+#include "../../libc/stdlib.h"
 #include "../../libc/stdio.h"
 #include "../../kernel.h"
 #include <stdint.h>
@@ -60,7 +60,7 @@ int init_tarfs() {
         return -1;
     }
 
-    struct filesystem* tarfs = kbump_alloc(sizeof(struct filesystem_node));
+    struct filesystem* tarfs = malloc(sizeof(struct filesystem));
     strcpy(tarfs->rootPath, "/");
     tarfs->read = tarfsRead;
     tarfs->write = tarfsWrite;

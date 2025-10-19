@@ -82,4 +82,14 @@ PERFORMANCE OF THIS SOFTWARE.
 Special Thanks / Unknown License:
 Various Code Samples & General Help: https://wiki.osdev.org/
 libc/string/strcpy: https://stackoverflow.com/a/20190538
+
+Being good friends and helping along the way:
+- @pewpewcricket      (Discord)
+- @mortish_           (Discord)
+- @plenorf            (Discord)
+- @iamthenerdnextdoor (Discord)
+
+Being such losers that I got more motivated out of spite:
+- @xi.self            (Discord)
+- @bobirik123_        (Discord)
 --------------------------------------------------------------------------------

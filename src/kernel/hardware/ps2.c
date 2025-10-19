@@ -5,6 +5,7 @@
 #include "../filesystem/devfs/devfs.h"
 #include "../memory/pmm.h"
 #include "../libc/string.h"
+#include "../libc/stdlib.h"
 
 #define PS2_DATA_PORT 0x60
 #define PS2_STATUS_PORT 0x64
@@ -88,7 +89,7 @@ void setup_ps2() {
     mask &= ~(1 << 1);
     outb(PIC1_DATA, mask);
 
-    struct device* kbd = kbump_alloc(sizeof(struct device));
+    struct device* kbd = malloc(sizeof(struct device));
     strcpy(kbd->fullPath, "/dev/ps2/kbd");
     kbd->read = kbdDeviceRead;
     kbd->write = kbdDeviceWrite;

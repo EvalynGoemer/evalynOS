@@ -1,11 +1,12 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
-
 #define LIMINE_API_REVISION 3
 #include <limine.h>
 
 #include "libc/stdio.h"
+#include "libc/string.h"
+#include "libc/stdlib.h"
 #include "hardware/hardware.h"
 #include "interupts/interupts.h"
 #include "renderer/fb_renderer.h"
@@ -113,12 +114,15 @@ void kmain(void) {
     printf("Kernel: PIT Setup");
     printString("pitInteruptsTriggered: [Logging Stripped For Preformance]", 10, FB_HEIGHT - 48);
 
-    printf("Kernel: Basic Bump Allocator Setup");
-    kbump_alloc_init(0x1000000);
+    setup_pmm();
+    printf("Kernel: Physical Memory Manager Setup");
 
-    vmm_init();
+    setup_vmm();
     printMemoryMap();
     printf("Kernel: Virtual Memory Manager Setup");
+
+    setup_heap();
+    printf("Kernel: Heap Setup");
 
     init_devfs();
     printf("Kernel: devFS Mounted");

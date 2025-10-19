@@ -1,7 +1,7 @@
 #include "devfs.h"
 #include "../filesystem.h"
 #include "../../libc/string.h"
-#include "../../memory/pmm.h"
+#include "../../libc/stdlib.h"
 
 struct device_node* devices = NULL;
 
@@ -58,7 +58,7 @@ int devfsWrite(char* path, char* write_data, int write_length) {
 }
 
 void init_devfs() {
-    struct filesystem* devfs = kbump_alloc(sizeof(struct device_node));
+    struct filesystem* devfs = malloc(sizeof(struct filesystem));
     strcpy(devfs->rootPath, "/dev");
     devfs->read = devfsRead;
     devfs->write = devfsWrite;
@@ -67,7 +67,7 @@ void init_devfs() {
 }
 
 int register_device(struct device* device) {
-    struct device_node* new_device = kbump_alloc(sizeof(struct device_node));
+    struct device_node* new_device = malloc(sizeof(struct device_node));
     new_device->device = device;
     new_device->next = devices;
     devices = new_device;

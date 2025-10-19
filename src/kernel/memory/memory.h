@@ -3,3 +3,4 @@
 
 #include "pmm.h"
 #include "vmm.h"
+#include "heap.h"

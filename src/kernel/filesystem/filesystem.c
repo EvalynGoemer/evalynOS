@@ -1,13 +1,13 @@
 #include <stddef.h>
 #include "filesystem.h"
-#include "../memory/pmm.h"
 #include "../libc/string.h"
 #include "../libc/stdio.h"
+#include "../libc/stdlib.h"
 
 struct filesystem_node* filesystems = NULL;
 
 int register_fs(struct filesystem* fs) {
-    struct filesystem_node* new_fs = kbump_alloc(sizeof(struct filesystem_node));
+    struct filesystem_node* new_fs = malloc(sizeof(struct filesystem_node));
     new_fs->fs = fs;
     new_fs->next = filesystems;
     filesystems = new_fs;
