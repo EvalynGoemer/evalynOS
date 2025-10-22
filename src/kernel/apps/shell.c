@@ -6,12 +6,37 @@
 #include "../filesystem/filesystem.h"
 #include "../renderer/fb_renderer.h"
 #include "../memory/memory_debug.h"
+#include "../memory/vmm.h"
+#include "../memory/pmm.h"
+#include "../scheduler/scheduler.h"
+#include "../scheduler/switch.h"
 #include "../hardware/pit.h"
 #include "../panic.h"
 
 #ifdef INCLUDE_DEMOS
     #include "../demos/demos.h"
 #endif
+
+int create_once = 0;
+int run_once = 0;
+void test_bin_kthread() {
+    if(!run_once) {
+        vmm_unmap_page(kernel_pagemap, 0x5000);
+        vmm_unmap_page(kernel_pagemap, 0x4000);
+        vmm_unmap_page(kernel_pagemap, 0x3000);
+        vmm_unmap_page(kernel_pagemap, 0x2000);
+
+        vmm_map_page(kernel_pagemap, 0x5000, (uintptr_t)allocate_page(), PTE_PRESENT | PTE_USER | PTE_WRITABLE);
+        vmm_map_page(kernel_pagemap, 0x4000, (uintptr_t)allocate_page(), PTE_PRESENT | PTE_USER | PTE_WRITABLE);
+        vmm_map_page(kernel_pagemap, 0x3000, (uintptr_t)allocate_page(), PTE_PRESENT | PTE_USER | PTE_WRITABLE);
+        vmm_map_page(kernel_pagemap, 0x2000, (uintptr_t)allocate_page(), PTE_PRESENT | PTE_USER | PTE_WRITABLE);
+
+        fs_read("/test.bin", (void *)0x4000, 512);
+
+        run_once = 1;
+    }
+    switch_to_user();
+}
 
 char *to_upper(const char *s) {
     static char buf[256];
@@ -59,6 +84,20 @@ void start_shell() {
                     charBuffer[i] = ' ';
                 }
                 printf("Test command works\n");
+
+                charBufferIndex = 0;
+            } else if (strncmp("USER", to_upper(charBuffer), 4) == 0) {
+                for (int i = 0; i < 62 - 1; ++i) {
+                    charBuffer[i] = ' ';
+                }
+
+                if (!create_once) {
+                    create_thread(test_bin_kthread);
+                    printf("Started user thread\n");
+                    create_once = 1;
+                } else {
+                    printf("User thread already started\n");
+                }
 
                 charBufferIndex = 0;
             } else if (strncmp("CREDITS", to_upper(charBuffer), 7) == 0) {

@@ -95,7 +95,7 @@ static const char *error_mssages[] = {
     "My Kernel is ruined!",
     "Eat my shorts!",
     "Cromulently Ruined",
-    "I'm running out of ideas"
+    "The kernel is a lie"
 };
 
 #define PANIC_FLAGS_VECTOR (1 << 0)

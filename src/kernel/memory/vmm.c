@@ -105,7 +105,7 @@ bool vmm_map_page(pagemap_t *pagemap, uintptr_t virt_addr, uintptr_t phys_addr, 
     size_t pt_index = (virt_addr >> 12) & 0x1FF;
 
     uint64_t alloc_flags = PTE_PRESENT | PTE_WRITABLE;
-    if (flags & PTE_USER) alloc_flags |= PTE_USER;
+    if (flags | PTE_USER) alloc_flags |= PTE_USER;
 
     uint64_t *pml4 = pagemap->top_level;
     uint64_t *pdpt = vmm_get_next_level(pml4, pml4_index, true, alloc_flags);

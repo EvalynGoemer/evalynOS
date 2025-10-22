@@ -8,8 +8,17 @@
 
 int pitFrequency;
 void pit_sleep_ms(unsigned int ms) {
-    int targetTicks = pitInteruptsTriggered + (ms * pitFrequency) / 1000;
+    int startTicks = pitInteruptsTriggered;
+    int targetTicks = startTicks + (ms * pitFrequency) / 1000;
+
     while (pitInteruptsTriggered < targetTicks) {
+        int currentTicks = pitInteruptsTriggered;
+
+        if (currentTicks < startTicks) {
+            startTicks = currentTicks;
+            targetTicks = startTicks + (ms * pitFrequency) / 1000;
+        }
+
         asm volatile("hlt");
     }
 }

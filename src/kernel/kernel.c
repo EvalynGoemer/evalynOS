@@ -1,4 +1,6 @@
 #include "hardware/pit.h"
+#include "memory/pmm.h"
+#include "memory/vmm.h"
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
@@ -16,6 +18,7 @@
 #include "filesystem/devfs/devfs.h"
 #include "filesystem/tarfs/tarfs.h"
 #include "scheduler/scheduler.h"
+#include "scheduler/switch.h"
 
 #include "apps/shell.h"
 
@@ -73,33 +76,6 @@ static volatile LIMINE_REQUESTS_START_MARKER;
 
 __attribute__((used, section(".limine_requests_end")))
 static volatile LIMINE_REQUESTS_END_MARKER;
-
-void thread_1() {
-    while (1) {
-        asm("cli");
-        printf("Hello from Thread 1\n");
-        asm("sti");
-        pit_sleep_ms(100);
-    }
-}
-
-void thread_2() {
-    while (1) {
-        asm("cli");
-        printf("Hello from Thread 2\n");
-        asm("sti");
-        pit_sleep_ms(150);
-    }
-}
-
-void thread_3() {
-    while (1) {
-        asm("cli");
-        printf("Hello from Thread 3\n");
-        asm("sti");
-        pit_sleep_ms(170);
-    }
-}
 
 void kmain(void) {
     if (LIMINE_BASE_REVISION_SUPPORTED == false) {
@@ -202,10 +178,6 @@ void kmain(void) {
     }
 
     create_thread(start_shell);
-    create_thread(thread_1);
-    create_thread(thread_2);
-    create_thread(thread_3);
-
 
     while (1) {
         asm("hlt");

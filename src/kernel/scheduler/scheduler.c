@@ -3,6 +3,10 @@
 #include "scheduler.h"
 #include "switch.h"
 
+#include "../filesystem/filesystem.h"
+#include "../memory/vmm.h"
+#include "../memory/pmm.h"
+
 #include "../hardware/ports.h"
 
 #include "../libc/stdlib.h"

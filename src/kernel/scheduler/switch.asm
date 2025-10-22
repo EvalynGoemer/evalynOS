@@ -1,5 +1,6 @@
 global thread_switch
-global user_return
+global thread_switch_user
+global switch_to_user
 
 section .text
 thread_switch:
@@ -41,3 +42,22 @@ thread_switch:
     popfq
 
     ret
+
+USER_STACK_TOP equ 0x3000
+switch_to_user:
+    mov ax, 0x33
+    mov ds, ax
+    mov es, ax
+    mov fs, ax
+    mov gs, ax
+
+    push 0x33
+    push USER_STACK_TOP
+    pushfq
+    pop rax
+    or rax, 0x200
+    push rax
+    push 0x2B
+    push 0x4000
+    iretq
+

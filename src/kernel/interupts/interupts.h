@@ -8,6 +8,8 @@
 #define INTERRUPT_HANDLER_PIT 0x20
 #define INTERRUPT_HANDLER_PS2 0x21
 
+#define INTERRUPT_HANDLER_SYSCALL 0x69
+
 struct interrupt_frame
 {
     uintptr_t ip;
@@ -23,3 +25,4 @@ struct interrupt_frame
 #include "double_fault.h"
 #include "gp_fault.h"
 #include "page_fault.h"
+#include "syscall.h"

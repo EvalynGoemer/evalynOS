@@ -43,6 +43,7 @@ Copy the `EFI` folder and `limine.conf` and `kernel.elf` to the root of a GPT fo
 - `MMAP`: Prints the memory map provided by the bootloader
 - `PANIC`: Causes a kernel panic
 - `FAULT`: Causes a Page Fault to panic with extended info
+- `USER`: Starts the userspace thread to run in ring3 (src/user/test/test.c)
 
 ## Kernel Mode Shell Demos
 - `BADAPPLE`: Plays the Bad Apple music video on your screen with audio via PC speaker
