@@ -1,3 +1,4 @@
+#include "hardware/pit.h"
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
@@ -14,6 +15,7 @@
 #include "filesystem/filesystem.h"
 #include "filesystem/devfs/devfs.h"
 #include "filesystem/tarfs/tarfs.h"
+#include "scheduler/scheduler.h"
 
 #include "apps/shell.h"
 
@@ -72,6 +74,33 @@ static volatile LIMINE_REQUESTS_START_MARKER;
 __attribute__((used, section(".limine_requests_end")))
 static volatile LIMINE_REQUESTS_END_MARKER;
 
+void thread_1() {
+    while (1) {
+        asm("cli");
+        printf("Hello from Thread 1\n");
+        asm("sti");
+        pit_sleep_ms(100);
+    }
+}
+
+void thread_2() {
+    while (1) {
+        asm("cli");
+        printf("Hello from Thread 2\n");
+        asm("sti");
+        pit_sleep_ms(150);
+    }
+}
+
+void thread_3() {
+    while (1) {
+        asm("cli");
+        printf("Hello from Thread 3\n");
+        asm("sti");
+        pit_sleep_ms(170);
+    }
+}
+
 void kmain(void) {
     if (LIMINE_BASE_REVISION_SUPPORTED == false) {
         __asm__ __volatile__("hlt");
@@ -88,7 +117,7 @@ void kmain(void) {
 
     // Limine boilerplate end
 
-    printf("Kernel: Kernel Started");
+    printf("Kernel: Kernel Started\n");
     printString("Kernel Debug Info", 10, FB_HEIGHT - 64);
 
     // Enable fxsave & fxstor instructions
@@ -104,31 +133,31 @@ void kmain(void) {
     setup_gdt();
     setup_idt();
 
-    printf("Kernel: Basic GDT & IDT Setup");
+    printf("Kernel: Basic GDT & IDT Setup\n");
     printString("genericInteruptsTriggered: [Not Updated]", 10, FB_HEIGHT - 56);
 
     setup_pic(0x20, 0x28);
-    printf("Kernel: PIC Setup");
+    printf("Kernel: PIC Setup\n");
 
     setup_pit(1000);
-    printf("Kernel: PIT Setup");
+    printf("Kernel: PIT Setup\n");
     printString("pitInteruptsTriggered: [Logging Stripped For Preformance]", 10, FB_HEIGHT - 48);
 
     setup_pmm();
-    printf("Kernel: Physical Memory Manager Setup");
+    printf("Kernel: Physical Memory Manager Setup\n");
 
     setup_vmm();
     printMemoryMap();
-    printf("Kernel: Virtual Memory Manager Setup");
+    printf("Kernel: Virtual Memory Manager \n");
 
     setup_heap();
-    printf("Kernel: Heap Setup");
+    printf("Kernel: Heap Setup\n");
 
     init_devfs();
-    printf("Kernel: devFS Mounted");
+    printf("Kernel: devFS Mounted\n");
 
     setup_ps2();
-    printf("Kernel: PS/2 Keyboard Setup");
+    printf("Kernel: PS/2 Keyboard Setup\n");
     printString("ps2InteruptsTriggered: [Not Updated]", 10, FB_HEIGHT - 40);
     printString("PS/2 Keyboard Event: [Not Updated]", 10, FB_HEIGHT - 32);
 
@@ -140,13 +169,11 @@ void kmain(void) {
             __asm__ __volatile__("hlt");
         }
     }
-    printf("Kernel: tarFS as initramfs Mounted");
+    printf("Kernel: tarFS as initramfs Mounted\n");
 
     char readBuf[512];
     status = fs_read("/test.txt", readBuf, 512);
     printf("Kernel: Printing \"test.txt\" from initramfs: %s", readBuf);
-
-    printf("Kernel: Press Enter to Start the Builtin Kernel Test CLI");
 
     #ifdef SKIP_TO_DEMOS
         char charBuffer[64];
@@ -160,6 +187,10 @@ void kmain(void) {
         __asm__ __volatile__("hlt");
     #endif
 
+    setup_threading();
+    printf("Kernel: Threading Setup\n");
+
+    printf("Kernel: Press Enter to Start the Builtin Kernel Test CLI\n");
     int enterPressed = 0;
     while (!enterPressed) {
         char keyPressed[1];
@@ -170,8 +201,13 @@ void kmain(void) {
         pit_sleep_ms(1);
     }
 
+    create_thread(start_shell);
+    create_thread(thread_1);
+    create_thread(thread_2);
+    create_thread(thread_3);
+
+
     while (1) {
-        clearScreen(FB_WIDTH, FB_HEIGHT);
-        start_shell();
+        asm("hlt");
     }
 }

@@ -16,9 +16,93 @@ struct descriptor_table_ptr {
 } __attribute__((packed));
 
 
+static inline uint64_t read_tsc() {
+    uint32_t hi, lo;
+    __asm__ volatile ("rdtsc" : "=a"(lo), "=d"(hi));
+    return ((uint64_t)hi << 32) | lo;
+}
+
+uint64_t xorshift64star() {
+    static uint64_t x = 0;
+    if (x == 0) {
+        x = read_tsc();
+    }
+
+    x ^= x >> 12;
+    x ^= x << 25;
+    x ^= x >> 27;
+    return x * 0x2545F4914F6CDD1DULL;
+}
+
+static int rand_between(int min, int max) {
+    if (min > max) {
+        int tmp = min;
+        min = max;
+        max = tmp;
+    }
+
+    uint64_t range = (uint64_t)(max - min + 1);
+    uint64_t x, limit;
+
+    limit = UINT64_MAX - (UINT64_MAX % range);
+
+    do {
+        x = xorshift64star();
+    } while (x >= limit);
+
+    return min + (x % range);
+}
+
+#define SIZEOF(arr) (sizeof(arr) / sizeof(*arr))
+static const char *error_mssages[] = {
+    "The kernel is fucked dawg",
+    "The kernel got franned",
+    "I like elephants",
+    "Electric Boogaloo",
+    "Everybody do the flop",
+    "I like trains",
+    "Hey, somebody kill me",
+    "Miku, Miku, oooeeuuu",
+    "Poteto Chips",
+    "youtu.be/dQw4w9WgXcQ",
+    "SHAWWWWWW",
+    "GIT GUD",
+    "Deltarune Tomorrow",
+    "Better than XiOS",
+    "Number Fifteen",
+    "Talk is cheap",
+    "How did we get here?",
+    "Keyboard Cat!",
+    "Prisencolinensinainciusol",
+    "The Sun is a Deadly Lazer",
+    "FUCK MICROSOFT",
+    "MANKIND IS A FAILURE",
+    "FREE WILL IS A FLAW",
+    "THIS IS NOT OVER!",
+    "Good Girl :3",
+    "Albuquerque",
+    "A Platypus?",
+    "PERRY THE PLATYPUS!",
+    "The Kernel-Panic-Inator",
+    "My Name is Doof",
+    "You got any bear claws?",
+    "The panic revolving",
+    "[[Hyperlink Blocked]]",
+    "The Roaring Fraud",
+    "The kernel is Glooby",
+    "You heartless bastard!",
+    "Aurora Borealis?",
+    "My Kernel is ruined!",
+    "Eat my shorts!",
+    "Cromulently Ruined",
+    "I'm running out of ideas"
+};
+
 #define PANIC_FLAGS_VECTOR (1 << 0)
 #define PANIC_FLAGS_FRAME (1 << 1)
 #define PANIC_FLAGS_ERROR (1 << 2)
+
+int panic_count = 0;
 
 __attribute__((no_caller_saved_registers))
 __attribute__((target("general-regs-only")))
@@ -79,18 +163,34 @@ void panic(char* message, int vector, struct interrupt_frame* frame, __attribute
         : "=m"(ldt), "=m"(tr)
     );
 
+    if (panic_count > 0) {
+        clearScreen(FB_WIDTH, FB_HEIGHT);
+
+        printf("The kernel is fucked 2: Electric Boogaloo (Panic Paniced)");
+        printf("%s", message);
+
+        if(flags | PANIC_FLAGS_FRAME)
+            printf("%lx", frame->ip);
+
+        while (1) {
+
+        }
+    }
+    panic_count++;
+
     int scaleX = framebuffer->width / kernel_panic_image_data_width;
     int scaleY = framebuffer->height / kernel_panic_image_data_height;
     if (scaleX < 1) scaleX = 1;
     if (scaleY < 1) scaleY = 1;
 
-    drawImage(kernel_panic_image, kernel_panic_image_data_width, kernel_panic_image_data_height, 0, 0, scaleX, scaleY);
-    printString("The kernel is fucked dawg", 8, 8);
-
     char result[128];
     int y = 8;
     int x = 488;
     int i = 0;
+
+    drawImage(kernel_panic_image, kernel_panic_image_data_width, kernel_panic_image_data_height, 0, 0, scaleX, scaleY);
+    snprintf(result, sizeof(result), "%s", error_mssages[rand_between(0, SIZEOF(error_mssages))]);
+    printString(result, 8, 8);
 
     uint64_t *rbp_ptr;
     asm volatile ("mov %%rbp, %0" : "=r" (rbp_ptr));
@@ -221,6 +321,12 @@ void panic(char* message, int vector, struct interrupt_frame* frame, __attribute
         printString(result, x, y + i * 8);
         i++;
         snprintf(result, sizeof(result), "SS=%lx", frame->ss);
+        printString(result, x, y + i * 8);
+        i++;
+    }
+
+    if (flags & PANIC_FLAGS_ERROR) {
+        snprintf(result, sizeof(result), "ERR=%lx", error);
         printString(result, x, y + i * 8);
         i++;
         i++;

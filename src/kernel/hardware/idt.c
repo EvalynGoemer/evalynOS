@@ -20,13 +20,13 @@ struct __attribute__((packed)) IDTR {
 static struct IDTEntry idt[256];
 static struct IDTR idtr;
 
-void set_idt_entry(int index, void (*handler)()) {
+void set_idt_entry(int index, int ist, void (*handler)()) {
     uint64_t addr = (uint64_t)handler;
 
     idt[index] = (struct IDTEntry){
         .offset_low = addr & 0xFFFF,
         .selector = 0x08,
-        .ist = 0,
+        .ist = ist,
         .type_attr = 0x8E,
         .offset_mid = (addr >> 16) & 0xFFFF,
         .offset_high = (addr >> 32),
@@ -36,13 +36,13 @@ void set_idt_entry(int index, void (*handler)()) {
 
 void setup_idt() {
     for (int i = 0x1F; i < 256; ++i)
-        set_idt_entry(i, (void (*)())generic_isr);
+        set_idt_entry(i, 0, (void (*)())generic_isr);
 
-    set_idt_entry(INTERRUPT_HANDLER_DOUBLE_FAULT, (void (*)())double_fault_isr);
-    set_idt_entry(INTERRUPT_HANDLER_GENERAL_PROTECTION_FAULT, (void (*)())gp_fault_isr);
-    set_idt_entry(INTERRUPT_HANDLER_PAGE_FAULT, (void (*)())page_fault_isr);
-    set_idt_entry(INTERRUPT_HANDLER_PIT, (void (*)())pit_isr);
-    set_idt_entry(INTERRUPT_HANDLER_PS2, (void (*)())ps2_isr);
+    set_idt_entry(INTERRUPT_HANDLER_DOUBLE_FAULT, 1, (void (*)())double_fault_isr);
+    set_idt_entry(INTERRUPT_HANDLER_GENERAL_PROTECTION_FAULT, 0, (void (*)())gp_fault_isr);
+    set_idt_entry(INTERRUPT_HANDLER_PAGE_FAULT, 0, (void (*)())page_fault_isr);
+    set_idt_entry(INTERRUPT_HANDLER_PIT, 0, (void (*)())pit_isr);
+    set_idt_entry(INTERRUPT_HANDLER_PS2, 0, (void (*)())ps2_isr);
 
     idtr.limit = sizeof(idt) - 1;
     idtr.base = (uint64_t)&idt;

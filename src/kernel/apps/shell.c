@@ -41,6 +41,7 @@ void start_shell() {
     int charBufferIndex = 0;
 
     while (1) {
+        pit_sleep_ms(1);
         char keyPressed[1] = {'\0'};
         fs_read("/dev/ps2/kbd", keyPressed, 1);
 
@@ -57,7 +58,7 @@ void start_shell() {
                 for (int i = 0; i < 62 - 1; ++i) {
                     charBuffer[i] = ' ';
                 }
-                printf("Test command works");
+                printf("Test command works\n");
 
                 charBufferIndex = 0;
             } else if (strncmp("CREDITS", to_upper(charBuffer), 7) == 0) {
@@ -70,7 +71,7 @@ void start_shell() {
                 char *data = malloc(16 * 1024);
                 fs_read("/credits.txt", data, 16 * 1024);
 
-                char line[81];
+                char line[82];
 
                 int i = 0;
                 int lines_printed = 0;
@@ -113,7 +114,7 @@ void start_shell() {
                     charBuffer[i] = ' ';
                 }
                 clearScreen(FB_WIDTH, FB_HEIGHT);
-                printf("Screen Cleared");
+                printf("Screen Cleared\n");
                 printString("Kernel Shell> ", 10, FB_HEIGHT - 16);
                 charBufferIndex = 0;
             } else if (strncmp("CLEAR", to_upper(charBuffer), 5) == 0 || strncmp("CLS", to_upper(charBuffer), 3) == '\0') {
@@ -121,7 +122,7 @@ void start_shell() {
                     charBuffer[i] = ' ';
                 }
                 cleark();
-                printf("Cleared Terminal");
+                printf("Cleared Terminal\n");
                 printString(charBuffer, 10 + (14 * 8), FB_HEIGHT - 16);
                 charBufferIndex = 0;
             } else if (strncmp("MMAP", to_upper(charBuffer), 4) == 0) {
@@ -129,7 +130,7 @@ void start_shell() {
                     charBuffer[i] = ' ';
                 }
                 printString(charBuffer, 10, 8);
-                printf("Memory Map Printed");
+                printf("Memory Map Printed\n");
                 printMemoryMap();
                 printString(charBuffer, 10 + (14 * 8), FB_HEIGHT - 16);
                 charBufferIndex = 0;
@@ -145,7 +146,7 @@ void start_shell() {
                 #endif
                 if (!validCommand && charBuffer[0] != ' ') {
                     printString(charBuffer, 10, 8);
-                    printf("Invalid Shell Command: %s", charBuffer);
+                    printf("Invalid Shell Command: %s\n", charBuffer);
                     printString(charBuffer, 10 + (14 * 8), FB_HEIGHT - 16);
                 }
 

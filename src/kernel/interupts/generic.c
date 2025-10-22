@@ -13,7 +13,7 @@ __attribute__((target("general-regs-only")))
 void generic_isr(struct interrupt_frame* frame) {
     genericInteruptsTriggered++;
 
-    if(genericInteruptsTriggered > 10) {
+    if(genericInteruptsTriggered > 0) {
         panic("Too many unhandled interupts", 0, frame, 0, PANIC_FLAGS_FRAME);
     }
 
