@@ -13,25 +13,31 @@
 #include "../hardware/pit.h"
 #include "../panic.h"
 
-#ifdef INCLUDE_DEMOS
-    #include "../demos/demos.h"
-#endif
-
 int create_once = 0;
 int run_once = 0;
-void test_bin_kthread() {
+void badapple_kthread() {
     if(!run_once) {
-        vmm_unmap_page(kernel_pagemap, 0x5000);
-        vmm_unmap_page(kernel_pagemap, 0x4000);
-        vmm_unmap_page(kernel_pagemap, 0x3000);
-        vmm_unmap_page(kernel_pagemap, 0x2000);
+        uintptr_t start_virtual = 0x4000;
+        size_t page_size = 0x1000;
+        size_t num_pages = 16 * 1024 * 1024 / page_size;
 
-        vmm_map_page(kernel_pagemap, 0x5000, (uintptr_t)allocate_page(), PTE_PRESENT | PTE_USER | PTE_WRITABLE);
-        vmm_map_page(kernel_pagemap, 0x4000, (uintptr_t)allocate_page(), PTE_PRESENT | PTE_USER | PTE_WRITABLE);
-        vmm_map_page(kernel_pagemap, 0x3000, (uintptr_t)allocate_page(), PTE_PRESENT | PTE_USER | PTE_WRITABLE);
-        vmm_map_page(kernel_pagemap, 0x2000, (uintptr_t)allocate_page(), PTE_PRESENT | PTE_USER | PTE_WRITABLE);
+        for (size_t i = 0; i < num_pages; i++) {
+            uintptr_t va = start_virtual + i * page_size;
+            uintptr_t pa = (uintptr_t)allocate_page();
+            vmm_map_page(kernel_pagemap, va, pa, PTE_PRESENT | PTE_USER | PTE_WRITABLE);
+        }
 
-        fs_read("/test.bin", (void *)0x4000, 512);
+        uintptr_t stack_top = 0x80000000;
+        size_t stack_size = 64 * 1024;
+        size_t stack_num_pages = stack_size / page_size;
+
+        for (size_t i = 0; i < stack_num_pages; i++) {
+            uintptr_t va = stack_top - (i + 1) * page_size;
+            uintptr_t pa = (uintptr_t)allocate_page();
+            vmm_map_page(kernel_pagemap, va, pa, PTE_PRESENT | PTE_USER | PTE_WRITABLE);
+        }
+
+        fs_read("/badapple.bin", (void *)0x4000, 0x7A1200);
 
         run_once = 1;
     }
@@ -86,21 +92,64 @@ void start_shell() {
                 printf("Test command works\n");
 
                 charBufferIndex = 0;
-            } else if (strncmp("USER", to_upper(charBuffer), 4) == 0) {
+            } else if (strncmp("BADAPPLE", to_upper(charBuffer), 8) == 0) {
                 for (int i = 0; i < 62 - 1; ++i) {
                     charBuffer[i] = ' ';
                 }
 
                 if (!create_once) {
-                    create_thread(test_bin_kthread);
-                    printf("Started user thread\n");
+                    create_thread(badapple_kthread);
+                    printf("Kernel: Started playing BAD APPLE in userspace\n");
                     create_once = 1;
                 } else {
-                    printf("User thread already started\n");
+                    printf("BAD APPLE is already running\n");
                 }
-
                 charBufferIndex = 0;
             } else if (strncmp("CREDITS", to_upper(charBuffer), 7) == 0) {
+                /* KNOWN ISSUE: Kernel will panic when trying to run badapple after running this
+                 * Panic will not happen if you run badapple and then run this.
+                 * This "shell" is gonna be moved to userspace sooooo
+                 * ¯\_(ツ)_/¯ who cares, just dont be stupid and run this before badapple
+                 * And if you do
+                 *  ——————Skill Issue?———————————
+                 * ⠀⣞⢽⢪⢣⢣⢣⢫⡺⡵⣝⡮⣗⢷⢽⢽⢽⣮⡷⡽⣜⣜⢮⢺⣜⢷⢽⢝⡽⣝
+                 * ⠸⡸⠜⠕⠕⠁⢁⢇⢏⢽⢺⣪⡳⡝⣎⣏⢯⢞⡿⣟⣷⣳⢯⡷⣽⢽⢯⣳⣫⠇
+                 * ⠀⠀⢀⢀⢄⢬⢪⡪⡎⣆⡈⠚⠜⠕⠇⠗⠝⢕⢯⢫⣞⣯⣿⣻⡽⣏⢗⣗⠏⠀
+                 * ⠀⠪⡪⡪⣪⢪⢺⢸⢢⢓⢆⢤⢀⠀⠀⠀⠀⠈⢊⢞⡾⣿⡯⣏⢮⠷⠁⠀⠀
+                 * ⠀⠀⠀⠈⠊⠆⡃⠕⢕⢇⢇⢇⢇⢇⢏⢎⢎⢆⢄⠀⢑⣽⣿⢝⠲⠉⠀⠀⠀⠀
+                 * ⠀⠀⠀⠀⠀⡿⠂⠠⠀⡇⢇⠕⢈⣀⠀⠁⠡⠣⡣⡫⣂⣿⠯⢪⠰⠂⠀⠀⠀⠀
+                 * ⠀⠀⠀⠀⡦⡙⡂⢀⢤⢣⠣⡈⣾⡃⠠⠄⠀⡄⢱⣌⣶⢏⢊⠂⠀⠀⠀⠀⠀⠀
+                 * ⠀⠀⠀⠀⢝⡲⣜⡮⡏⢎⢌⢂⠙⠢⠐⢀⢘⢵⣽⣿⡿⠁⠁⠀⠀⠀⠀⠀⠀⠀
+                 * ⠀⠀⠀⠀⠨⣺⡺⡕⡕⡱⡑⡆⡕⡅⡕⡜⡼⢽⡻⠏⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+                 * ⠀⠀⠀⠀⣼⣳⣫⣾⣵⣗⡵⡱⡡⢣⢑⢕⢜⢕⡝⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+                 * ⠀⠀⠀⣴⣿⣾⣿⣿⣿⡿⡽⡑⢌⠪⡢⡣⣣⡟⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+                 * ⠀⠀⠀⡟⡾⣿⢿⢿⢵⣽⣾⣼⣘⢸⢸⣞⡟⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+                 * ⠀⠀⠀⠀⠁⠇⠡⠩⡫⢿⣝⡻⡮⣒⢽⠋⠀⠀⠀⠀⠀⠀
+                 *
+                 * and before you start saying 1984
+                 * ⠀⠀⠀⠀⠀⠀⠀⣠⡀⠀⠀⠀⠀⠀⠀⠀⠀⢰⠤⠤⣄⣀⡀⠀⠀⠀⠀⠀⠀⠀
+                 * ⠀⠀⠀⠀⠀⢀⣾⣟⠳⢦⡀⠀⠀⠀⠀⠀⠀⢸⠀⠀⠀⠀⠉⠉⠉⠉⠉⠒⣲⡄
+                 * ⠀⠀⠀⠀⠀⣿⣿⣿⡇⡇⡱⠲⢤⣀⠀⠀⠀⢸⠀⠀⠀1984⠀⣠⠴⠊⢹⠁
+                 * ⠀⠀⠀⠀⠀⠘⢻⠓⠀⠉⣥⣀⣠⠞⠀⠀⠀⢸⠀⠀⠀⠀⢀⡴⠋⠀⠀⠀⢸⠀
+                 * ⠀⠀⠀⠀⢀⣀⡾⣄⠀⠀⢳⠀⠀⠀⠀⠀⠀⢸⢠⡄⢀⡴⠁⠀⠀⠀⠀⠀⡞⠀
+                 * ⠀⠀⠀⣠⢎⡉⢦⡀⠀⠀⡸⠀⠀⠀⠀⠀⢀⡼⣣⠧⡼⠀⠀⠀⠀⠀⠀⢠⠇⠀
+                 * ⠀⢀⡔⠁⠀⠙⠢⢭⣢⡚⢣⠀⠀⠀⠀⠀⢀⣇⠁⢸⠁⠀⠀⠀⠀⠀⠀⢸⠀⠀
+                 * ⠀⡞⠀⠀⠀⠀⠀⠀⠈⢫⡉⠀⠀⠀⠀⢠⢮⠈⡦⠋⠀⠀⠀⠀⠀⠀⠀⣸⠀⠀
+                 * ⢀⠇⠀⠀⠀⠀⠀⠀⠀⠀⠙⢦⡀⣀⡴⠃⠀⡷⡇⢀⡴⠋⠉⠉⠙⠓⠒⠃⠀⠀
+                 * ⢸⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠁⠀⠀⡼⠀⣷⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+                 * ⡞⠀⠀⠀⠀⠀⠀⠀⣄⠀⠀⠀⠀⠀⠀⡰⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+                 * ⢧⠀⠀⠀⠀⠀⠀⠀⠈⠣⣀⠀⠀⡰⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+                 *
+                 * Yes rico, it is 1984
+                 *
+                 * If you wish to try and fix this some of the discoverd behavior is:
+                 * - It will DF if you dont change the code
+                 * - It will PF of you remove the free() at the end of the code
+                 *
+                 * "Talk is cheap. Show me the code."
+                 * - Linus Torvalds*
+                */
+
                 for (int i = 0; i < 62 - 1; ++i) {
                     charBuffer[i] = ' ';
                 }
@@ -180,9 +229,6 @@ void start_shell() {
                 panic("You asked for this lmao", 0, 0, 0, 0);
             } else {
                 int validCommand = 0;
-                #ifdef INCLUDE_DEMOS
-                validCommand = handle_demos(to_upper(charBuffer));
-                #endif
                 if (!validCommand && charBuffer[0] != ' ') {
                     printString(charBuffer, 10, 8);
                     printf("Invalid Shell Command: %s\n", charBuffer);
@@ -203,5 +249,4 @@ void start_shell() {
 
         printString(charBuffer, 10 + (14 * 8), FB_HEIGHT - 16);
     }
-    pit_sleep_ms(1);
 }

@@ -60,44 +60,6 @@ void drawImage(const uint32_t* image, int width, int height, int x0, int y0, int
     }
 }
 
-static unsigned int prevFrame[120 * 90];
-void drawFrame(const unsigned char* rleData, int rleLength, int frameWidth, int frameHeight, int startX, int startY, int scale) {
-    int x = 0, y = 0;
-    int pos = 0;
-
-    while (pos + 1 < rleLength && y < frameHeight) {
-        int count = rleData[pos++];
-        unsigned char value = rleData[pos++];
-        unsigned int color = value ? 0xFFFFFFFF : 0x00000000;
-
-        for (int i = 0; i < count && y < frameHeight; i++) {
-            int idx = y * frameWidth + x;
-
-            if (prevFrame[idx] != color) {
-                prevFrame[idx] = color;
-
-                int px = startX + x * scale;
-                int py = startY + y * scale;
-                int scaledWidth = scale;
-                int scaledHeight = scale;
-
-                for (int dy = 0; dy < scaledHeight; dy++) {
-                    int rowY = py + dy;
-                    for (int i = 0; i < scaledWidth; i++) {
-                        plotPixel(px + i, rowY, color);
-                    }
-                }
-            }
-
-            x++;
-            if (x >= frameWidth) {
-                x = 0;
-                y++;
-            }
-        }
-    }
-}
-
 void clearScreen(int width, int height) {
     cleark();
 

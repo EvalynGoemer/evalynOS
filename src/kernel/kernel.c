@@ -22,10 +22,6 @@
 
 #include "apps/shell.h"
 
-#ifdef SKIP_TO_DEMOS
-#include "demos/demos.h"
-#endif
-
 // Limine boilerplate start
 // This limine boilerplate was taken and modified from  https://codeberg.org/Limine/limine-c-template/raw/commit/c8bc5a2b93397a19272a19a6004b0eeb1e90d982/kernel/src/main.c
 
@@ -150,18 +146,6 @@ void kmain(void) {
     char readBuf[512];
     status = fs_read("/test.txt", readBuf, 512);
     printf("Kernel: Printing \"test.txt\" from initramfs: %s", readBuf);
-
-    #ifdef SKIP_TO_DEMOS
-        char charBuffer[64];
-
-        for (int i = 0; i < 64 - 1; ++i) {
-            charBuffer[i] = '\0';
-        }
-
-        clearScreen(FB_WIDTH, FB_HEIGHT);
-        playBadApple(charBuffer);
-        __asm__ __volatile__("hlt");
-    #endif
 
     setup_threading();
     printf("Kernel: Threading Setup\n");

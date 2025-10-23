@@ -1,6 +1,6 @@
 # This file was taken and modified from https://codeberg.org/Limine/limine-c-template/raw/commit/c8bc5a2b93397a19272a19a6004b0eeb1e90d982/kernel/GNUmakefile
 
-CFLAGS := -O2 -g -fno-omit-frame-pointer -DINCLUDE_DEMOS -DMUTE_KERNEL_PANIC # -DSKIP_TO_DEMOS
+CFLAGS := -O2 -g -fno-omit-frame-pointer -DMUTE_KERNEL_PANIC
 
 # Nuke built-in rules.
 .SUFFIXES:
@@ -57,7 +57,9 @@ endif
 LDFLAGS :=
 
 # Ensure the dependencies have been obtained.
-ifneq ($(filter-out clean distclean,$(MAKECMDGOALS)),)
+TARGETS := $(if $(MAKECMDGOALS),$(MAKECMDGOALS),all)
+
+ifneq ($(filter-out clean depclean genclean,$(TARGETS)),)
     ifeq ($(wildcard .deps-obtained),)
         $(error Please run the ./get-deps script first)
     endif
@@ -79,6 +81,7 @@ override CFLAGS += \
     -fno-PIC \
     -ffunction-sections \
     -fdata-sections \
+    -mgeneral-regs-only \
 
 # Internal C preprocessor flags that should not be changed by the user.
 override CPPFLAGS := \
@@ -169,7 +172,7 @@ override LDFLAGS += \
 # Use "find" to glob all *.c, *.S, and *.asm files in the tree
 # (except the src/arch/* directories, as those are gonna be added
 # in the next step).
-override SRCFILES := $(shell find -L src cc-runtime/src -type f -not -path 'src/arch/*' 2>/dev/null | LC_ALL=C sort)
+override SRCFILES := $(shell find -L src cc-runtime/src -type f -not -path 'src/arch/*' -not -path 'src/user/*' 2>/dev/null | LC_ALL=C sort)
 # Add architecture specific files, if they exist.
 override SRCFILES += $(shell find -L src/arch/$(ARCH) -type f 2>/dev/null | LC_ALL=C sort)
 # Obtain the object and header dependencies file names.
@@ -184,7 +187,23 @@ override OBJ += $(addprefix obj-$(ARCH)/,$(NASMFILES:.asm=.asm.o))
 endif
 override HEADER_DEPS := $(addprefix obj-$(ARCH)/,$(CFILES:.c=.c.d) $(ASFILES:.S=.S.d))
 
-# Default target. This must come first, before header dependencies.
+.PHONY: run
+run:
+	make clean
+	./src/build-scripts/generate-all.sh
+	make all -j${nproc}
+	cp ./bin-x86_64/kernel.elf ./kernel.elf
+	qemu-system-x86_64 \
+		-machine q35,accel=kvm \
+		-cpu host \
+		-m 512M \
+		-drive if=pflash,format=raw,readonly=on,file=./OVMF_CODE.4m.fd \
+		-drive if=pflash,format=raw,readonly=on,file=./OVMF_VARS.4m.fd \
+		-drive format=raw,file=fat:rw:. \
+		-boot d \
+		-audiodev pa,id=speaker -machine pcspk-audiodev=speaker
+
+
 .PHONY: all
 all: bin-$(ARCH)/$(OUTPUT)
 
@@ -224,50 +243,23 @@ clean:
 genclean:
 	rm -rf ./src/generated/*.c
 	rm -rf ./src/generated/*.hash
+	rm -rf ./initramfs.tar
 
 # Remove downloaded dependencies.
 .PHONY: depclean
 depclean:
 	rm -rf .deps-obtained freestnd-c-hdrs cc-runtime limine-protocol
 
-# Install the final built executable to its final on-root location.
-.PHONY: install
-install: all
-	install -d "$(DESTDIR)$(PREFIX)/share/$(OUTPUT)"
-	install -m 644 bin-$(ARCH)/$(OUTPUT) "$(DESTDIR)$(PREFIX)/share/$(OUTPUT)/$(OUTPUT)-$(ARCH)"
-
-# Try to undo whatever the "install" target did.
-.PHONY: uninstall
-uninstall:
-	rm -f "$(DESTDIR)$(PREFIX)/share/$(OUTPUT)/$(OUTPUT)-$(ARCH)"
-	-rmdir "$(DESTDIR)$(PREFIX)/share/$(OUTPUT)"
-
 .PHONY: debug
 debug:
 	make clean
 	make genclean
 	./src/build-scripts/generate-all.sh
-	make -j${nproc}
+	make all -j${nproc}
 	cp ./bin-x86_64/kernel.elf ./kernel.elf
 	./src/build-scripts/generate-symbols.py
 	make clean
-	make -j${nproc}
-	cp ./bin-x86_64/kernel.elf ./kernel.elf
-	qemu-system-x86_64 \
-		-machine q35,accel=kvm \
-		-cpu host \
-		-m 512M \
-		-drive if=pflash,format=raw,readonly=on,file=./OVMF_CODE.4m.fd \
-		-drive if=pflash,format=raw,readonly=on,file=./OVMF_VARS.4m.fd \
-		-drive format=raw,file=fat:rw:. \
-		-boot d \
-		-audiodev pa,id=speaker -machine pcspk-audiodev=speaker
-
-.PHONY: run
-run:
-	make clean
-	./src/build-scripts/generate-all.sh
-	make -j${nproc}
+	make all -j${nproc}
 	cp ./bin-x86_64/kernel.elf ./kernel.elf
 	qemu-system-x86_64 \
 		-machine q35,accel=kvm \

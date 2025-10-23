@@ -178,6 +178,8 @@ void panic(char* message, int vector, struct interrupt_frame* frame, __attribute
     }
     panic_count++;
 
+    stop_sound();
+
     int scaleX = framebuffer->width / kernel_panic_image_data_width;
     int scaleY = framebuffer->height / kernel_panic_image_data_height;
     if (scaleX < 1) scaleX = 1;

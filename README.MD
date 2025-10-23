@@ -19,8 +19,6 @@ Run and compile with `make run`
 Run and compile and generate symbols (Compiles twice) with `make debug`
 
 ## Compile Flags
-- `-DINCLUDE_DEMOS`: Compiles the demos to be bundled with the kernel (Large, Will be moved to userspace later)
-- `-DSKIP_TO_DEMOS`: Have kernel automaticaly launch demos if keyboard drivers are not working on your hardware (Will be implemented into userspace with an init system later)
 - `-DMUTE_KERNEL_PANIC`: Disables the 1khz tone played on a kernel panic for when doing active work on the kernel
 
 Add these flags to the `GNUmakefile` `CFLAGS` section
@@ -33,7 +31,7 @@ This kernel is designed to be able to run on *REAL* hardware if it meets the fol
 - A PS/2 keyboard
 - A PC speaker
 
-Copy the `EFI` folder and `limine.conf` and `kernel.elf` to the root of a GPT formatted USB stick with the boot and esp flags set and then boot to it
+Copy the `EFI` folder and `limine.conf` and `kernel.elf` and `initramfs.tar` to the root of a GPT formatted USB stick with the boot and esp flags set and then boot to it
 
 ## Kernel Mode Shell Commands
 - `TEST`: Prints a test message
@@ -43,7 +41,4 @@ Copy the `EFI` folder and `limine.conf` and `kernel.elf` to the root of a GPT fo
 - `MMAP`: Prints the memory map provided by the bootloader
 - `PANIC`: Causes a kernel panic
 - `FAULT`: Causes a Page Fault to panic with extended info
-- `USER`: Starts the userspace thread to run in ring3 (src/user/test/test.c)
-
-## Kernel Mode Shell Demos
-- `BADAPPLE`: Plays the Bad Apple music video on your screen with audio via PC speaker
+- `BADAPPLE`: Plays the Bad Apple demo inside userspace

@@ -81,6 +81,7 @@ PERFORMANCE OF THIS SOFTWARE.
 --------------------------------------------------------------------------------
 Special Thanks / Unknown License:
 Various Code Samples & General Help: https://wiki.osdev.org/
+Bad Apple Audio Data: https://archive.org/details/badapple_202006
 libc/string/strcpy: https://stackoverflow.com/a/20190538
 
 Being good friends and helping along the way:

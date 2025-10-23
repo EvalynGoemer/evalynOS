@@ -43,7 +43,8 @@ thread_switch:
 
     ret
 
-USER_STACK_TOP equ 0x3000
+USER_STACK_TOP equ 0x0000000080000000
+
 switch_to_user:
     mov ax, 0x33
     mov ds, ax
@@ -52,7 +53,8 @@ switch_to_user:
     mov gs, ax
 
     push 0x33
-    push USER_STACK_TOP
+    mov rax, USER_STACK_TOP
+    push rax
     pushfq
     pop rax
     or rax, 0x200
@@ -60,4 +62,3 @@ switch_to_user:
     push 0x2B
     push 0x4000
     iretq
-
