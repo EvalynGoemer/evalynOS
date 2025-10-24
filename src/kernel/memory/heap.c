@@ -67,46 +67,101 @@ static void *heap_start = NULL;
 static size_t heap_size = 0;
 static heap_free_block_t *free_list_head = NULL;
 
+int heap_expand_pages(size_t pages) {
+    if (pages == 0) return 0;
+
+    uintptr_t base = (uintptr_t)heap_start + heap_size;
+    uintptr_t new_region_size = pages * PAGE_SIZE;
+
+    for (size_t i = 0; i < pages; ++i) {
+        void *phys = allocate_page();
+        if (!phys) {
+            printf("heap_expand_pages: allocate_page failed at page %lx\n", i);
+            return 0;
+        }
+        uintptr_t virt = base + (i * PAGE_SIZE);
+        if (!vmm_map_page(kernel_pagemap, virt, (uintptr_t)phys, PTE_PRESENT | PTE_WRITABLE | PTE_NX)) {
+            panic("heap_expand_pages: vmm_map_page failed", 0, 0, 0, 0);
+            return 0;
+        }
+    }
+
+    heap_free_block_t *new_block = (heap_free_block_t *)base;
+    new_block->size = new_region_size;
+    new_block->next = NULL;
+
+    if (!free_list_head) {
+        free_list_head = new_block;
+    } else {
+        heap_free_block_t *p = NULL;
+        heap_free_block_t *c = free_list_head;
+        while (c && (uintptr_t)c < base) {
+            p = c;
+            c = c->next;
+        }
+        if (p == NULL) {
+            new_block->next = free_list_head;
+            free_list_head = new_block;
+        } else {
+            new_block->next = p->next;
+            p->next = new_block;
+        }
+
+        if (new_block->next && ((uintptr_t)new_block + new_block->size) == (uintptr_t)new_block->next) {
+            new_block->size += new_block->next->size;
+            new_block->next = new_block->next->next;
+        }
+        if (p && ((uintptr_t)p + p->size) == (uintptr_t)new_block) {
+            p->size += new_block->size;
+            p->next = new_block->next;
+        }
+    }
+
+    heap_size += new_region_size;
+    return 1;
+}
+
 void setup_heap(void) {
     if (heap_start != NULL) {
         return;
     }
 
     heap_start = (void *)KERNEL_HEAP_START;
-    heap_size = KERNEL_HEAP_INITIAL_SIZE;
+    heap_size = 0;
 
-    for (size_t i = 0; i < INITIAL_HEAP_PAGES; i++) {
-        void *phys_page = allocate_page();
-        if (phys_page == NULL) {
-            panic("Heap: failed to allocate page", 0, 0, 0, 0);
-        }
-        uintptr_t virt_addr = KERNEL_HEAP_START + (i * PAGE_SIZE);
-        if (!vmm_map_page(kernel_pagemap, virt_addr, (uintptr_t)phys_page, PTE_PRESENT | PTE_WRITABLE | PTE_NX)) {
-            panic("Heap: failed to map page", 0, 0, 0, 0);
-        }
+    if (!heap_expand_pages(INITIAL_HEAP_PAGES)) {
+        panic("init_heap: failed to allocate initial kernel heap", 0, 0, 0, 0);
     }
 
     free_list_head = (heap_free_block_t *)heap_start;
     free_list_head->size = heap_size;
     free_list_head->next = NULL;
+
+    // printf("Heap installed\n");
+}
+
+void heap_dump(void) {
+    printf("Heap dump: start=%lx size=%lx free-list:\n", (uint64_t)heap_start, heap_size);
+    for (heap_free_block_t *b = free_list_head; b; b = b->next) {
+        printf("block %lx size=%lx next=%p\n", (uint64_t)b, b->size, b->next);
+    }
 }
 
 void *kmalloc(size_t size) {
-    if (size == 0) {
-        return NULL;
-    }
+    if (size == 0) return NULL;
+    size_t payload = ALIGN_UP_HEAP(size);
+    size_t header_sz = ALIGN_UP_HEAP(sizeof(size_t));
+    size_t total_size = payload + header_sz;
 
-    size_t total_size = ALIGN_UP_HEAP(size + sizeof(size_t));
-    if (total_size < MIN_ALLOC_SIZE) {
-        total_size = MIN_ALLOC_SIZE;
-    }
+    if (total_size < MIN_ALLOC_SIZE) total_size = MIN_ALLOC_SIZE;
 
     heap_free_block_t *prev = NULL;
     heap_free_block_t *curr = free_list_head;
 
-    while (curr != NULL) {
+    retry_search:
+    while (curr) {
         if (curr->size >= total_size) {
-            if (curr->size - total_size >= MIN_ALLOC_SIZE) {
+            if (curr->size >= total_size + MIN_ALLOC_SIZE) {
                 heap_free_block_t *new_block = (heap_free_block_t *)((uintptr_t)curr + total_size);
                 new_block->size = curr->size - total_size;
                 new_block->next = curr->next;
@@ -129,90 +184,95 @@ void *kmalloc(size_t size) {
             size_t *size_ptr = (size_t *)curr;
             *size_ptr = curr->size;
 
-            void *user_ptr = (void *)((uintptr_t)curr + sizeof(size_t));
-
+            void *user_ptr = (void *)((uintptr_t)curr + header_sz);
             return user_ptr;
         }
         prev = curr;
         curr = curr->next;
     }
 
-    printf("Heap: out of heap memory\n");
-    return NULL;
+    if (!heap_expand_pages(16)) {
+        if (!heap_expand_pages(1)) {
+            printf("kmalloc: Out of heap memory (requested %lx bytes)\n", size);
+            heap_dump();
+            return NULL;
+        }
+    }
+    prev = NULL;
+    curr = free_list_head;
+    goto retry_search;
 }
 
 void kfree(void *ptr) {
-    if (ptr == NULL) return;
+    if (!ptr) return;
 
-    size_t *size_ptr = (size_t *)((uintptr_t)ptr - sizeof(size_t));
+    size_t header_sz = ALIGN_UP_HEAP(sizeof(size_t));
+    size_t *size_ptr = (size_t *)((uintptr_t)ptr - header_sz);
     void *block_start = (void *)size_ptr;
     size_t block_size = *size_ptr;
 
-    if ((uintptr_t)block_start < (uintptr_t)heap_start || (uintptr_t)block_start >= (uintptr_t)heap_start + heap_size || block_size < MIN_ALLOC_SIZE || ((uintptr_t)block_start % HEAP_ALIGNMENT) != 0) {
-        panic("Heap: nvalid pointer or heap corruption detected in kfree", 0, 0, 0, 0);
-        return;
-    }
+    if ((uintptr_t)block_start < (uintptr_t)heap_start ||
+        (uintptr_t)block_start >= (uintptr_t)heap_start + heap_size) {
+        panic("kfree: invalid pointer (out of heap range)", 0, 0, 0, 0);
+    return;
+        }
+        if (block_size < MIN_ALLOC_SIZE) {
+            panic("kfree: invalid block size", 0, 0, 0, 0);
+            return;
+        }
+        if (((uintptr_t)block_start & (HEAP_ALIGNMENT - 1)) != 0) {
+            panic("kfree: alignment error", 0, 0, 0, 0);
+            return;
+        }
 
-    heap_free_block_t *prev = NULL;
-    heap_free_block_t *curr = free_list_head;
+        heap_free_block_t *prev = NULL;
+        heap_free_block_t *curr = free_list_head;
+        while (curr && (uintptr_t)curr < (uintptr_t)block_start) {
+            prev = curr;
+            curr = curr->next;
+        }
 
-    while (curr != NULL && (uintptr_t)curr < (uintptr_t)block_start) {
-        prev = curr;
-        curr = curr->next;
-    }
+        heap_free_block_t *freed = (heap_free_block_t *)block_start;
+        freed->size = block_size;
 
-    heap_free_block_t *freed_block = (heap_free_block_t *)block_start;
-    freed_block->size = block_size;
+        if (prev == NULL) {
+            freed->next = free_list_head;
+            free_list_head = freed;
+        } else {
+            freed->next = prev->next;
+            prev->next = freed;
+        }
 
-    if (prev == NULL) {
-        freed_block->next = free_list_head;
-        free_list_head = freed_block;
-    } else {
-        freed_block->next = prev->next;
-        prev->next = freed_block;
-    }
-
-    if (freed_block->next != NULL && (uintptr_t)freed_block + freed_block->size == (uintptr_t)freed_block->next) {
-        freed_block->size += freed_block->next->size;
-        freed_block->next = freed_block->next->next;
-    }
-
-    if (prev != NULL && (uintptr_t)prev + prev->size == (uintptr_t)freed_block) {
-        prev->size += freed_block->size;
-        prev->next = freed_block->next;
-    }
+        if (freed->next && ((uintptr_t)freed + freed->size) == (uintptr_t)freed->next) {
+            freed->size += freed->next->size;
+            freed->next = freed->next->next;
+        }
+        if (prev && ((uintptr_t)prev + prev->size) == (uintptr_t)freed) {
+            prev->size += freed->size;
+            prev->next = freed->next;
+        }
 }
 
 void *kcalloc(size_t num, size_t size) {
+    if (size != 0 && num > (SIZE_MAX / size)) return NULL;
     size_t total = num * size;
-    if (size != 0 && total / size != num) {
-        return NULL;
-    }
-    void *ptr = kmalloc(total);
-    if (ptr) {
-        memset(ptr, 0, total);
-    }
-    return ptr;
+    void *p = kmalloc(total);
+    if (p) memset(p, 0, total);
+    return p;
 }
 
-void *krealloc(void *ptr, size_t size) {
-    if (ptr == NULL) {
-        return kmalloc(size);
-    }
-    if (size == 0) {
-        kfree(ptr);
-        return NULL;
-    }
+void *krealloc(void *ptr, size_t new_size) {
+    if (!ptr) return kmalloc(new_size);
+    if (new_size == 0) { kfree(ptr); return NULL; }
 
-    size_t old_size = *((size_t *)((uintptr_t)ptr - sizeof(size_t))) - sizeof(size_t);
-    if (size <= old_size) {
-        return ptr;
-    }
+    size_t header_sz = ALIGN_UP_HEAP(sizeof(size_t));
+    size_t old_total = *((size_t *)((uintptr_t)ptr - header_sz));
+    size_t old_payload = (old_total >= header_sz) ? (old_total - header_sz) : 0;
+    if (new_size <= old_payload) return ptr;
 
-    void *new_ptr = kmalloc(size);
-    if (new_ptr) {
-        memcpy(new_ptr, ptr, old_size);
-        kfree(ptr);
-    }
-    return new_ptr;
+    void *n = kmalloc(new_size);
+    if (!n) return NULL;
+    memcpy(n, ptr, old_payload);
+    kfree(ptr);
+    return n;
 }

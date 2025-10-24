@@ -15,3 +15,4 @@
 extern void setup_pic(int offset1, int offset2);
 extern void irq_set_mask(uint8_t IRQline);
 extern void irq_clear_mask(uint8_t IRQline);
+extern void unmask_irq(unsigned char irq);

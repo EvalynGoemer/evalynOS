@@ -17,7 +17,7 @@
 volatile uint8_t kbd_buffer_index;
 volatile char kbd_buffer[256] = {'\0'};
 
-void io_wait() {
+static inline void io_wait() {
     outb(0x80, 0);
 }
 
@@ -84,10 +84,7 @@ void setup_ps2() {
         inb(PS2_DATA_PORT);
     }
 
-    unsigned char mask;
-    mask = inb(PIC1_DATA);
-    mask &= ~(1 << 1);
-    outb(PIC1_DATA, mask);
+    unmask_irq(1);
 
     struct device* kbd = malloc(sizeof(struct device));
     strcpy(kbd->fullPath, "/dev/ps2/kbd");
