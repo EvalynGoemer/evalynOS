@@ -58,150 +58,135 @@ char *to_upper(const char *s) {
     return buf;
 }
 
+void execute_commands(const char *cmd) {
+    if (strcmp("TEST", to_upper(cmd)) == 0) {
+        printf("Test Command Executed\n");
+        return;
+    }
+    if (strcmp("CREDITS", to_upper(cmd)) == 0) {
+        char * data = malloc(16 * 1024);
+        fs_read("/credits.txt", data, 16 * 1024);
+
+        bool nextLineMessagePrinted = false;
+        int lineCount = 0;
+        char *ptr = data;
+        char *lineStart = ptr;
+
+        while (*ptr) {
+            if (nextLineMessagePrinted) {
+                printf("\x1b[2K\r"); // ansi for clear line and return to start of line
+                nextLineMessagePrinted = false;
+            }
+
+            if (*ptr == '\n') {
+                lineCount++;
+                *ptr = '\0';
+                // HACK: write direct to tty because this code dose not construct a string printf can parse for some reason
+                // TODO: either redo this code or redo printf (both will be needed to be redone at some point anyways)
+                fs_write("/dev/term/tty", lineStart, strlen(lineStart));
+                fs_write("/dev/term/tty", "\n", 1);
+                lineStart = ptr + 1;
+            }
+
+            if (lineCount == 20) {
+                char keyPressed[1] = {'\0'};
+
+                while (keyPressed[0] == '\0') {
+                    if (!nextLineMessagePrinted) {
+                        printf("Press any key to continute");
+                        nextLineMessagePrinted = true;
+                    }
+                    pit_sleep_ms(10);
+                    fs_read("/dev/ps2/kbd", keyPressed, 1);
+                }
+
+                lineCount = 0;
+            }
+
+            ptr++;
+        }
+
+        if (*lineStart) {
+            // HACK: write direct to tty because this code dose not construct valid C strings
+            // TODO: either redo this code or redo printf (both will be needed to be redone at some point anyways)
+            fs_write("/dev/term/tty", lineStart, strlen(lineStart));
+            fs_write("/dev/term/tty", "\n", 1);
+        }
+
+        free(data);
+        return;
+    }
+    if (strcmp("MMAP", to_upper(cmd)) == 0) {
+        printMemoryMap();
+        return;
+    }
+    if (strcmp("BADAPPLE", to_upper(cmd)) == 0) {
+        if (!create_once) {
+            create_thread(badapple_kthread);
+            printf("Started playing BAD APPLE in userspace\n");
+            create_once = 1;
+        } else {
+            printf("BAD APPLE is already running\n");
+        }
+        return;
+    }
+    if ((strcmp("CLEAR", to_upper(cmd)) == 0) || (strcmp("CLS", to_upper(cmd)) == 0)) {
+        printf("\x1b[2J\x1b[H"); // ansi for clear screen and go home
+        return;
+    }
+    if (strcmp("PANIC", to_upper(cmd)) == 0) {
+        panic("You asked for this lmao", 0, 0, 0, 0);
+    }
+    if (strcmp("FAULT", to_upper(cmd)) == 0) {
+        volatile uint64_t *fault = (volatile uint64_t *)0xDEADBEEF;
+        *fault = 0xDEADBEEF;
+    }
+
+    if (strcmp("", to_upper(cmd)) != 0) {
+        printf("Invalid Command: %s\n", cmd);
+    }
+}
+
 void start_shell() {
-    char charBuffer[64];
+    char typingBuffer[64] = {'\0'};
+    int typingBufferIndex = 0;
 
-    for (int i = 0; i < 64 - 1; ++i) {
-        charBuffer[i] = '\0';
-    }
-
-    for (int i = 0; i < 62; ++i) {
-        charBuffer[i] = ' ';
-    }
-
-    int charBufferIndex = 0;
+    bool newLineStarted = true;
 
     while (1) {
+        if (newLineStarted) {
+            printf("\x1b[2K\r"); // ansi for clear line and return to start of line
+            printf("Kernel Shell> ");
+            newLineStarted = false;
+        }
+
         char keyPressed[1] = {'\0'};
         fs_read("/dev/ps2/kbd", keyPressed, 1);
 
-        printString("Kernel Shell> ", 10, FB_HEIGHT - 16);
-
-        if (keyPressed[0] == '\b') {  // Backspace
-            if (charBufferIndex > 0) {
-                charBufferIndex--;
-                charBuffer[charBufferIndex] = ' ';
-                printString(charBuffer, 10 + (14 * 8), FB_HEIGHT - 16);
-            }
-        } else if (keyPressed[0] == '\n') {  // Enter
-            if (strncmp("TEST", to_upper(charBuffer), 4) == 0) {
-                for (int i = 0; i < 62 - 1; ++i) {
-                    charBuffer[i] = ' ';
+        switch (keyPressed[0]) {
+            case '\b':
+                if ((typingBufferIndex - 1) > -1) {
+                    typingBuffer[typingBufferIndex--] = '\0';
+                    printf("\b");
                 }
-                printf("Test command works\n");
+                break;
+            case '\n':
+                printf("\n");
+                execute_commands(typingBuffer);
 
-                charBufferIndex = 0;
-            } else if (strncmp("BADAPPLE", to_upper(charBuffer), 8) == 0) {
-                for (int i = 0; i < 62 - 1; ++i) {
-                    charBuffer[i] = ' ';
-                }
-
-                if (!create_once) {
-                    create_thread(badapple_kthread);
-                    printf("Kernel: Started playing BAD APPLE in userspace\n");
-                    create_once = 1;
-                } else {
-                    printf("BAD APPLE is already running\n");
-                }
-                charBufferIndex = 0;
-            } else if (strncmp("CREDITS", to_upper(charBuffer), 7) == 0) {
-                for (int i = 0; i < 62 - 1; ++i) {
-                    charBuffer[i] = ' ';
-                }
-
-                printString("Press any key to scroll one line", 8, 10 * 25);
-
-                char *data = malloc(16 * 1024);
-                fs_read("/credits.txt", data, 16 * 1024);
-
-                char line[82];
-
-                int i = 0;
-                int lines_printed = 0;
-                while (data[i] != '\0') {
-                    int ix = 0;
-
-                    while (ix < 80 && data[i] != '\0' && data[i] != '\n') {
-                        line[ix] = data[i];
-                        ix++;
-                        i++;
-                    }
-
-                    line[ix] = '\0';
-                    printf("%s", line);
-                    lines_printed++;
-                    if (data[i] == '\n') {
-                        i++;
-                    }
-
-                    if (lines_printed > 23) {
-                        int wasKeyPressed = 0;
-                        while (!wasKeyPressed) {
-                            char keyPressed[1];
-                            fs_read("/dev/ps2/kbd", keyPressed, 1);
-                            if (keyPressed[0] != '\0') {
-                                wasKeyPressed = 1;
-                            }
-                            pit_sleep_ms(1);
-                        }
+                typingBufferIndex = 0;
+                memset(typingBuffer, '\0', 64);
+                printf("\n");
+                newLineStarted = true;
+                break;
+            default:
+                if (keyPressed[0] != '\0') {
+                    if ((typingBufferIndex + 1) <= 63) {
+                        typingBuffer[typingBufferIndex++] = keyPressed[0];
+                        fs_write("/dev/term/tty", keyPressed, 1);
                     }
                 }
-
-                free(data);
-
-                printString("                                                  ", 8, 10 * 25);
-                printString(charBuffer, 10 + (14 * 8), FB_HEIGHT - 16);
-                charBufferIndex = 0;
-            } else if (strncmp("CLEARFB", to_upper(charBuffer), 7) == 0 || strncmp("CLSFB", to_upper(charBuffer), 5) == '\0') {
-                for (int i = 0; i < 62 - 1; ++i) {
-                    charBuffer[i] = ' ';
-                }
-                clearScreen(FB_WIDTH, FB_HEIGHT);
-                printf("Screen Cleared\n");
-                printString("Kernel Shell> ", 10, FB_HEIGHT - 16);
-                charBufferIndex = 0;
-            } else if (strncmp("CLEAR", to_upper(charBuffer), 5) == 0 || strncmp("CLS", to_upper(charBuffer), 3) == '\0') {
-                for (int i = 0; i < 62 - 1; ++i) {
-                    charBuffer[i] = ' ';
-                }
-                cleark();
-                printf("Cleared Terminal\n");
-                printString(charBuffer, 10 + (14 * 8), FB_HEIGHT - 16);
-                charBufferIndex = 0;
-            } else if (strncmp("MMAP", to_upper(charBuffer), 4) == 0) {
-                for (int i = 0; i < 62 - 1; ++i) {
-                    charBuffer[i] = ' ';
-                }
-                printString(charBuffer, 10, 8);
-                printf("Memory Map Printed\n");
-                printMemoryMap();
-                printString(charBuffer, 10 + (14 * 8), FB_HEIGHT - 16);
-                charBufferIndex = 0;
-            } else if (strncmp("FAULT", to_upper(charBuffer), 5) == 0) {
-                volatile uint64_t *fault = (volatile uint64_t *)0xDEADBEEF;
-                *fault = 0xDEADBEEF;
-            } else if (strncmp("PANIC", to_upper(charBuffer), 5) == 0) {
-                panic("You asked for this lmao", 0, 0, 0, 0);
-            } else {
-                int validCommand = 0;
-                if (!validCommand && charBuffer[0] != ' ') {
-                    printString(charBuffer, 10, 8);
-                    printf("Invalid Shell Command: %s\n", charBuffer);
-                    printString(charBuffer, 10 + (14 * 8), FB_HEIGHT - 16);
-                }
-
-                for (int i = 0; i < 62 - 1; ++i) {
-                    charBuffer[i] = ' ';
-                }
-                charBufferIndex = 0;
-            }
-        } else {
-            char c = keyPressed[0];
-            if (c != 0 && charBufferIndex < 62 - 1) {
-                charBuffer[charBufferIndex++] = c;
-            }
+                break;
         }
-
-        printString(charBuffer, 10 + (14 * 8), FB_HEIGHT - 16);
     }
 }

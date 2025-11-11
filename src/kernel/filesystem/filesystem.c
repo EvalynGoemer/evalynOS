@@ -64,7 +64,7 @@ int fs_write(char* path, char* write_data, int write_length) {
     }
 
     if (best_filesystem_match != NULL) {
-        return best_filesystem_match->fs->read(path, write_data, write_length);
+        return best_filesystem_match->fs->write(path, write_data, write_length);
     } else {
         return -3;
     }

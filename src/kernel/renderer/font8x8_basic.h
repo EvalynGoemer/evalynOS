@@ -22,6 +22,10 @@
 // Contains an 8x8 font map for unicode points U+0000 - U+007F (basic latin)
 
 #include <stdint.h>
+
+static const int FONT_WIDTH = 8;
+static const int FONT_HEIGHT = 8;
+
 static const unsigned char font8x8_basic[128][8] = {
     { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},   // U+0000 (nul)
     { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},   // U+0001

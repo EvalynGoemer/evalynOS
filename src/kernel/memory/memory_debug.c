@@ -26,60 +26,28 @@ char* int_to_hex(unsigned long num) {
 }
 
 void printMemoryMap() {
-    const int column_spacing = 150;
-    const int row_height = 10;
-    const uint64_t entry_count = memmap_request.response->entry_count;
+    uint64_t entry_count = memmap_request.response->entry_count;
 
-    if (entry_count > 48) {
-        printf("Kernel: Error too many entries to print");
-        return;
-    }
-
-    int start_y = FB_HEIGHT - (row_height * (entry_count + 1)) - 10;
-    int start_x = FB_WIDTH - ((column_spacing * 2) + 176) - 10;
-
-    printString("Memory Map:", start_x, start_y - row_height);
-    printString("VIRTUAL ADDRESS", start_x, start_y);
-    printString("LENGTH IN BYTES", start_x + column_spacing, start_y);
-    printString("MEMORY TYPE", start_x + (2 * column_spacing), start_y);
+    printf("Memory Map:\n");
+    printf("VIRTUAL ADDRESS | LENGTH IN BYTES | MEMORY TYPE\n");
 
     for (uint64_t i = 0; i < entry_count; i++) {
-        int y = start_y + (i + 1) * row_height;
-
-        printString(int_to_hex(memmap_request.response->entries[i]->base + hhdm_request.response->offset),
-                    start_x, y);
-
-        printString(int_to_hex(memmap_request.response->entries[i]->length),
-                    start_x + column_spacing, y);
+        uint64_t base = memmap_request.response->entries[i]->base + hhdm_request.response->offset;
+        uint64_t length = memmap_request.response->entries[i]->length;
+        const char *type_str;
 
         switch (memmap_request.response->entries[i]->type) {
-            case LIMINE_MEMMAP_USABLE:
-                printString("Usable", start_x + (2 * column_spacing), y);
-                break;
-            case LIMINE_MEMMAP_RESERVED:
-                printString("Reserved", start_x + (2 * column_spacing), y);
-                break;
-            case LIMINE_MEMMAP_ACPI_RECLAIMABLE:
-                printString("ACPI Reclaimable", start_x + (2 * column_spacing), y);
-                break;
-            case LIMINE_MEMMAP_ACPI_NVS:
-                printString("ACPI NVS", start_x + (2 * column_spacing), y);
-                break;
-            case LIMINE_MEMMAP_BAD_MEMORY:
-                printString("Bad Memory", start_x + (2 * column_spacing), y);
-                break;
-            case LIMINE_MEMMAP_BOOTLOADER_RECLAIMABLE:
-                printString("Bootloader Reclaimable", start_x + (2 * column_spacing), y);
-                break;
-            case LIMINE_MEMMAP_EXECUTABLE_AND_MODULES:
-                printString("Executable and Modules", start_x + (2 * column_spacing), y);
-                break;
-            case LIMINE_MEMMAP_FRAMEBUFFER:
-                printString("Framebuffer", start_x + (2 * column_spacing), y);
-                break;
-            default:
-                printString("Unknown", start_x + (2 * column_spacing), y);
-                break;
+            case LIMINE_MEMMAP_USABLE:                  type_str = "Usable"; break;
+            case LIMINE_MEMMAP_RESERVED:                type_str = "Reserved"; break;
+            case LIMINE_MEMMAP_ACPI_RECLAIMABLE:        type_str = "ACPI Reclaimable"; break;
+            case LIMINE_MEMMAP_ACPI_NVS:                type_str = "ACPI NVS"; break;
+            case LIMINE_MEMMAP_BAD_MEMORY:              type_str = "Bad Memory"; break;
+            case LIMINE_MEMMAP_BOOTLOADER_RECLAIMABLE:  type_str = "Bootloader Reclaimable"; break;
+            case LIMINE_MEMMAP_EXECUTABLE_AND_MODULES:  type_str = "Executable and Modules"; break;
+            case LIMINE_MEMMAP_FRAMEBUFFER:             type_str = "Framebuffer"; break;
+            default:                                    type_str = "Unknown"; break;
         }
+
+        printf("0x%llx  0x%llx  %s\n", (unsigned long long)base, (unsigned long long)length, type_str);
     }
 }

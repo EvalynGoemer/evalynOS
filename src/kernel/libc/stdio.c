@@ -3,6 +3,7 @@
 #include <stdint.h>
 
 #include "../renderer/fb_renderer.h"
+#include "../filesystem/filesystem.h"
 #include "string.h"
 
 #define TERM_WIDTH 80
@@ -133,20 +134,7 @@ int printf(const char* fmt, ...) {
         termY = TERM_HEIGHT - 1;
     }
 
-    strcpy(terminal[termY], "                                                                                ");
-    strcpy(terminal[termY], tmp);
-    termY++;
-    term_updated = 1;
-
-    if (term_updated == 1) {
-        for (int y = 0; y < TERM_HEIGHT; y++) {
-            for (int x = 0; x < TERM_WIDTH; x++) {
-                char c = terminal[y][x];
-                printChar(c, 8 + x * 8, 8 + y * 10);
-            }
-        }
-        term_updated = 0;
-    }
+    fs_write("/dev/term/tty", tmp, ix);
 
     return 0;
 }

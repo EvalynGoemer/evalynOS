@@ -37,7 +37,6 @@ Copy the `EFI` folder and `limine.conf` and `kernel.elf` and `initramfs.tar` to 
 - `TEST`: Prints a test message
 - `CREDITS`: Prints credits.txt
 - `CLEAR`: Clears the terminal (ALIAS: `CLS`)
-- `CLEARFB`: Clears the framebufer (ALIAS: `CLSFB`)
 - `MMAP`: Prints the memory map provided by the bootloader
 - `PANIC`: Causes a kernel panic
 - `FAULT`: Causes a Page Fault to panic with extended info

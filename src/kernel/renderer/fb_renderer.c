@@ -13,7 +13,10 @@ int FB_HEIGHT;
 
 __attribute__((no_caller_saved_registers))
 __attribute__((target("general-regs-only")))
-void plotPixel(size_t x, size_t y, uint32_t color) {
+void plotPixel(int x, int y, uint32_t color) {
+    if (x >= FB_WIDTH || y >= FB_HEIGHT) {
+        return;
+    }
     *((volatile uint32_t*)framebuffer->address + y * (framebuffer->pitch >> 2) + x) = color;
 }
 
@@ -21,9 +24,9 @@ __attribute__((no_caller_saved_registers))
 __attribute__((target("general-regs-only")))
 void printChar(char c, int x, int y) {
     int index = c;
-    for (int row = 0; row < 8; row++) {
+    for (int row = 0; row < FONT_HEIGHT; row++) {
         unsigned char bits = font8x8_basic[index][row];
-        for (int col = 0; col < 8; col++) {
+        for (int col = 0; col < FONT_WIDTH; col++) {
             if (bits & (1 << col)) {
                 plotPixel(x + col, y + row, 0xFFFFFFFF);
             } else {

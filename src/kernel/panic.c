@@ -163,14 +163,22 @@ void panic(char* message, int vector, struct interrupt_frame* frame, __attribute
         : "=m"(ldt), "=m"(tr)
     );
 
+    stop_sound();
     if (panic_count > 0) {
-        clearScreen(FB_WIDTH, FB_HEIGHT);
+        int scaleX = framebuffer->width / kernel_panic_image_data_width;
+        int scaleY = framebuffer->height / kernel_panic_image_data_height;
+        if (scaleX < 1) scaleX = 1;
+        if (scaleY < 1) scaleY = 1;
+        drawImage(kernel_panic_image, kernel_panic_image_data_width, kernel_panic_image_data_height, 0, 0, scaleX, scaleY);
 
-        printf("The kernel is fucked 2: Electric Boogaloo (Panic Paniced)");
-        printf("%s", message);
+        printString("The kernel is fucked 2: Electric Boogaloo (Panic Paniced)", 0, 0);
+        printString(message, 100, 100);
 
-        if(flags | PANIC_FLAGS_FRAME)
-            printf("%lx", frame->ip);
+        if(flags | PANIC_FLAGS_FRAME) {
+            char result[32];
+            snprintf(result, sizeof(result), "%lx", frame->ip);
+            printString(result, 300, 300);
+        }
 
         while (1) {
 
@@ -178,25 +186,58 @@ void panic(char* message, int vector, struct interrupt_frame* frame, __attribute
     }
     panic_count++;
 
-    stop_sound();
+    printf("%s\n", error_mssages[rand_between(0, SIZEOF(error_mssages))]);
 
-    int scaleX = framebuffer->width / kernel_panic_image_data_width;
-    int scaleY = framebuffer->height / kernel_panic_image_data_height;
-    if (scaleX < 1) scaleX = 1;
-    if (scaleY < 1) scaleY = 1;
+    printf("%s\n", message);
 
-    char result[128];
-    int y = 8;
-    int x = 488;
-    int i = 0;
+    printf("Register Dump:\n");
 
-    drawImage(kernel_panic_image, kernel_panic_image_data_width, kernel_panic_image_data_height, 0, 0, scaleX, scaleY);
-    snprintf(result, sizeof(result), "%s", error_mssages[rand_between(0, SIZEOF(error_mssages))]);
-    printString(result, 8, 8);
+    printf("RAX=%lx\n", rax);
+    printf("RBX=%lx\n", rbx);
+    printf("RCX=%lx\n", rcx);
+    printf("RDX=%lx\n", rdx);
+    printf("RSI=%lx\n", rsi);
+    printf("RDI=%lx\n", rdi);
+    printf("RBP=%lx\n", rbp);
+    printf("RSP=%lx\n", rsp);
+    printf("R8 =%lx\n", r8);
+    printf("R9 =%lx\n", r9);
+    printf("R10=%lx\n", r10);
+    printf("R11=%lx\n", r11);
+    printf("R12=%lx\n", r12);
+    printf("R13=%lx\n", r13);
+    printf("R14=%lx\n", r14);
+    printf("R15=%lx\n", r15);
 
+    if (flags & PANIC_FLAGS_FRAME) {
+        printf("IP=%lx\n", frame->ip);
+        printf("CS=%lx\n", frame->cs);
+        printf("FLAGS=%lx\n", frame->flags);
+        printf("SP=%lx\n", frame->sp);
+        printf("SS=%lx\n", frame->ss);
+    }
+
+    if (flags & PANIC_FLAGS_ERROR) {
+        printf("ERR=%lx\n", error);
+    }
+
+    printf("RFLAGS=%lx\n", rflags);
+    printf("CR0=%lx\n", cr0);
+    printf("CR2=%lx\n", cr2);
+    printf("CR3=%lx\n", cr3);
+    printf("CR4=%lx\n", cr4);
+    printf("CR8=%lx\n", cr8);
+
+    printf("GDTR Base=%lx\n", gdtr.base);
+    printf("GDTR Limit=%x\n", gdtr.limit);
+    printf("IDTR Base=%lx\n", idtr.base);
+    printf("IDTR Limit=%x\n", idtr.limit);
+    printf("LDT=%x\n", ldt);
+    printf("TR=%x\n", tr);
+
+    printf("Stack Trace:\n");
     uint64_t *rbp_ptr;
     asm volatile ("mov %%rbp, %0" : "=r" (rbp_ptr));
-
     if (flags | PANIC_FLAGS_VECTOR) {
         switch (vector) {
             case INTERRUPT_HANDLER_DOUBLE_FAULT:
@@ -204,8 +245,7 @@ void panic(char* message, int vector, struct interrupt_frame* frame, __attribute
                     for (unsigned int j = 0; j < symbol_count; j++) {
                         if (frame->ip >= symbols[j].address && frame->ip  < symbols[j].address + symbols[j].size) {
                             uint64_t offset = frame->ip - symbols[j].address;
-                            snprintf(result, sizeof(result), "%s: %lx + %lx", symbols[j].name, symbols[j].address, offset);
-                            i++;
+                            printf("%s: %lx + %lx\n", symbols[j].name, symbols[j].address, offset);
                             break;
                         }
                     }
@@ -216,8 +256,8 @@ void panic(char* message, int vector, struct interrupt_frame* frame, __attribute
                     for (unsigned int j = 0; j < symbol_count; j++) {
                         if (frame->ip >= symbols[j].address && frame->ip  < symbols[j].address + symbols[j].size) {
                             uint64_t offset = frame->ip - symbols[j].address;
-                            snprintf(result, sizeof(result), "%s: %lx + %lx", symbols[j].name, symbols[j].address, offset);
-                            i++;
+                            printf("%s: %lx + %lx\n", symbols[j].name, symbols[j].address, offset);
+
                             break;
                         }
                     }
@@ -228,9 +268,7 @@ void panic(char* message, int vector, struct interrupt_frame* frame, __attribute
                     for (unsigned int j = 0; j < symbol_count; j++) {
                         if (frame->ip >= symbols[j].address && frame->ip  < symbols[j].address + symbols[j].size) {
                             uint64_t offset = frame->ip - symbols[j].address;
-                            snprintf(result, sizeof(result), "%s: %lx + %lx", symbols[j].name, symbols[j].address, offset);
-                            printString(result, x, y + i * 8);
-                            i++;
+                            printf("%s: %lx + %lx\n", symbols[j].name, symbols[j].address, offset);
                             break;
                         }
                     }
@@ -244,9 +282,7 @@ void panic(char* message, int vector, struct interrupt_frame* frame, __attribute
         for (unsigned int j = 0; j < symbol_count; j++) {
             if (rip >= symbols[j].address && rip < symbols[j].address + symbols[j].size) {
                 uint64_t offset = rip - symbols[j].address;
-                snprintf(result, sizeof(result), "%s: %lx + %lx", symbols[j].name, symbols[j].address, offset);
-                printString(result, x, y + i * 8);
-                i++;
+                printf("%s: %lx + %lx\n", symbols[j].name, symbols[j].address, offset);
                 break;
             }
         }
@@ -254,123 +290,7 @@ void panic(char* message, int vector, struct interrupt_frame* frame, __attribute
         rbp_ptr = (uint64_t *)rbp_ptr[0];
     }
 
-    y = 8;
-    x = 250;
-    i = 0;
-    snprintf(result, sizeof(result), "%s", message);
-    printString(result, 8, y + 8);
-    snprintf(result, sizeof(result), "RAX=%lx", rax);
-    printString(result, x, y + i * 8);
-    i++;
-    snprintf(result, sizeof(result), "RBX=%lx", rbx);
-    printString(result, x, y + i * 8);
-    i++;
-    snprintf(result, sizeof(result), "RCX=%lx", rcx);
-    printString(result, x, y + i * 8);
-    i++;
-    snprintf(result, sizeof(result), "RDX=%lx", rdx);
-    printString(result, x, y + i * 8);
-    i++;
-    snprintf(result, sizeof(result), "RSI=%lx", rsi);
-    printString(result, x, y + i * 8);
-    i++;
-    snprintf(result, sizeof(result), "RDI=%lx", rdi);
-    printString(result, x, y + i * 8);
-    i++;
-    snprintf(result, sizeof(result), "RBP=%lx", rbp);
-    printString(result, x, y + i * 8);
-    i++;
-    snprintf(result, sizeof(result), "RSP=%lx", rsp);
-    printString(result, x, y + i * 8);
-    i++;
-    snprintf(result, sizeof(result), "R8 =%lx", r8);
-    printString(result, x, y + i * 8);
-    i++;
-    snprintf(result, sizeof(result), "R9 =%lx", r9);
-    printString(result, x, y + i * 8);
-    i++;
-    snprintf(result, sizeof(result), "R10=%lx", r10);
-    printString(result, x, y + i * 8);
-    i++;
-    snprintf(result, sizeof(result), "R11=%lx", r11);
-    printString(result, x, y + i * 8);
-    i++;
-    snprintf(result, sizeof(result), "R12=%lx", r12);
-    printString(result, x, y + i * 8);
-    i++;
-    snprintf(result, sizeof(result), "R13=%lx", r13);
-    printString(result, x, y + i * 8);
-    i++;
-    snprintf(result, sizeof(result), "R14=%lx", r14);
-    printString(result, x, y + i * 8);
-    i++;
-    snprintf(result, sizeof(result), "R15=%lx", r15);
-    printString(result, x, y + i * 8);
-    i++;
-    i++;
-
-    if (flags & PANIC_FLAGS_FRAME) {
-        snprintf(result, sizeof(result), "IP=%lx", frame->ip);
-        printString(result, x, y + i * 8);
-        i++;
-        snprintf(result, sizeof(result), "CS=%lx", frame->cs);
-        printString(result, x, y + i * 8);
-        i++;
-        snprintf(result, sizeof(result), "FLAGS=%lx", frame->flags);
-        printString(result, x, y + i * 8);
-        i++;
-        snprintf(result, sizeof(result), "SP=%lx", frame->sp);
-        printString(result, x, y + i * 8);
-        i++;
-        snprintf(result, sizeof(result), "SS=%lx", frame->ss);
-        printString(result, x, y + i * 8);
-        i++;
-    }
-
-    if (flags & PANIC_FLAGS_ERROR) {
-        snprintf(result, sizeof(result), "ERR=%lx", error);
-        printString(result, x, y + i * 8);
-        i++;
-        i++;
-    }
-
-    snprintf(result, sizeof(result), "RFLAGS=%lx", rflags);
-    printString(result, x, y + i * 8);
-    i++;
-    snprintf(result, sizeof(result), "CR0=%lx", cr0);
-    printString(result, x, y + i * 8);
-    i++;
-    snprintf(result, sizeof(result), "CR2=%lx", cr2);
-    printString(result, x, y + i * 8);
-    i++;
-    snprintf(result, sizeof(result), "CR3=%lx", cr3);
-    printString(result, x, y + i * 8);
-    i++;
-    snprintf(result, sizeof(result), "CR4=%lx", cr4);
-    printString(result, x, y + i * 8);
-    i++;
-    snprintf(result, sizeof(result), "CR8=%lx", cr8);
-    printString(result, x, y + i * 8);
-    i++;
-    i++;
-    snprintf(result, sizeof(result), "GDTR Base=%lx", gdtr.base);
-    printString(result, x, y + i * 8);
-    i++;
-    snprintf(result, sizeof(result), "GDTR Limit=%x", gdtr.limit);
-    printString(result, x, y + i * 8);
-    i++;
-    snprintf(result, sizeof(result), "IDTR Base=%lx", idtr.base);
-    printString(result, x, y + i * 8);
-    i++;
-    snprintf(result, sizeof(result), "IDTR Limit=%x", idtr.limit);
-    printString(result, x, y + i * 8);
-    i++;
-    snprintf(result, sizeof(result), "LDT=%x", ldt);
-    printString(result, x, y + i * 8);
-    i++;
-    snprintf(result, sizeof(result), "TR=%x", tr);
-    printString(result, x, y + i * 8);
-    i++;
+    printf("HALTING;\n");
 
     #ifndef MUTE_KERNEL_PANIC
         play_sound(1000);

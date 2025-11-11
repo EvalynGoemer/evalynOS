@@ -13,6 +13,7 @@
 #include "hardware/hardware.h"
 #include "interupts/interupts.h"
 #include "renderer/fb_renderer.h"
+#include "renderer/tty.h"
 #include "memory/memory.h"
 #include "filesystem/filesystem.h"
 #include "filesystem/devfs/devfs.h"
@@ -90,7 +91,6 @@ void kmain(void) {
     // Limine boilerplate end
 
     printf("Kernel: Kernel Started\n");
-    printString("Kernel Debug Info", 10, FB_HEIGHT - 64);
 
     // Enable fxsave & fxstor instructions
     __asm__ volatile (
@@ -106,14 +106,12 @@ void kmain(void) {
     setup_idt();
 
     printf("Kernel: Basic GDT & IDT Setup\n");
-    printString("genericInteruptsTriggered: [Not Updated]", 10, FB_HEIGHT - 56);
 
     setup_pic(0x20, 0x28);
     printf("Kernel: PIC Setup\n");
 
     setup_pit(1000);
     printf("Kernel: PIT Setup\n");
-    printString("pitInteruptsTriggered: [Logging Stripped For Preformance]", 10, FB_HEIGHT - 48);
 
     setup_pmm();
     printf("Kernel: Physical Memory Manager Setup\n");
@@ -130,8 +128,9 @@ void kmain(void) {
 
     setup_ps2();
     printf("Kernel: PS/2 Keyboard Setup\n");
-    printString("ps2InteruptsTriggered: [Not Updated]", 10, FB_HEIGHT - 40);
-    printString("PS/2 Keyboard Event: [Not Updated]", 10, FB_HEIGHT - 32);
+
+    setup_tty();
+    printf("Kernel: TTY Init\n");
 
     int status = init_tarfs();
     if(status == -1) {

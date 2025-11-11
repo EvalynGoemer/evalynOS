@@ -35,32 +35,5 @@ void ps2_isr(__attribute__((unused)) void* frame) {
         kbd_buffer_index++;
     }
 
-    char result[LINE_WIDTH + 1];
-    int len = 0;
-    const char *prefix = "ps2InteruptsTriggered: ";
-    for (const char *c = prefix; *c; ++c) result[len++] = *c;
-
-    int num = ps2InteruptsTriggered;
-    if (num == 0) {
-        result[len++] = '0';
-    } else {
-        char temp[16];
-        int i = 0;
-        while (num > 0) {
-            temp[i++] = (num % 10) + '0';
-            num /= 10;
-        }
-        while (i > 0) result[len++] = temp[--i];
-    }
-
-    while (len < LINE_WIDTH) result[len++] = ' ';
-    result[len] = '\0';
-    printString(result, 10, FB_HEIGHT - 40);
-
-    char result2[LINE_WIDTH + 1];
-    snprintf(result2, (LINE_WIDTH + 1), "PS/2 Keyboard Event: %x                                       ", scancode);
-
-    printString(result2, 10, FB_HEIGHT - 32);
-
     outb(0x20,0x20);
 }
