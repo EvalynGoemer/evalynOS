@@ -1,11 +1,7 @@
-#include "./interupts.h"
-#include "../hardware/pit.h"
-#include "../hardware/pcskpr.h"
-#include "../libc/stdio.h"
-#include "../renderer/fb_renderer.h"
-#include "../kernel.h"
-#include "../memory/vmm.h"
-#include "pit.h"
+#include <interupts/interupts.h>
+#include <memory/vmm.h>
+#include <drivers/x86_64//pit.h>
+#include <drivers/x86_64//pcskpr.h>
 
 __attribute__((naked))
 void syscall_isr(void) {

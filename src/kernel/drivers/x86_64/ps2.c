@@ -1,11 +1,11 @@
-#include "ports.h"
-#include "pic.h"
-#include "pit.h"
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
 
-#include "../filesystem/devfs/devfs.h"
-#include "../memory/pmm.h"
-#include "../libc/string.h"
-#include "../libc/stdlib.h"
+#include <filesystem/filesystem.h>
+#include <drivers/x86_64/ports.h>
+#include <drivers/x86_64/pic.h>
+#include <drivers/x86_64/pit.h>
 
 #define PS2_DATA_PORT 0x60
 #define PS2_STATUS_PORT 0x64
@@ -86,11 +86,11 @@ void setup_ps2() {
 
     unmask_irq(1);
 
-    struct device* kbd = malloc(sizeof(struct device));
-    strcpy(kbd->fullPath, "/dev/ps2/kbd");
-    kbd->read = kbdDeviceRead;
-    kbd->write = kbdDeviceWrite;
-    register_device(kbd);
+    struct file* file = malloc(sizeof(struct file));
+    strcpy(file->path, "/dev/ps2/kbd");
+    file->read = kbdDeviceRead;
+    file->write = kbdDeviceWrite;
+    register_file(file);
 
     __asm__ __volatile__("sti");
 }

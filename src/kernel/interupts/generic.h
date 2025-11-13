@@ -1,3 +1,4 @@
 #pragma once
-extern volatile int genericInteruptsTriggered;
+
+__attribute__((interrupt))
 extern void generic_isr(struct interrupt_frame* frame);

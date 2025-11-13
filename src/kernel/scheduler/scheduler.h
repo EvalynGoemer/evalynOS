@@ -16,6 +16,5 @@ struct thread_node {
     struct thread_node* next_thread;
 };
 
-extern void setup_threading();
 extern void create_thread(void (*entry_point)(void*));
 extern void schedule();

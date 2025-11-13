@@ -45,7 +45,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "../kernel.h"
+#include <utils/globals.h>
 
 #define PAGE_SIZE 4096
 

@@ -1,17 +1,12 @@
-#include <stddef.h>
-
-#include "interupts.h"
-#include "../libc/stdio.h"
-#include "../renderer/fb_renderer.h"
-#include "../hardware/ports.h"
-#include "../scheduler/scheduler.h"
+#include <interupts/interupts.h>
+#include <drivers/x86_64/ports.h>
+#include <scheduler/scheduler.h>
 
 volatile int pitInteruptsTriggered = 0;
 volatile int shouldSchedule = 0;
 #define LINE_WIDTH 80
 
 __attribute__((interrupt))
-__attribute__((target("general-regs-only")))
 void pit_isr(__attribute__((unused)) void* frame) {
     pitInteruptsTriggered++;
 

@@ -1,17 +1,15 @@
-#include "../libc/string.h"
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
 
-#include "../kernel.h"
-#include "../libc/stdio.h"
-#include "../libc/stdlib.h"
-#include "../filesystem/filesystem.h"
-#include "../renderer/fb_renderer.h"
-#include "../memory/memory_debug.h"
-#include "../memory/vmm.h"
-#include "../memory/pmm.h"
-#include "../scheduler/scheduler.h"
-#include "../scheduler/switch.h"
-#include "../hardware/pit.h"
-#include "../panic.h"
+#include <utils/panic.h>
+#include <drivers/x86_64/pit.h>
+#include <filesystem/filesystem.h>
+#include <memory/debug.h>
+#include <memory/pmm.h>
+#include <memory/vmm.h>
+#include <scheduler/scheduler.h>
+#include <scheduler/switch.h>
 
 int create_once = 0;
 int run_once = 0;
@@ -81,10 +79,7 @@ void execute_commands(const char *cmd) {
             if (*ptr == '\n') {
                 lineCount++;
                 *ptr = '\0';
-                // HACK: write direct to tty because this code dose not construct a string printf can parse for some reason
-                // TODO: either redo this code or redo printf (both will be needed to be redone at some point anyways)
-                fs_write("/dev/term/tty", lineStart, strlen(lineStart));
-                fs_write("/dev/term/tty", "\n", 1);
+                printf("%s\n", lineStart);
                 lineStart = ptr + 1;
             }
 
@@ -107,10 +102,7 @@ void execute_commands(const char *cmd) {
         }
 
         if (*lineStart) {
-            // HACK: write direct to tty because this code dose not construct valid C strings
-            // TODO: either redo this code or redo printf (both will be needed to be redone at some point anyways)
-            fs_write("/dev/term/tty", lineStart, strlen(lineStart));
-            fs_write("/dev/term/tty", "\n", 1);
+            printf("%s\n", lineStart);
         }
 
         free(data);
@@ -166,8 +158,8 @@ void start_shell() {
         switch (keyPressed[0]) {
             case '\b':
                 if ((typingBufferIndex - 1) > -1) {
-                    typingBuffer[typingBufferIndex--] = '\0';
-                    printf("\b");
+                    typingBuffer[--typingBufferIndex] = '\0';
+                    printf("\b \b");
                 }
                 break;
             case '\n':
@@ -176,14 +168,13 @@ void start_shell() {
 
                 typingBufferIndex = 0;
                 memset(typingBuffer, '\0', 64);
-                printf("\n");
                 newLineStarted = true;
                 break;
             default:
                 if (keyPressed[0] != '\0') {
                     if ((typingBufferIndex + 1) <= 63) {
                         typingBuffer[typingBufferIndex++] = keyPressed[0];
-                        fs_write("/dev/term/tty", keyPressed, 1);
+                        printf("%c", keyPressed[0]);
                     }
                 }
                 break;

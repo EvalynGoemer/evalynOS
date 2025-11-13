@@ -1,5 +1,4 @@
-#include "stdint.h"
+#include <stdint.h>
 
 __attribute__((interrupt))
-__attribute__((target("general-regs-only")))
 extern void double_fault_isr(struct interrupt_frame* frame, uint64_t error);

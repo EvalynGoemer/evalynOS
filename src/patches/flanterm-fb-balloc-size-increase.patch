@@ -1,0 +1,13 @@
+diff --git a/src/flanterm_backends/fb.c b/src/flanterm_backends/fb.c
+index da00f9a..ab62db6 100644
+--- a/src/flanterm_backends/fb.c
++++ b/src/flanterm_backends/fb.c
+@@ -56,7 +56,7 @@ void *memcpy(void *, const void *, size_t);
+ #ifndef FLANTERM_FB_DISABLE_BUMP_ALLOC
+ 
+ #ifndef FLANTERM_FB_BUMP_ALLOC_POOL_SIZE
+-#define FLANTERM_FB_BUMP_ALLOC_POOL_SIZE 873000
++#define FLANTERM_FB_BUMP_ALLOC_POOL_SIZE 0x180000
+ 
+ #define FLANTERM_FB_WIDTH_LIMIT 1920
+ #define FLANTERM_FB_HEIGHT_LIMIT 1200

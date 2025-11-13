@@ -1,9 +1,10 @@
-#include "../filesystem.h"
-#include "../../libc/string.h"
-#include "../../libc/stdlib.h"
-#include "../../libc/stdio.h"
-#include "../../kernel.h"
-#include <stdint.h>
+#include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
+
+#include <utils/globals.h>
+#include <filesystem/filesystem.h>
+#include <filesystem/tarfs/tarfs.h>
 
 // Code adapted from https://wiki.osdev.org/USTAR
 
@@ -60,11 +61,23 @@ int init_tarfs() {
         return -1;
     }
 
-    struct filesystem* tarfs = malloc(sizeof(struct filesystem));
-    strcpy(tarfs->rootPath, "/");
-    tarfs->read = tarfsRead;
-    tarfs->write = tarfsWrite;
+    unsigned char *ptr = archive;
 
-    register_fs(tarfs);
+    while (!memcmp(ptr + 257, "ustar", 5)) {
+        int filesize = oct2bin(ptr + 0x7c, 11);
+        char *path = (char*)ptr;
+
+        if (filesize > 0) {
+            struct file* file = malloc(sizeof(struct file));
+            strcpy(file->path, path + 1);
+            file->read = tarfsRead;
+            file->write = tarfsWrite;
+            register_file(file);
+        }
+
+        ptr += (((filesize + 511) / 512) + 1) * 512;
+    }
+
+
     return 0;
 }

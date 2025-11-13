@@ -1,9 +1,8 @@
 #define LIMINE_API_REVISION 3
 #include <limine.h>
+#include <stdio.h>
 
-#include "../renderer/fb_renderer.h"
-#include "../kernel.h"
-#include "../libc/stdio.h"
+#include <utils/globals.h>
 
 char* int_to_hex(unsigned long num) {
     static const char hex[] = "0123456789ABCDEF";
@@ -29,7 +28,7 @@ void printMemoryMap() {
     uint64_t entry_count = memmap_request.response->entry_count;
 
     printf("Memory Map:\n");
-    printf("VIRTUAL ADDRESS | LENGTH IN BYTES | MEMORY TYPE\n");
+    printf("VIRTUAL ADDRESS      LENGTH IN BYTES      MEMORY TYPE\n");
 
     for (uint64_t i = 0; i < entry_count; i++) {
         uint64_t base = memmap_request.response->entries[i]->base + hhdm_request.response->offset;
@@ -48,6 +47,6 @@ void printMemoryMap() {
             default:                                    type_str = "Unknown"; break;
         }
 
-        printf("0x%llx  0x%llx  %s\n", (unsigned long long)base, (unsigned long long)length, type_str);
+        printf("0x%016llx   0x%016llx   %-12s\n", (unsigned long long)base, (unsigned long long)length, type_str);
     }
 }

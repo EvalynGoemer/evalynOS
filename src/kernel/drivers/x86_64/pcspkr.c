@@ -1,6 +1,5 @@
-#include "stdint.h"
-#include "ports.h"
-
+#include <stdint.h>
+#include <drivers/x86_64/ports.h>
 
 __attribute__((no_caller_saved_registers))
 __attribute__((target("general-regs-only")))

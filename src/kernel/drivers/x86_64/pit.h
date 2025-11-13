@@ -1,5 +1,4 @@
 #pragma once
-#include "ports.h"
 
 #define PIT_CONTROL_PORT 0x43
 #define PIT_CHANNEL0_PORT 0x40

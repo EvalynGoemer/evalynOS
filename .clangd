@@ -2,4 +2,4 @@ CompileFlags:
   Add: [-Wall, -Wextra, -Wno-unknown-pragmas, -mgeneral-regs-only]
 
 Diagnostics:
-  Suppress: ["unused-includes", "misc-definitions-in-headers"]
+  Suppress: []

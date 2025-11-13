@@ -40,12 +40,12 @@
 // Modified by Evalyn Goemer to work with EvalynOS
 
 #include <stdint.h>
+#include <stdio.h>
+#include <string.h>
 
-#include "../kernel.h"
-#include "../libc/stdio.h"
-#include "../libc/string.h"
-#include "../panic.h"
-#include "vmm.h"
+#include <utils/globals.h>
+#include <utils/panic.h>
+#include <memory/vmm.h>
 
 #define ALIGN_UP(value, align) (((value) + (align) - 1) & ~((align) - 1))
 

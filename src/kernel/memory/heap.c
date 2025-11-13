@@ -41,13 +41,13 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <stdio.h>
+#include <string.h>
 
-#include "../kernel.h"
-#include "../libc/stdio.h"
-#include "../libc/string.h"
-#include "../panic.h"
-#include "pmm.h"
-#include "vmm.h"
+#include <utils/globals.h>
+#include <utils/panic.h>
+#include <memory/pmm.h>
+#include <memory/vmm.h>
 
 typedef struct heap_free_block {
     size_t size;

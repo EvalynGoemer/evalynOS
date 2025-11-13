@@ -19,9 +19,6 @@ NvVars
 
 # Deps
 .deps-obtained
-/cc-runtime/
-/limine*/
-/freestnd-c-hdrs/
 
 # Misc
 *.kate-swp

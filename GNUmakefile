@@ -12,11 +12,8 @@ override OUTPUT := kernel.elf
 # Target architecture to build for. Default to x86_64.
 ARCH := x86_64
 
-# Install prefix; /usr/local is a good, standard default pick.
-PREFIX := /usr/local
-
 # Check if the architecture is supported.
-ifeq ($(filter $(ARCH),aarch64 loongarch64 riscv64 x86_64),)
+ifeq ($(filter $(ARCH), x86_64),)
     $(error Architecture $(ARCH) not supported)
 endif
 
@@ -31,7 +28,7 @@ endif
 
 # User controllable C compiler command.
 ifneq ($(TOOLCHAIN_PREFIX),)
-    CC := $(TOOLCHAIN_PREFIX)gcc
+    CC := $(TOOLCHAIN_PREFIX)clang
 else
     CC := cc
 endif
@@ -50,20 +47,11 @@ CPPFLAGS :=
 
 ifeq ($(ARCH),x86_64)
     # User controllable nasm flags.
-    NASMFLAGS := -g
+    NASMFLAGS :=
 endif
 
 # User controllable linker flags. We set none by default.
 LDFLAGS :=
-
-# Ensure the dependencies have been obtained.
-TARGETS := $(if $(MAKECMDGOALS),$(MAKECMDGOALS),all)
-
-ifneq ($(filter-out clean depclean genclean,$(TARGETS)),)
-    ifeq ($(wildcard .deps-obtained),)
-        $(error Please run the ./get-deps script first)
-    endif
-endif
 
 # Check if CC is Clang.
 override CC_IS_CLANG := $(shell ! $(CC) --version 2>/dev/null | grep -q '^Target: '; echo $$?)
@@ -82,12 +70,19 @@ override CFLAGS += \
     -ffunction-sections \
     -fdata-sections \
     -mgeneral-regs-only \
+    -mabi=sysv \
+    -mno-red-zone \
+    -mcmodel=kernel
 
 # Internal C preprocessor flags that should not be changed by the user.
 override CPPFLAGS := \
-    -I src \
-    -I limine-protocol/include \
-    -isystem freestnd-c-hdrs/include \
+    -I src/kernel \
+    -I src/generated \
+    -I deps/limine-protocol/include \
+    -I deps/flanterm/src/ \
+    -I deps/nanoprintf/ \
+    -isystem deps/freestnd-c-hdrs/include \
+    -isystem src/kernel/libc \
     $(CPPFLAGS) \
     -DLIMINE_API_REVISION=3 \
     -MMD \
@@ -108,57 +103,12 @@ ifeq ($(ARCH),x86_64)
     endif
     override CFLAGS += \
         -m64 \
-        -march=x86-64 \
-        -mabi=sysv \
-        -mno-red-zone \
-        -mcmodel=kernel
+        -march=x86-64
     override LDFLAGS += \
         -m elf_x86_64
     override NASMFLAGS := \
         -f elf64 \
         $(NASMFLAGS)
-endif
-ifeq ($(ARCH),aarch64)
-    ifeq ($(CC_IS_CLANG),1)
-        override CC += \
-            -target aarch64-unknown-none-elf
-    endif
-    override CFLAGS += \
-        -mcpu=generic \
-        -march=armv8-a+nofp+nosimd \
-        -mgeneral-regs-only
-    override LDFLAGS += \
-        -m aarch64elf
-endif
-ifeq ($(ARCH),riscv64)
-    ifeq ($(CC_IS_CLANG),1)
-        override CC += \
-            -target riscv64-unknown-none-elf
-        override CFLAGS += \
-            -march=rv64imac
-    else
-        override CFLAGS += \
-            -march=rv64imac_zicsr_zifencei
-    endif
-    override CFLAGS += \
-        -mabi=lp64 \
-        -mno-relax
-    override LDFLAGS += \
-        -m elf64lriscv \
-        --no-relax
-endif
-ifeq ($(ARCH),loongarch64)
-    ifeq ($(CC_IS_CLANG),1)
-        override CC += \
-            -target loongarch64-unknown-none-elf
-    endif
-    override CFLAGS += \
-        -march=loongarch64 \
-        -mabi=lp64s \
-        -mfpu=none \
-        -msimd=none
-    override LDFLAGS += \
-        -m elf64loongarch
 endif
 
 # Internal linker flags that should not be changed by the user.
@@ -172,9 +122,14 @@ override LDFLAGS += \
 # Use "find" to glob all *.c, *.S, and *.asm files in the tree
 # (except the src/arch/* directories, as those are gonna be added
 # in the next step).
-override SRCFILES := $(shell find -L src cc-runtime/src -type f -not -path 'src/arch/*' -not -path 'src/user/*' 2>/dev/null | LC_ALL=C sort)
+override SRCFILES := $(shell find -L src/kernel -type f -not -path 'src/kernel/arch/*' 2>/dev/null | LC_ALL=C sort)
+# Add generated files
+override SRCFILES += $(shell find -L src/generated -type f 2>/dev/null | LC_ALL=C sort)
+# Add compiled dependencies
+override SRCFILES += $(shell find -L deps/cc-runtime/src -type f 2>/dev/null | LC_ALL=C sort)
+override SRCFILES += $(shell find -L deps/flanterm/src/  -type f 2>/dev/null | LC_ALL=C sort)
 # Add architecture specific files, if they exist.
-override SRCFILES += $(shell find -L src/arch/$(ARCH) -type f 2>/dev/null | LC_ALL=C sort)
+override SRCFILES += $(shell find -L src/kernel/arch/$(ARCH) -type f 2>/dev/null | LC_ALL=C sort)
 # Obtain the object and header dependencies file names.
 override CFILES := $(filter %.c,$(SRCFILES))
 override ASFILES := $(filter %.S,$(SRCFILES))
@@ -189,9 +144,12 @@ override HEADER_DEPS := $(addprefix obj-$(ARCH)/,$(CFILES:.c=.c.d) $(ASFILES:.S=
 
 .PHONY: run
 run:
+	./src/build-scripts/get-deps
+	./src/build-scripts/apply-patches.sh
 	make clean
 	./src/build-scripts/generate-all.sh
 	make all -j${nproc}
+	./src/build-scripts/undo-patches.sh
 	cp ./bin-x86_64/kernel.elf ./kernel.elf
 	qemu-system-x86_64 \
 		-machine q35,accel=kvm \
@@ -203,6 +161,49 @@ run:
 		-boot d \
 		-audiodev pa,id=speaker -machine pcspk-audiodev=speaker
 
+.PHONY: debug
+debug:
+	./src/build-scripts/get-deps
+	./src/build-scripts/apply-patches.sh
+	make clean
+	make genclean
+	./src/build-scripts/generate-all.sh
+	make all -j${nproc}
+	cp ./bin-x86_64/kernel.elf ./kernel.elf
+	./src/build-scripts/generate-symbols.py
+	make clean
+	make all -j${nproc}
+	./src/build-scripts/undo-patches.sh
+	cp ./bin-x86_64/kernel.elf ./kernel.elf
+	qemu-system-x86_64 \
+		-machine q35,accel=kvm \
+		-cpu host \
+		-m 512M \
+		-drive if=pflash,format=raw,readonly=on,file=./OVMF_CODE.4m.fd \
+		-drive if=pflash,format=raw,readonly=on,file=./OVMF_VARS.4m.fd \
+		-drive format=raw,file=fat:rw:. \
+		-boot d \
+		-audiodev pa,id=speaker -machine pcspk-audiodev=speaker
+
+
+# Remove object files and the final executable.
+.PHONY: clean
+clean:
+	rm -rf ./bin-$(ARCH)
+	rm -rf ./obj-$(ARCH)
+	rm -rf ./kernel.elf
+
+# Remove generated files
+.PHONY: genclean
+genclean:
+	rm -rf ./src/generated/*.c
+	rm -rf ./src/generated/*.hash
+	rm -rf ./initramfs.tar
+
+# Remove downloaded dependencies.
+.PHONY: depclean
+depclean:
+	rm -rf deps/freestnd-c-hdrs deps/cc-runtime deps/limine-protocol deps/flanterm deps/nanoprintf OVMF* EFI
 
 .PHONY: all
 all: bin-$(ARCH)/$(OUTPUT)
@@ -231,42 +232,3 @@ obj-$(ARCH)/%.asm.o: %.asm GNUmakefile
 	mkdir -p "$(dir $@)"
 	nasm $(NASMFLAGS) $< -o $@
 endif
-
-# Remove object files and the final executable.
-.PHONY: clean
-clean:
-	rm -rf ./bin-$(ARCH)
-	rm -rf ./obj-$(ARCH)
-	rm -rf ./kernel.elf
-
-.PHONY: genclean
-genclean:
-	rm -rf ./src/generated/*.c
-	rm -rf ./src/generated/*.hash
-	rm -rf ./initramfs.tar
-
-# Remove downloaded dependencies.
-.PHONY: depclean
-depclean:
-	rm -rf .deps-obtained freestnd-c-hdrs cc-runtime limine-protocol
-
-.PHONY: debug
-debug:
-	make clean
-	make genclean
-	./src/build-scripts/generate-all.sh
-	make all -j${nproc}
-	cp ./bin-x86_64/kernel.elf ./kernel.elf
-	./src/build-scripts/generate-symbols.py
-	make clean
-	make all -j${nproc}
-	cp ./bin-x86_64/kernel.elf ./kernel.elf
-	qemu-system-x86_64 \
-		-machine q35,accel=kvm \
-		-cpu host \
-		-m 512M \
-		-drive if=pflash,format=raw,readonly=on,file=./OVMF_CODE.4m.fd \
-		-drive if=pflash,format=raw,readonly=on,file=./OVMF_VARS.4m.fd \
-		-drive format=raw,file=fat:rw:. \
-		-boot d \
-		-audiodev pa,id=speaker -machine pcspk-audiodev=speaker

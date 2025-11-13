@@ -1,6 +1,6 @@
 #include <stdint.h>
 
-#include "../interupts/interupts.h"
+#include <interupts/interupts.h>
 
 struct __attribute__((packed)) IDTEntry {
     uint16_t offset_low;

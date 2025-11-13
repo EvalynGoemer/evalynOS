@@ -1,19 +1,14 @@
 #include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
 
-#include "scheduler.h"
-#include "switch.h"
-
-#include "../filesystem/filesystem.h"
-#include "../memory/vmm.h"
-#include "../memory/pmm.h"
-
-#include "../hardware/ports.h"
-
-#include "../libc/stdlib.h"
-#include "../libc/stdio.h"
-#include "../libc/string.h"
-
-#include "../panic.h"
+#include <scheduler/scheduler.h>
+#include <scheduler/switch.h>
+#include <filesystem/filesystem.h>
+#include <memory/vmm.h>
+#include <memory/pmm.h>
+#include <drivers/x86_64/ports.h>
+#include <utils/panic.h>
 
 uint64_t STACK_SIZE = 65536;
 
@@ -25,18 +20,9 @@ void task_quit() {
 
 struct thread_node* threads = NULL;
 
-// TODO Low Priority: Fix threading to avoid need for dummy task
-void setup_threading() {
-    // Setup null task because stuff breaks without it lmao
-    STACK_SIZE = 256;
-    create_thread(NULL);
-    STACK_SIZE = 65536;
-
-    // Dont schedule with only the dummy task
-    shouldSchedule = 0;
-}
-
 void create_thread(void (*entry_point)(void*)) {
+    bool had_threads = (threads != NULL);
+
     struct thread* new_thread = malloc(sizeof(struct thread));
     memset(new_thread, 0, sizeof(struct thread));
 
@@ -48,9 +34,14 @@ void create_thread(void (*entry_point)(void*)) {
 
     uint64_t *stack = (uint64_t *)new_thread->stack_top;
 
+    if (entry_point == NULL) {
+        entry_point = task_quit;
+    }
+
     *--stack = (uint64_t)task_quit;
     *--stack = (uint64_t)entry_point;
     *--stack = 0x202;
+
     for (int i = 0; i < 15; i++) {
         *--stack = 0x0 + i;
     }
@@ -60,7 +51,7 @@ void create_thread(void (*entry_point)(void*)) {
     struct thread_node* new_node = malloc(sizeof(struct thread_node));
     new_node->thread = new_thread;
 
-    if (!threads) {
+    if (!had_threads) {
         new_node->next_thread = new_node;
         threads = new_node;
     } else {

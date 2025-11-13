@@ -22,11 +22,11 @@ struct interrupt_frame
     uintptr_t ss;
 };
 
-#include "double_fault.h"
-#include "gp_fault.h"
-#include "page_fault.h"
-#include "pit.h"
-#include "ps2.h"
-#include "spurious.h"
-#include "syscall.h"
-#include "generic.h"
+#include <interupts/double_fault.h>
+#include <interupts/gp_fault.h>
+#include <interupts/page_fault.h>
+#include <interupts/pit.h>
+#include <interupts/ps2.h>
+#include <interupts/spurious.h>
+#include <interupts/syscall.h>
+#include <interupts/generic.h>

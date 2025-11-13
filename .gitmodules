@@ -1,0 +1,15 @@
+[submodule "deps/freestnd-c-hdrs"]
+	path = deps/freestnd-c-hdrs
+	url = https://codeberg.org/OSDev/freestnd-c-hdrs-0bsd.git
+[submodule "deps/cc-runtime"]
+	path = deps/cc-runtime
+	url = https://codeberg.org/OSDev/cc-runtime.git
+[submodule "deps/limine-protocol"]
+	path = deps/limine-protocol
+	url = https://codeberg.org/Limine/limine-protocol.git
+[submodule "deps/flanterm"]
+	path = deps/flanterm
+	url = https://codeberg.org/Mintsuki/Flanterm.git
+[submodule "deps/nanoprintf"]
+	path = deps/nanoprintf
+	url = https://github.com/charlesnicholson/nanoprintf.git

@@ -44,13 +44,13 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdio.h>
+#include <string.h>
 
-#include "../libc/stdio.h"
-#include "../libc/string.h"
-#include "../panic.h"
-#include "../renderer/fb_renderer.h"
-#include "pmm.h"
-#include "vmm.h"
+#include <utils/globals.h>
+#include <utils/panic.h>
+#include <memory/pmm.h>
+#include <memory/vmm.h>
 
 extern uint8_t _text_start[], _text_end[];
 extern uint8_t _rodata_start[], _rodata_end[];

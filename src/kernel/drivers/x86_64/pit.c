@@ -1,6 +1,6 @@
-#include "pic.h"
-#include "ports.h"
-#include "../interupts/pit.h"
+#include <drivers/x86_64/pic.h>
+#include <drivers/x86_64/ports.h>
+#include <interupts/pit.h>
 
 #define PIT_CONTROL_PORT 0x43
 #define PIT_CHANNEL0_PORT 0x40
