@@ -92,7 +92,7 @@ void execute_commands(const char *cmd) {
                         nextLineMessagePrinted = true;
                     }
                     pit_sleep_ms(10);
-                    fs_read("/dev/ps2/kbd", keyPressed, 1);
+                    fs_read("/dev/kbd", keyPressed, 1);
                 }
 
                 lineCount = 0;
@@ -153,7 +153,7 @@ void start_shell() {
         }
 
         char keyPressed[1] = {'\0'};
-        fs_read("/dev/ps2/kbd", keyPressed, 1);
+        fs_read("/dev/kbd", keyPressed, 1);
 
         switch (keyPressed[0]) {
             case '\b':
@@ -162,7 +162,21 @@ void start_shell() {
                     printf("\b \b");
                 }
                 break;
+            case '\x7F': // serial port sends [BACKSPACE (\b)] as [DEL (\x7F)] so pretend it its [BACKSPACE (\b)]
+                if ((typingBufferIndex - 1) > -1) {
+                    typingBuffer[--typingBufferIndex] = '\0';
+                    printf("\b \b");
+                }
+                break;
             case '\n':
+                printf("\n");
+                execute_commands(typingBuffer);
+
+                typingBufferIndex = 0;
+                memset(typingBuffer, '\0', 64);
+                newLineStarted = true;
+                break;
+            case '\r': // serial port sends [ENTER (\n)] as [RETURN (\r)] so pretend it its [ENTER (\n)]
                 printf("\n");
                 execute_commands(typingBuffer);
 

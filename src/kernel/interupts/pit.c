@@ -4,7 +4,6 @@
 
 volatile int pitInteruptsTriggered = 0;
 volatile int shouldSchedule = 0;
-#define LINE_WIDTH 80
 
 __attribute__((interrupt))
 void pit_isr(__attribute__((unused)) void* frame) {

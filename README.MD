@@ -10,8 +10,6 @@ You will need to install the following arch packages to compile (Non inclusive, 
 - edk2-ovmf
 - limine
 
-You will need to run the `get-deps` script before starting
-
 Compile with `make`
 
 Run and compile with `make run`

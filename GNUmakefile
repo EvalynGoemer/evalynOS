@@ -159,7 +159,8 @@ run:
 		-drive if=pflash,format=raw,readonly=on,file=./OVMF_VARS.4m.fd \
 		-drive format=raw,file=fat:rw:. \
 		-boot d \
-		-audiodev pa,id=speaker -machine pcspk-audiodev=speaker
+		-audiodev pa,id=speaker -machine pcspk-audiodev=speaker \
+		-serial stdio
 
 .PHONY: debug
 debug:
@@ -183,8 +184,8 @@ debug:
 		-drive if=pflash,format=raw,readonly=on,file=./OVMF_VARS.4m.fd \
 		-drive format=raw,file=fat:rw:. \
 		-boot d \
-		-audiodev pa,id=speaker -machine pcspk-audiodev=speaker
-
+		-audiodev pa,id=speaker -machine pcspk-audiodev=speaker \
+		-serial stdio
 
 # Remove object files and the final executable.
 .PHONY: clean

@@ -1,8 +1,6 @@
 #include <stdint.h>
 #include <drivers/x86_64/ports.h>
 
-__attribute__((no_caller_saved_registers))
-__attribute__((target("general-regs-only")))
 void play_sound(uint16_t dx) {
     outb(0x43, 0xB6);
     outb(0x42, dx & 0xFF);

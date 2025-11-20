@@ -44,6 +44,7 @@ void setup_idt() {
 
     set_idt_entry(INTERRUPT_HANDLER_PIT, 0, 0x8E, (void (*)())pit_isr);
     set_idt_entry(INTERRUPT_HANDLER_PS2, 0, 0x8E, (void (*)())ps2_isr);
+    set_idt_entry(INTERRUPT_HANDLER_SERIAL, 0, 0x8E, (void (*)())serial_isr);
 
     set_idt_entry(INTERRUPT_HANDLER_SPURIOUS_PIC_1, 0, 0x8E, (void (*)())spurious_isr);
     set_idt_entry(INTERRUPT_HANDLER_SPURIOUS_PIC_2, 0, 0x8E, (void (*)())spurious_isr);

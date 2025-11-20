@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 
@@ -14,23 +13,23 @@
 #define PS2_STATUS_INPUT_BUFFER_FULL 0x02
 #define PS2_STATUS_OUTPUT_BUFFER_FULL 0x01
 
-volatile uint8_t kbd_buffer_index;
-volatile char kbd_buffer[256] = {'\0'};
+volatile uint8_t ps2Kbd_buffer_index;
+volatile char ps2Kbd_buffer[256] = {'\0'};
 
 static inline void io_wait() {
     outb(0x80, 0);
 }
 
-int kbdDeviceRead(__attribute__((unused)) char* path, char* return_data, int read_length) {
+int ps2KbdDeviceRead(__attribute__((unused)) char* path, char* return_data, int read_length) {
     for (int i = 0; i < read_length; i++) {
-        return_data[i] = kbd_buffer[kbd_buffer_index];
-        kbd_buffer[kbd_buffer_index] = '\0';
-        kbd_buffer_index--;
+        return_data[i] = ps2Kbd_buffer[ps2Kbd_buffer_index];
+        ps2Kbd_buffer[ps2Kbd_buffer_index] = '\0';
+        ps2Kbd_buffer_index--;
     }
     return 1;
 }
 
-int kbdDeviceWrite(__attribute__((unused)) char* path, __attribute__((unused)) char* write_data, __attribute__((unused)) int write_length) {
+int ps2KbdDeviceWrite(__attribute__((unused)) char* path, __attribute__((unused)) char* write_data, __attribute__((unused)) int write_length) {
     return -1;
 }
 
@@ -88,8 +87,8 @@ void setup_ps2() {
 
     struct file* file = malloc(sizeof(struct file));
     strcpy(file->path, "/dev/ps2/kbd");
-    file->read = kbdDeviceRead;
-    file->write = kbdDeviceWrite;
+    file->read = ps2KbdDeviceRead;
+    file->write = ps2KbdDeviceWrite;
     register_file(file);
 
     __asm__ __volatile__("sti");

@@ -2,6 +2,7 @@
 
 #include <drivers/x86_64/ports.h>
 #include <drivers/x86_64/ps2.h>
+#include <drivers/keyboard.h>
 
 volatile int ps2InteruptsTriggered = 0;
 
@@ -24,11 +25,17 @@ void ps2_isr(__attribute__((unused)) void* frame) {
     }
 
     if (shiftPressed) {
-        kbd_buffer[kbd_buffer_index] = asciiShift[scancode];
-        kbd_buffer_index++;
+        ps2Kbd_buffer[ps2Kbd_buffer_index] = asciiShift[scancode];
+        ps2Kbd_buffer_index++;
+
+        keyboard_buffer[keyboard_buffer_index] = asciiShift[scancode];
+        keyboard_buffer_index++;
     } else {
-        kbd_buffer[kbd_buffer_index] = asciiNoShift[scancode];
-        kbd_buffer_index++;
+        ps2Kbd_buffer[ps2Kbd_buffer_index] = asciiNoShift[scancode];
+        ps2Kbd_buffer_index++;
+
+        keyboard_buffer[keyboard_buffer_index] = asciiNoShift[scancode];
+        keyboard_buffer_index++;
     }
 
     outb(0x20,0x20);

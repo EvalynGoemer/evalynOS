@@ -16,7 +16,9 @@
 #include <drivers/x86_64/pic.h>
 #include <drivers/x86_64/pit.h>
 #include <drivers/x86_64/ps2.h>
+#include <drivers/x86_64/serial.h>
 #include <drivers/tty.h>
+#include <drivers/keyboard.h>
 #include <drivers/fb_renderer.h>
 #include <interupts/interupts.h>
 
@@ -60,6 +62,7 @@ void kmain(void) {
         8, 8, 1, 0, 0, 0
     );
 
+    printf("\033c\033[2J\033[H");
     printf("Kernel: Kernel Started\n");
 
     // Enable fxsave & fxstor instructions
@@ -94,8 +97,18 @@ void kmain(void) {
     setup_tty();
     printf("Kernel: TTY Init\n");
 
+    setup_serial();
+    if (serial_works) {
+        printf("Kernel: Serial Setup\n");
+    } else {
+        printf("Kernel: Failed To Setup Serial\n");
+    }
+
     setup_ps2();
     printf("Kernel: PS/2 Keyboard Setup\n");
+
+    setup_keyboard();
+    printf("Kernel: Keybard Glob Device Setup\n");
 
     int status = init_tarfs();
     if(status == -1) {
@@ -115,8 +128,8 @@ void kmain(void) {
     int enterPressed = 0;
     while (!enterPressed) {
         char keyPressed[1];
-        fs_read("/dev/ps2/kbd", keyPressed, 1);
-        if (keyPressed[0] == '\n') {
+        fs_read("/dev/kbd", keyPressed, 1);
+        if (keyPressed[0] == '\n' || keyPressed[0] == '\r') {
             enterPressed = 1;
         }
         pit_sleep_ms(1);

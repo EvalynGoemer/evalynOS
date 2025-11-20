@@ -1,4 +1,6 @@
-#include "utils/globals.h"
+#include <utils/globals.h>
+#include <drivers/x86_64/serial.h>
+
 #include <stdarg.h>
 #include <stddef.h>
 #include <string.h>
@@ -24,6 +26,10 @@ int printf(const char* fmt, ...) {
     va_end(args);
 
     flanterm_write(ft_ctx, buf, 256);
+
+    if(serial_works) {
+        write_serial(buf, 256);
+    }
 
     return 0;
 }
