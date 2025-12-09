@@ -1,5 +1,5 @@
 #pragma once
 #include <stdint.h>
+#include <interupts/interupts.h>
 
-__attribute__((interrupt))
-extern void page_fault_isr(struct interrupt_frame* frame, uint64_t error);
+extern void page_fault_isr(struct interrupt_frame*);

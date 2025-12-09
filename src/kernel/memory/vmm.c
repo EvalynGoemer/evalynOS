@@ -51,6 +51,7 @@
 #include <utils/panic.h>
 #include <memory/pmm.h>
 #include <memory/vmm.h>
+#include <stdlib.h>
 
 extern uint8_t _text_start[], _text_end[];
 extern uint8_t _rodata_start[], _rodata_end[];
@@ -96,6 +97,8 @@ static uint64_t *vmm_get_next_level(uint64_t *current_level_virt, size_t index, 
 }
 
 bool vmm_map_page(pagemap_t *pagemap, uintptr_t virt_addr, uintptr_t phys_addr, uint64_t flags) {
+    asm volatile("cli");
+
     virt_addr &= ~(PAGE_SIZE - 1);
     phys_addr &= ~(PAGE_SIZE - 1);
 
@@ -105,7 +108,7 @@ bool vmm_map_page(pagemap_t *pagemap, uintptr_t virt_addr, uintptr_t phys_addr, 
     size_t pt_index = (virt_addr >> 12) & 0x1FF;
 
     uint64_t alloc_flags = PTE_PRESENT | PTE_WRITABLE;
-    if (flags | PTE_USER) alloc_flags |= PTE_USER;
+    if (flags & PTE_USER) alloc_flags |= PTE_USER;
 
     uint64_t *pml4 = pagemap->top_level;
     uint64_t *pdpt = vmm_get_next_level(pml4, pml4_index, true, alloc_flags);
@@ -118,10 +121,13 @@ bool vmm_map_page(pagemap_t *pagemap, uintptr_t virt_addr, uintptr_t phys_addr, 
     pt[pt_index] = phys_addr | flags | PTE_PRESENT;
 
     asm volatile("invlpg (%0)" ::"r"(virt_addr) : "memory");
+
+    asm volatile("sti");
     return true;
 
     fail:
     printf("Kernel: Failed to map page for virt %p\n", (void *)virt_addr);
+    asm volatile("sti");
     return false;
 }
 
@@ -176,6 +182,9 @@ bool vmm_unmap_page(pagemap_t *pagemap, uintptr_t virt_addr) {
             free_page((void *)pd_phys);
 
             if (vmm_is_table_empty(pdpt)) {
+                if (pml4_index >= 256) {
+                    return true;
+                }
                 pml4[pml4_index] = 0;
                 uintptr_t pdpt_phys = PTE_GET_ADDR(pdpt_entry);
                 free_page((void *)pdpt_phys);
@@ -222,7 +231,7 @@ uintptr_t vmm_virt_to_phys(pagemap_t *pagemap, uintptr_t virt_addr) {
 
 void vmm_switch_to(pagemap_t *pagemap) {
     if (!pagemap || !pagemap->top_level) {
-        panic("Attempted to switch to an invalid pagemap\n", 0, 0, 0, 0);
+        panic("Attempted to switch to an invalid pagemap\n", NULL);
         return;
     }
 
@@ -233,18 +242,18 @@ void vmm_switch_to(pagemap_t *pagemap) {
 
 void setup_vmm() {
     if (hhdm_request.response == NULL) {
-        panic("HHDM request response missing\n", 0, 0, 0, 0);
+        panic("HHDM request response missing\n", NULL);
     }
     if (executable_address_request.response == NULL) {
-        panic("Kernel Address request response missing\n", 0, 0, 0, 0);
+        panic("Kernel Address request response missing\n", NULL);
     }
     if (memmap_request.response == NULL) {
-        panic("Memory Map request response missing\n", 0, 0, 0, 0);
+        panic("Memory Map request response missing\n", NULL);
     }
 
     void *pml4_phys = allocate_page();
     if (pml4_phys == NULL) {
-        panic("Failed to allocate kernel PML4 table page\n", 0, 0, 0, 0);
+        panic("Failed to allocate kernel PML4 table page\n", NULL);
     }
     uint64_t *pml4_virt = (uint64_t *)((uintptr_t)pml4_phys + VMM_HIGHER_HALF);
     memset(pml4_virt, 0, PAGE_SIZE);
@@ -252,6 +261,10 @@ void setup_vmm() {
     static pagemap_t k_pagemap;
     kernel_pagemap = &k_pagemap;
     kernel_pagemap->top_level = pml4_virt;
+
+    for (int i = 256; i <= 511; i++) {
+        vmm_get_next_level(pml4_virt, i, true, PTE_DUMMY);
+    }
 
     struct limine_executable_address_response *kaddr = executable_address_request.response;
     uintptr_t kernel_phys_base = kaddr->physical_base;
@@ -280,7 +293,7 @@ void setup_vmm() {
         }
 
         if (!vmm_map_page(kernel_pagemap, p_virt, p_phys, flags)) {
-            panic("Failed to map kernel page\n", 0, 0, 0, 0);
+            panic("Failed to map kernel page\n", NULL);
         }
     }
 
@@ -297,7 +310,7 @@ void setup_vmm() {
 
         for (uintptr_t p = map_base; p < map_top; p += PAGE_SIZE) {
             if (!vmm_map_page(kernel_pagemap, p + VMM_HIGHER_HALF, p, PTE_PRESENT | PTE_WRITABLE | PTE_NX)) {
-                panic("Failed to map HHDM page", 0, 0, 0, 0);
+                panic("Failed to map HHDM page", NULL);
             }
         }
 
@@ -306,10 +319,25 @@ void setup_vmm() {
             uintptr_t identity_top = (map_top > IDENTITY_MAP_LIMIT) ? IDENTITY_MAP_LIMIT : map_top;
             for (uintptr_t p = map_base; p < identity_top; p += PAGE_SIZE) {
                 if (!vmm_map_page(kernel_pagemap, p, p, PTE_PRESENT | PTE_WRITABLE | PTE_NX)) {
-                    panic("Failed to identity map low page", 0, 0, 0, 0);
+                    panic("Failed to identity map low page", NULL);
                 }
             }
         }
     }
     vmm_switch_to(kernel_pagemap);
+}
+
+pagemap_t *new_pagemap() {
+    void *pml4_phys = allocate_page();
+    if (pml4_phys == NULL) {
+        panic("Failed to allocate new PML4 table page\n", NULL);
+    }
+    uint64_t *pml4_virt = (uint64_t *)((uintptr_t)pml4_phys + VMM_HIGHER_HALF);
+    memcpy(pml4_virt, kernel_pagemap->top_level, PAGE_SIZE);
+
+    memset(pml4_virt, 0, PAGE_SIZE / 2);
+
+    pagemap_t *new_pagemap = malloc(sizeof(pagemap_t));
+    new_pagemap->top_level = pml4_virt;
+    return new_pagemap;
 }

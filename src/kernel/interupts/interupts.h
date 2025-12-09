@@ -14,13 +14,30 @@
 
 #define INTERRUPT_HANDLER_SYSCALL 0x69
 
+extern void isr0x08();
+extern void isr0x0D();
+extern void isr0x0E();
+
+extern void isr0x20();
+extern void isr0x21();
+extern void isr0x24();
+
+extern void isr0x27();
+extern void isr0x2F();
+
+extern void isr0x69();
+
+// Reserved Exception (Used as placeholder for generic)
+extern void isr0x16();
+
 struct interrupt_frame {
-    uintptr_t ip;
-    uintptr_t cs;
-    uintptr_t flags;
-    uintptr_t sp;
-    uintptr_t ss;
+    uint64_t r15, r14, r13, r12, r11, r10, r9, r8;
+    uint64_t rbp, rdi, rsi, rdx, rcx, rbx, rax;
+    uint64_t vector, error;
+    uint64_t ip, cs, flags, rsp, ss;
 };
+
+extern void dispatch_interupt (struct interrupt_frame *frame);
 
 #include <interupts/double_fault.h>
 #include <interupts/gp_fault.h>

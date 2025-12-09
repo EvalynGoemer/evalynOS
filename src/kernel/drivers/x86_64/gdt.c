@@ -1,4 +1,4 @@
-#include <stdint.h>
+#include <drivers/x86_64/gdt.h>
 
 __attribute__ ((aligned (16))) uint8_t kernel_stack[16384];
 
@@ -23,20 +23,9 @@ struct __attribute__((packed)) GDTR {
     uint64_t base;
 };
 
-struct __attribute__ ((packed)) TSS {
-    uint32_t reserved0;
-    uint64_t rsp0;
-    uint64_t rsp1, rsp2;
-    uint64_t reserved1;
-    uint64_t ist[7];
-    uint64_t reserved2;
-    uint16_t reserved3, io_map_base;
-};
-
-
 static struct GDTEntry gdt[7];
 static struct GDTR gdtr;
-static struct TSS tss;
+struct TSS tss;
 
 void gdt_fill_entry (int num, uint8_t access, uint8_t granularity, uint32_t base, uint32_t limit) {
     gdt[num].limit_low = limit & 0xFFFF;

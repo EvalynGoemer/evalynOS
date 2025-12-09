@@ -4,8 +4,7 @@
 
 #define SERIAL_PORT 0x3F8
 
-__attribute__((interrupt))
-void serial_isr(__attribute__((unused)) void* frame) {
+void serial_isr() {
     while (inb(SERIAL_PORT + 5) & 1) {
         char c = inb(SERIAL_PORT);
         if (c != '\0') {

@@ -135,7 +135,7 @@ void kmain(void) {
         pit_sleep_ms(1);
     }
 
-    create_thread(start_shell);
+    create_thread(start_shell, NULL);
 
     while (1) {
         asm("hlt");

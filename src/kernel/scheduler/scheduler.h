@@ -1,5 +1,6 @@
 #pragma once
 #include <stdint.h>
+#include <memory/vmm.h>
 
 struct thread {
     int threadId;
@@ -7,6 +8,8 @@ struct thread {
     void* stack;
     void* stack_top;
     uint64_t rsp;
+
+    pagemap_t* pagemap;
 
     int is_user_task;
 };
@@ -16,5 +19,7 @@ struct thread_node {
     struct thread_node* next_thread;
 };
 
-extern void create_thread(void (*entry_point)(void*));
+extern void create_thread(void (*entry_point)(void*), pagemap_t *pagemap);
 extern void schedule();
+
+struct thread *get_current_thread();

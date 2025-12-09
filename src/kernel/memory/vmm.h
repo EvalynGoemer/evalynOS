@@ -60,6 +60,10 @@
 #define PTE_GLOBAL (1ull << 8)
 #define PTE_NX (1ull << 63)
 
+// custom pte flag in unused non reserved bits. defined if page entry is meant to be a "dummy" page
+// these should not be freed at all and simply stay there
+#define PTE_DUMMY (1ull << 9)
+
 #define PTE_ADDR_MASK 0x000ffffffffff000
 #define PTE_GET_ADDR(VALUE) ((VALUE) & PTE_ADDR_MASK)
 #define PTE_GET_FLAGS(VALUE) ((VALUE) & ~PTE_ADDR_MASK)
@@ -82,3 +86,5 @@ bool vmm_map_page (pagemap_t *pagemap, uintptr_t virt_addr, uintptr_t phys_addr,
 bool vmm_unmap_page (pagemap_t *pagemap, uintptr_t virt_addr);
 
 uintptr_t vmm_virt_to_phys (pagemap_t *pagemap, uintptr_t virt_addr);
+
+extern pagemap_t *new_pagemap();

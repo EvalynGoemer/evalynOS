@@ -179,6 +179,8 @@ debug:
 	qemu-system-x86_64 \
 		-machine q35,accel=kvm \
 		-cpu host \
+		-s \
+		-S \
 		-m 512M \
 		-drive if=pflash,format=raw,readonly=on,file=./OVMF_CODE.4m.fd \
 		-drive if=pflash,format=raw,readonly=on,file=./OVMF_VARS.4m.fd \

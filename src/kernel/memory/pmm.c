@@ -80,10 +80,10 @@ size_t get_free_memory() {
 
 void setup_pmm() {
     if (memmap_request.response == NULL) {
-        panic("Could not acquire memory map response", 0, 0, 0, 0);
+        panic("Could not acquire memory map response", NULL);
     }
     if (executable_address_request.response == NULL) {
-        panic("Could not acquire kernel address response", 0, 0, 0, 0);
+        panic("Could not acquire kernel address response", NULL);
     }
 
     size_t entry_count = memmap_request.response->entry_count;
@@ -180,6 +180,8 @@ void setup_pmm() {
 }
 
 void *allocate_page() {
+    asm volatile("cli");
+
     for (size_t i = 0; i <= highest_page; ++i) {
         if (!BITMAP_GET(i)) {
             BITMAP_SET(i);
@@ -191,9 +193,13 @@ void *allocate_page() {
 
             memset(vaddr, 0, PAGE_SIZE);
 
+            asm volatile("sti");
+
             return addr;
         }
     }
+
+    asm volatile("sti");
 
     printf("Kernel: Out of physical memory!\n");
     return NULL;

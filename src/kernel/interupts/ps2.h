@@ -1,4 +1,3 @@
 #pragma once
 
-__attribute__((interrupt))
-void ps2_isr(void* frame);
+void ps2_isr();

@@ -1,3 +1,4 @@
+#include "stddef.h"
 #include <stdint.h>
 #include <stdio.h>
 
@@ -135,41 +136,62 @@ static const char *error_mssages[] = {
 
 int panic_count = 0;
 
-void panic(char* message, int vector, struct interrupt_frame* frame, __attribute__((unused)) unsigned long error, int flags) {
+void panic(char* message, struct interrupt_frame* frame) {
     asm volatile("cli");
 
     unsigned long rax, rbx, rcx, rdx, rsi, rdi;
     unsigned long rbp, rsp, r8, r9, r10, r11, r12, r13, r14, r15;
 
-    unsigned long rflags;
+    unsigned long flags;
     unsigned long cr0, cr2, cr3, cr4, cr8;
     struct descriptor_table_ptr gdtr, idtr;
     unsigned short ldt, tr;
 
-    asm volatile(
-        "mov %%rax, %0\n\t"
-        "mov %%rbx, %1\n\t"
-        "mov %%rcx, %2\n\t"
-        "mov %%rdx, %3\n\t"
-        "mov %%rsi, %4\n\t"
-        "mov %%rdi, %5\n\t"
-        "mov %%rbp, %6\n\t"
-        "mov %%rsp, %7\n\t"
-        "mov %%r8,  %8\n\t"
-        "mov %%r9,  %9\n\t"
-        "mov %%r10, %10\n\t"
-        "mov %%r11, %11\n\t"
-        "mov %%r12, %12\n\t"
-        "mov %%r13, %13\n\t"
-        "mov %%r14, %14\n\t"
-        "mov %%r15, %15\n\t"
-        : "=m"(rax), "=m"(rbx), "=m"(rcx), "=m"(rdx), "=m"(rsi), "=m"(rdi), "=m"(rbp), "=m"(rsp), "=m"(r8), "=m"(r9), "=m"(r10), "=m"(r11), "=m"(r12), "=m"(r13), "=m"(r14), "=m"(r15));
+    if (frame == NULL) {
+        asm volatile(
+            "mov %%rax, %0\n\t"
+            "mov %%rbx, %1\n\t"
+            "mov %%rcx, %2\n\t"
+            "mov %%rdx, %3\n\t"
+            "mov %%rsi, %4\n\t"
+            "mov %%rdi, %5\n\t"
+            "mov %%rbp, %6\n\t"
+            "mov %%rsp, %7\n\t"
+            "mov %%r8,  %8\n\t"
+            "mov %%r9,  %9\n\t"
+            "mov %%r10, %10\n\t"
+            "mov %%r11, %11\n\t"
+            "mov %%r12, %12\n\t"
+            "mov %%r13, %13\n\t"
+            "mov %%r14, %14\n\t"
+            "mov %%r15, %15\n\t"
+            : "=m"(rax), "=m"(rbx), "=m"(rcx), "=m"(rdx), "=m"(rsi), "=m"(rdi), "=m"(rbp), "=m"(rsp), "=m"(r8), "=m"(r9), "=m"(r10), "=m"(r11), "=m"(r12), "=m"(r13), "=m"(r14), "=m"(r15));
 
-    asm volatile(
-        "pushfq\n\t"
-        "pop %0\n\t"
-        : "=r"(rflags)
-    );
+        asm volatile(
+            "pushfq\n\t"
+            "pop %0\n\t"
+            : "=r"(flags)
+        );
+    } else {
+        rax = frame->rax;
+        rbx = frame->rbx;
+        rcx = frame->rcx;
+        rdx = frame->rdx;
+        rsi = frame->rsi;
+        rdi = frame->rdi;
+        rbp = frame->rbp;
+        rsp = frame->rsp;
+        r8  = frame->r8;
+        r9  = frame->r9;
+        r10 = frame->r10;
+        r11 = frame->r11;
+        r12 = frame->r12;
+        r13 = frame->r13;
+        r14 = frame->r14;
+        r15 = frame->r15;
+
+        flags = frame->flags;
+    }
 
     asm volatile(
         "mov %%cr0, %0\n\t"
@@ -193,6 +215,7 @@ void panic(char* message, int vector, struct interrupt_frame* frame, __attribute
     );
 
     stop_sound();
+
     if (panic_count > 0) {
         int scaleX = framebuffer->width / kernel_panic_image_data_width;
         int scaleY = framebuffer->height / kernel_panic_image_data_height;
@@ -203,7 +226,7 @@ void panic(char* message, int vector, struct interrupt_frame* frame, __attribute
         printString("The kernel is fucked 2: Electric Boogaloo (Panic Paniced)", 0, 0);
         printString(message, 100, 100);
 
-        if(flags | PANIC_FLAGS_FRAME) {
+        if(frame != NULL) {
             char result[32];
             snprintf(result, sizeof(result), "%lx", frame->ip);
             printString(result, 300, 300);
@@ -229,13 +252,13 @@ void panic(char* message, int vector, struct interrupt_frame* frame, __attribute
     printf("R12=0x%016lx R13=0x%016lx\n", r12, r13);
     printf("R14=0x%016lx R15=0x%016lx\n", r14, r15);
 
-    if (flags & PANIC_FLAGS_FRAME) {
+    if (frame != NULL) {
         printf("\033[38;2;231;133;255mInterrupt Frame:\n");
-        printf("IP=0x%016lx SP=0x%016lx\n", frame->ip, frame->sp);
+        printf("IP=0x%016lx SP=0x%016lx\n", frame->ip, frame->rsp);
         printf("SS=0x%016lx CS=0x%016lx\n", frame->ss, frame->cs);
         printf("FLAGS : " BYTE_TO_BINARY_PATTERN " " BYTE_TO_BINARY_PATTERN
         " " BYTE_TO_BINARY_PATTERN " " BYTE_TO_BINARY_PATTERN " \n",
-        BYTE_TO_BINARY(frame->flags >> 24),
+            BYTE_TO_BINARY(frame->flags >> 24),
                BYTE_TO_BINARY(frame->flags >> 16),
                BYTE_TO_BINARY(frame->flags >> 8), BYTE_TO_BINARY(frame->flags));
     }
@@ -263,18 +286,18 @@ void panic(char* message, int vector, struct interrupt_frame* frame, __attribute
 
     printf("\033[38;2;76;230;112mMisc:\n");
 
-    if (flags & PANIC_FLAGS_ERROR) {
+    if (frame != NULL) {
         printf("ERROR : " BYTE_TO_BINARY_PATTERN " " BYTE_TO_BINARY_PATTERN
         " " BYTE_TO_BINARY_PATTERN " " BYTE_TO_BINARY_PATTERN " \n",
-        BYTE_TO_BINARY(error >> 24), BYTE_TO_BINARY(error > 16),
-               BYTE_TO_BINARY(error >> 8), BYTE_TO_BINARY(error));
+        BYTE_TO_BINARY(frame->error >> 24), BYTE_TO_BINARY(frame->error > 16),
+               BYTE_TO_BINARY(frame->error >> 8), BYTE_TO_BINARY(frame->error));
     }
 
     printf("RFLAGS: " BYTE_TO_BINARY_PATTERN " " BYTE_TO_BINARY_PATTERN
     " " BYTE_TO_BINARY_PATTERN " " BYTE_TO_BINARY_PATTERN " \n",
-    BYTE_TO_BINARY(rflags >> 24),
-           BYTE_TO_BINARY(rflags >> 16),
-           BYTE_TO_BINARY(rflags >> 8), BYTE_TO_BINARY(rflags));
+    BYTE_TO_BINARY(flags >> 24),
+           BYTE_TO_BINARY(flags >> 16),
+           BYTE_TO_BINARY(flags >> 8), BYTE_TO_BINARY(flags));
 
     printf("GDTR Base=0x%016lx GDTR Limit=0x%08x\n", gdtr.base, gdtr.limit);
     printf("IDTR Base=0x%016lx IDTR Limit=0x%08x\n", idtr.base, idtr.limit);
@@ -284,8 +307,8 @@ void panic(char* message, int vector, struct interrupt_frame* frame, __attribute
     printf("\033[38;2;26;237;209mStack Trace:\n");
     uint64_t *rbp_ptr;
     asm volatile ("mov %%rbp, %0" : "=r" (rbp_ptr));
-    if (flags | PANIC_FLAGS_VECTOR) {
-        switch (vector) {
+    if (frame != NULL) {
+        switch (frame->vector) {
             case INTERRUPT_HANDLER_DOUBLE_FAULT:
                 if(flags | PANIC_FLAGS_FRAME) {
                     for (unsigned int j = 0; j < symbol_count; j++) {
