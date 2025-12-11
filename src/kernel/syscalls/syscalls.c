@@ -8,6 +8,7 @@
 #include <drivers/x86_64/pit.h>
 #include <drivers/x86_64/pcskpr.h>
 #include <drivers/x86_64/msr.h>
+#include <drivers/x86_64/cpuid.h>
 #include <scheduler/scheduler.h>
 #include <stdio.h>
 
@@ -67,17 +68,24 @@ void execute_syscall(struct syscall_frame* frame) {
         default:
             frame->rax = 0xDEADBEEF;
             break;
-        // map framebuffer to 0x00000000A0000000
+        // map framebuffer to 0x00000000A0000000 as write combining
         case 30:
             asm volatile ("nop");
+            uint32_t total_bytes = framebuffer->pitch * framebuffer->height;
+            uint16_t pages = (total_bytes + PAGE_SIZE - 1) / PAGE_SIZE;
             uint64_t virt_addr = 0x00000000A0000000;
             uint64_t phys_addr = ((uint64_t)framebuffer->address - hhdm_request.response->offset);
-            for (int i = 0; i < 4096; i++) {
-                vmm_map_page(get_current_thread()->pagemap, virt_addr, phys_addr, PTE_PRESENT | PTE_USER | PTE_WRITABLE);
+            for (uint16_t i = 0; i < pages; i++) {
+                if (!cpu_feature_bit(1, 0, 'c', CPUID_HYPERVISOR)) {
+                    // enable WC on real hardware only
+                    vmm_map_page(get_current_thread()->pagemap, virt_addr, phys_addr, PTE_PRESENT | PTE_USER | PTE_WRITABLE | PTE_PCD | PTE_PAT);
+                } else {
+                    vmm_map_page(get_current_thread()->pagemap, virt_addr, phys_addr, PTE_PRESENT | PTE_USER | PTE_WRITABLE);
+                }
                 virt_addr += 0x1000;
                 phys_addr += 0x1000;
             }
-                frame->rax = 0;
+            frame->rax = 0;
             break;
         // get framebuffer pitch
         case 31:

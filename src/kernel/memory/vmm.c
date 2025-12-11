@@ -47,6 +47,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <drivers/x86_64/cpuid.h>
 #include <utils/globals.h>
 #include <utils/panic.h>
 #include <memory/pmm.h>
@@ -313,17 +314,26 @@ void setup_vmm() {
                 panic("Failed to map HHDM page", NULL);
             }
         }
-
-        const uintptr_t IDENTITY_MAP_LIMIT = 0x00100000;
-        if (map_base < IDENTITY_MAP_LIMIT) {
-            uintptr_t identity_top = (map_top > IDENTITY_MAP_LIMIT) ? IDENTITY_MAP_LIMIT : map_top;
-            for (uintptr_t p = map_base; p < identity_top; p += PAGE_SIZE) {
-                if (!vmm_map_page(kernel_pagemap, p, p, PTE_PRESENT | PTE_WRITABLE | PTE_NX)) {
-                    panic("Failed to identity map low page", NULL);
-                }
-            }
-        }
     }
+
+    // remap frame buffer as write combining if on phsyical hardware
+    if (!cpu_feature_bit(1, 0, 'c', CPUID_HYPERVISOR)) {
+        printf("Kernel: Running on physical machine; Enabling WC on Framebuffer\n");
+        uint32_t total_bytes = framebuffer->pitch * framebuffer->height;
+        uint16_t pages = (total_bytes + PAGE_SIZE - 1) / PAGE_SIZE;
+        uint64_t virt_addr = (uint64_t)framebuffer->address;
+        uint64_t phys_addr = ((uint64_t)framebuffer->address - hhdm_request.response->offset);
+        for (uint16_t i = 0; i < pages; i++) {
+            vmm_map_page(kernel_pagemap, virt_addr, phys_addr, PTE_PRESENT | PTE_WRITABLE | PTE_PCD | PTE_PAT);
+            asm volatile("invlpg (%0)" :: "r"(virt_addr) : "memory");
+            virt_addr += 0x1000;
+            phys_addr += 0x1000;
+        }
+    } else {
+        printf("Kernel: Running on virtual machine; Not Enabling WC on Framebuffer\n");
+    }
+
+
     vmm_switch_to(kernel_pagemap);
 }
 

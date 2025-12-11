@@ -16,6 +16,7 @@
 #include <drivers/x86_64/pit.h>
 #include <drivers/x86_64/ps2.h>
 #include <drivers/x86_64/serial.h>
+#include <drivers/x86_64/cpuid.h>
 #include <drivers/tty.h>
 #include <drivers/keyboard.h>
 #include <drivers/fb_renderer.h>
@@ -65,6 +66,12 @@ void kmain(void) {
     printf("\033c\033[2J\033[H");
     printf("Kernel: Kernel Started\n");
 
+    printf("Kernel: CPU Vendor: %s\n", get_cpu_vendor());
+    printf("Kernel: CPU Name: %s\n", get_cpu_name());
+    if (cpu_feature_bit(1, 0, 'c', CPUID_HYPERVISOR)) {
+        printf("Kernel: Hypervisor ID: %s\n", get_hypervisor_id());
+    }
+
     // Enable fxsave & fxstor instructions
     __asm__ volatile (
         "mov %%cr4, %%rax\n"
@@ -89,7 +96,7 @@ void kmain(void) {
     printf("Kernel: Physical Memory Manager Setup\n");
 
     setup_vmm();
-    printf("Kernel: Virtual Memory Manager\n");
+    printf("Kernel: Virtual Memory Manager Setup\n");
 
     setup_heap();
     printf("Kernel: Heap Setup\n");
