@@ -33,6 +33,8 @@ void badapple_kthread() {
 
     fs_read("/badapple.bin", (void *)0x4000, needed_mem);
 
+    asm volatile ("swapgs");
+
     switch_to_user();
 }
 

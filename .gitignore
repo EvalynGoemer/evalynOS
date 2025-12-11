@@ -16,6 +16,7 @@ initramfs.tar
 # QEMU Files
 OVMF*
 NvVars
+qemu_log.txt
 
 # Deps
 .deps-obtained

@@ -10,6 +10,7 @@
 #include <memory/pmm.h>
 #include <drivers/x86_64/ports.h>
 #include <drivers/x86_64/gdt.h>
+#include <drivers/x86_64/msr.h>
 #include <utils/panic.h>
 
 uint64_t STACK_SIZE = 65536;
@@ -59,7 +60,7 @@ void create_thread(void (*entry_point)(void*), pagemap_t *pagemap) {
     *--stack = 0;
     *--stack = 0;
 
-    new_thread->rsp = (uint64_t)stack;
+    new_thread->krsp = (uint64_t)stack;
 
     struct thread_node* new_node = malloc(sizeof(struct thread_node));
     new_node->thread = new_thread;
@@ -87,8 +88,9 @@ void schedule() {
     vmm_switch_to(current_thread->pagemap);
 
     tss.rsp0 = (uint64_t)current_thread->stack_top;
+    wrmsr(UGSBAS, (uint64_t)current_thread);
 
-    thread_switch(&previous_thread->rsp, current_thread->rsp);
+    thread_switch(&previous_thread->krsp, current_thread->krsp);
 }
 
 struct thread *get_current_thread() {

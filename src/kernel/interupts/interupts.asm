@@ -70,8 +70,5 @@ ISR     0x24           ; Serial #1 & #3
 ISR     0x27           ; Spurious PIC1
 ISR     0x2F           ; Spurious PIC2
 
-; System Call
-ISR     0x69           ; Non POSIX System Calls
-
 ; Others
 ISR     0x16           ; Reserved (Used as placeholder for generic)

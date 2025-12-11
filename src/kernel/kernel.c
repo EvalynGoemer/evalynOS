@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <stdlib.h>
 #include <stddef.h>
 #include <stdbool.h>
 
@@ -21,6 +20,7 @@
 #include <drivers/keyboard.h>
 #include <drivers/fb_renderer.h>
 #include <interupts/interupts.h>
+#include <syscalls/syscalls.h>
 
 #include <memory/pmm.h>
 #include <memory/vmm.h>
@@ -123,6 +123,9 @@ void kmain(void) {
     char readBuf[512];
     status = fs_read("/test.txt", readBuf, 512);
     printf("Kernel: Printing \"test.txt\" from initramfs: %s", readBuf);
+
+    init_syscall();
+    printf("Kernel: SYSCALL Instruction Setup\n");
 
     printf("Kernel: Press Enter to Start the Builtin Kernel Test CLI\n");
     int enterPressed = 0;

@@ -25,8 +25,6 @@ extern void isr0x24();
 extern void isr0x27();
 extern void isr0x2F();
 
-extern void isr0x69();
-
 // Reserved Exception (Used as placeholder for generic)
 extern void isr0x16();
 
@@ -45,6 +43,5 @@ extern void dispatch_interupt (struct interrupt_frame *frame);
 #include <interupts/pit.h>
 #include <interupts/ps2.h>
 #include <interupts/spurious.h>
-#include <interupts/syscall.h>
 #include <interupts/generic.h>
 #include <interupts/serial.h>

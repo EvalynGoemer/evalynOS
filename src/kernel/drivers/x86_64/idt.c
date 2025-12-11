@@ -49,9 +49,6 @@ void setup_idt() {
     set_idt_entry(INTERRUPT_HANDLER_SPURIOUS_PIC_1, 0, 0x8E, (void (*)())isr0x27);
     set_idt_entry(INTERRUPT_HANDLER_SPURIOUS_PIC_2, 0, 0x8E, (void (*)())isr0x2F);
 
-
-    set_idt_entry(INTERRUPT_HANDLER_SYSCALL, 0, 0xEE, (void (*)())isr0x69);
-
     idtr.limit = sizeof(idt) - 1;
     idtr.base = (uint64_t)&idt;
 

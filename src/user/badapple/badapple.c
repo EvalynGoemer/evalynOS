@@ -3,51 +3,52 @@
 
 #include <stdint.h>
 
-static long syscall(int syscall_type, long a, long b) {
+static long syscall(int syscall_type, long a) {
     long ret;
     __asm__ volatile (
-        "int $0x69"
+        "syscall"
         : "=a"(ret)
-        : "a"(syscall_type), "b"(a), "c"(b)
+        : "a"(syscall_type), "b"(a)
     );
     return ret;
 }
 
 int get_id() {
-    return syscall(0, 0, 0);
+    return syscall(0, 0);
 }
 
 void print(char* string) {
-    syscall(1, (long)string, 0);
+    // do not call me
+    // syscall(1, (long)string);
 }
 
 void play_sound(long dx) {
-    syscall(10, dx, 0);
+    syscall(10, dx);
 }
 
 void stop_sound() {
-    syscall(11, 0, 0);
+    syscall(11, 0);
 }
 
 void set_pit_frequency(int frequency) {
-    syscall(20, frequency, 0);
+    syscall(20, frequency);
 }
 
 void reset_pit_cycles() {
-    syscall(21, 0, 0);
+    syscall(21, 0);
 }
 
 int get_pit_cycles() {
-    return syscall(22, 0, 0);
+    return syscall(22, 0);
 }
 
 
 void setup_fb() {
-    syscall(30, 0, 0);
+    syscall(30, 0);
 }
 
 int get_pitch() {
-    return syscall(31, 0, 0);
+    return syscall(31, 0);
 }
 
 uint64_t frameBufferBase = 0x00000000A0000000;

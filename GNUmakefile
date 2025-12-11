@@ -177,10 +177,9 @@ debug:
 	./src/build-scripts/undo-patches.sh
 	cp ./bin-x86_64/kernel.elf ./kernel.elf
 	qemu-system-x86_64 \
-		-machine q35,accel=kvm \
-		-cpu host \
-		-s \
-		-S \
+		-machine q35 \
+		-s -S \
+		-M accel=tcg,smm=off -d int -no-reboot -no-shutdown -D qemu_log.txt\
 		-m 512M \
 		-drive if=pflash,format=raw,readonly=on,file=./OVMF_CODE.4m.fd \
 		-drive if=pflash,format=raw,readonly=on,file=./OVMF_VARS.4m.fd \

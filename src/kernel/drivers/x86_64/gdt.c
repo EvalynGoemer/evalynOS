@@ -12,11 +12,11 @@ static struct GDTR gdtr;
 struct TSS tss;
 
 void gdt_fill_entry (int num, uint8_t access, uint8_t flags) {
-    gdt[num].gdt_entry.limit_low = 0;
+    gdt[num].gdt_entry.limit_low = 0xFFFF;
     gdt[num].gdt_entry.base_low = 0;
     gdt[num].gdt_entry.base_mid = 0;
     gdt[num].gdt_entry.access = access;
-    gdt[num].gdt_entry.limit_high = 0;
+    gdt[num].gdt_entry.limit_high = 0xF;
     gdt[num].gdt_entry.flags = flags;
     gdt[num].gdt_entry.base_high = 0;
 }

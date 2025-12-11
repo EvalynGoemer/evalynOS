@@ -7,7 +7,8 @@ struct thread {
 
     void* stack;
     void* stack_top;
-    uint64_t rsp;
+    uint64_t krsp;
+    uint64_t ursp;
 
     pagemap_t* pagemap;
 
