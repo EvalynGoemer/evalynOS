@@ -28,13 +28,13 @@ thread_switch:
 USER_STACK_TOP equ 0x0000000080000000
 
 switch_to_user:
-    mov ax, 0x30 | 3
+    mov ax, 0x20 | 3
     mov ds, ax
     mov es, ax
     mov fs, ax
     mov gs, ax
 
-    push 0x30 | 3
+    push 0x20 | 3
     mov rax, USER_STACK_TOP
     push rax
     push 0x200
