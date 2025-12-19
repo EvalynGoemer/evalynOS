@@ -1,3 +1,7 @@
+# MOVED TO CODEBERG
+This repo will not have any more commits and will stay frozen in its current state  
+https://codeberg.org/EvalynGoemer/evalynOS/
+
 # EvalynOS
 A W.I.P 64 Bit OS Kernel
 
