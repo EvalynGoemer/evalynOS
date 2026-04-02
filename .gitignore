@@ -1,0 +1,35 @@
+# Jinx
+.jinx-cache
+jinx
+sources
+
+# Compiled Files
+*.efi
+*.EFI
+*.elf
+*.o
+*.so
+*.bin
+*.sys
+*.d
+/obj*/
+/bin*/
+
+# QEMU Files
+ovmf-code*
+ovmf-vars*
+NvVars
+qemu_log.txt
+
+# Misc
+*.kate-swp
+*.zip
+*.tar.gz
+*.tar.xz
+*.WAD
+*.wad
+*.hashes
+*.sig
+*.idx
+*.iso
+compile_commands.json

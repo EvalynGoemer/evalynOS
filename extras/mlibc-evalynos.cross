@@ -1,0 +1,15 @@
+[host_machine]
+system = 'evalynos'
+cpu_family = 'x86_64'
+cpu = 'x86_64'
+endian = 'little'
+
+[binaries]
+c = 'x86_64-evalynos-gcc'
+cpp = 'x86_64-evalynos-g++'
+ar = 'x86_64-evalynos-ar'
+strip = 'x86_64-evalynos-strip'
+ld = 'x86_64-evalynos-ld'
+
+[properties]
+needs_exe_wrapper = true

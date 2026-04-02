@@ -1,0 +1,8 @@
+#!/bin/sh
+
+name=limine
+version=0.0git
+allow_network=yes
+
+git_url="https://codeberg.org/Limine/Limine.git"
+commit="32ee2a3667bf4f4406d46f1dc658e46206e8346a"

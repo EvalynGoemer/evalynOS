@@ -1,0 +1,8 @@
+#!/bin/sh
+
+name=ovmf2-bin
+version=0.0git
+allow_network=yes
+
+tarball_url="https://github.com/osdev0/edk2-ovmf-nightly/releases/download/nightly-20260320T015644Z/edk2-ovmf.tar.xz"
+tarball_sha256="3465e8942fc8e462643fe78ed1c7e7cf6b3d3b835de33b81126c6b4824870bfb"

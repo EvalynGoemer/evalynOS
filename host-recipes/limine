@@ -1,0 +1,19 @@
+#! /bin/sh
+
+name=limine
+from_source=limine
+revision=0
+
+allow_network=yes
+
+build() {
+    cp -rpf "${source_dir}"/. ./
+    ./bootstrap
+    CFLAGS_FOR_TARGET="-O2 -pipe" \
+    ./configure --enable-all --prefix="${prefix}"
+
+}
+
+package() {
+    DESTDIR="${dest_dir}" make install
+}
