@@ -1,7 +1,5 @@
 #pragma once
-#include <stdbool.h>
 #include <stdint.h>
-
 #include <arch/generic/cpu/interrupts.h>
 #include <arch/generic/cpu/halt.h>
 
@@ -14,8 +12,8 @@ static inline void spinlock_init(spinlock_t* spinlock) {
 }
 
 [[nodiscard]]
-static inline bool spinlock_lock(spinlock_t* spinlock) {
-    bool irqs = interrupts_enabled();
+static inline int spinlock_lock(spinlock_t* spinlock) {
+    int irqs = interrupts_enabled();
     disable_interrupts();
     while (true) {
         while (__atomic_load_n(&spinlock->flag, __ATOMIC_RELAXED))
@@ -26,7 +24,7 @@ static inline bool spinlock_lock(spinlock_t* spinlock) {
     return irqs;
 }
 
-static inline void spinlock_unlock(spinlock_t* spinlock, bool irqs) {
+static inline void spinlock_unlock(spinlock_t* spinlock, int irqs) {
     __atomic_store_n(&spinlock->flag, 0, __ATOMIC_RELEASE);
     restore_interrupts(irqs);
 }

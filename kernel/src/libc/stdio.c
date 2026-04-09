@@ -29,11 +29,14 @@ struct flanterm_context *ft_ctx;
 
 static const char cr = '\r';
 void internal_putc(int c, [[gnu::unused]] void *_) {
-    int lock1r = spinlock_lock(&stdio_spinlock);
-    if ((char)c == '\n')
-        flanterm_write(ft_ctx, &cr, 1);
-    flanterm_write(ft_ctx, (char*)&c, 1);
-    spinlock_unlock(&stdio_spinlock, lock1r);
+
+    if (ft_ctx != NULL) {
+        int lock1r = spinlock_lock(&stdio_spinlock);
+        if ((char)c == '\n')
+            flanterm_write(ft_ctx, &cr, 1);
+        flanterm_write(ft_ctx, (char*)&c, 1);
+        spinlock_unlock(&stdio_spinlock, lock1r);
+    }
 
     #if defined (__x86_64__)
     if (serial_works) {
@@ -62,6 +65,8 @@ int snprintf(char *buf, size_t size, const char *fmt, ...) {
 }
 
 void stdio_init(struct limine_framebuffer* fb) {
+    if (fb == NULL)
+        return;
     ft_ctx = flanterm_fb_init(
         NULL, NULL,
         fb->address, fb->width, fb->height, fb->pitch,

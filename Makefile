@@ -13,7 +13,6 @@ default:
 .PHONY: bootstrap
 bootstrap:
 	./extras/bootstrap.sh
-	./extras/generate-initramfs.sh
 
 .PHONY: initramfs
 initramfs:

@@ -11,5 +11,5 @@ KERNEL_DIR="$(realpath ../kernel)"
 ISO_DIR="$(realpath ./iso/)"
 
 cd ${KERNEL_DIR}
-make -j${nproc} ARCH="${ARCH}"
+make -j$(nproc) ARCH="${ARCH}"
 cp ${KERNEL_DIR}/bin-${ARCH}/kernel.elf ${ISO_DIR}

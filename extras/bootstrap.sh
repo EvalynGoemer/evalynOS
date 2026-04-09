@@ -4,7 +4,9 @@ set -e
 
 cd "$(dirname -- "$0")"
 
+EXTRAS_DIR="$(realpath .)"
 JINX_DIR="$(realpath ../jinx/)"
+KERNEL_DIR="$(realpath ../kernel/)"
 
 clone_repo_commit() {
     if test -d "$2/.git"; then
@@ -37,3 +39,17 @@ cd "$JINX_DIR"
 ./jinx init ..
 ./jinx host-build limine
 ./jinx host-build ovmf2-bin
+
+cd "$KERNEL_DIR"
+echo "getting kernel deps"
+./get-deps
+echo "compiling kernel"
+make -j$(nproc)
+
+cd "$EXTRAS_DIR"
+echo "generating initramfs"
+./generate-initramfs.sh
+echo "generating iso"
+./generate-iso.sh
+
+echo "finished bootstrap"
