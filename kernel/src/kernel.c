@@ -28,6 +28,12 @@ void kmain() {
     memmap_print();
     freelist_pmm_init();
 
+    #ifdef __x86_64__
+    while (1) {
+        asm volatile ("int $0xfa");
+    }
+    #endif
+
     printf("[KERNEL] Nothing to do; Halting");
 
     hcf();

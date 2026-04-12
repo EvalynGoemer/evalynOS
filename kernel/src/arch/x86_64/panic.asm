@@ -26,7 +26,9 @@ panic:
     push r14
     push r15
 
-    mov rsi, rsp
+    mov rsi, rsp         ; irq_saved_regs_t* ; also same as lea rdi, [rsp + 0]
+    lea rdx, [rsp + 128] ; irq_cpu_frame_t
+    mov rcx, [rsp + 120] ; uint64_t vector
     call panic_interrupt
 
     pop r15

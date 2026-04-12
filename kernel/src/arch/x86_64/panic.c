@@ -5,10 +5,9 @@
 #include <inttypes.h>
 
 [[noreturn]]
-void panic_interrupt(char* message, void* interrupt_frame) {
+void panic_interrupt(char* message, irq_saved_regs_t* regs, irq_cpu_frame_t* frame, [[maybe_unused]] uint64_t vector) {
     panic_print_start(message);
 
-    interrupt_frame_t* frame = interrupt_frame;
     unsigned long cr0, cr2, cr3, cr4, cr8;
     asm volatile(
         "mov %%cr0, %0\n\t"
@@ -20,14 +19,14 @@ void panic_interrupt(char* message, void* interrupt_frame) {
     );
 
     printf("\033[38;2;175;56;255mGeneral Registers:\n");
-    printf("RAX=0x%016lx RBX=0x%016lx ", frame->rax, frame->rbx);
-    printf("RCX=0x%016lx RDX=0x%016lx\n", frame->rcx, frame->rdx);
-    printf("RSI=0x%016lx RDI=0x%016lx ", frame->rsi, frame->rdi);
-    printf("RBP=0x%016lx RSP=0x%016lx\n", frame->rbp, frame->rsp);
-    printf("R8 =0x%016lx R9 =0x%016lx ", frame->r8, frame->r9);
-    printf("R10=0x%016lx R11=0x%016lx\n", frame->r10, frame->r11);
-    printf("R12=0x%016lx R13=0x%016lx ", frame->r12, frame->r13);
-    printf("R14=0x%016lx R15=0x%016lx\n", frame->r14, frame->r15);
+    printf("RAX=0x%016lx RBX=0x%016lx ", regs->rax, regs->rbx);
+    printf("RCX=0x%016lx RDX=0x%016lx\n", regs->rcx, regs->rdx);
+    printf("RSI=0x%016lx RDI=0x%016lx ", regs->rsi, regs->rdi);
+    printf("RBP=0x%016lx RSP=0x%016lx\n", regs->rbp, frame->rsp);
+    printf("R8 =0x%016lx R9 =0x%016lx ", regs->r8, regs->r9);
+    printf("R10=0x%016lx R11=0x%016lx\n", regs->r10, regs->r11);
+    printf("R12=0x%016lx R13=0x%016lx ", regs->r12, regs->r13);
+    printf("R14=0x%016lx R15=0x%016lx\n", regs->r14, regs->r15);
 
     printf("\033[38;2;231;133;255mInterrupt Frame:\n");
     printf("IP=0x%016lx SP=0x%016lx\n", frame->ip, frame->rsp);

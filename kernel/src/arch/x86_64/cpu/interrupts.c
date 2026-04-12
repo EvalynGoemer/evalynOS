@@ -1,15 +1,18 @@
-#include <arch/generic/panic.h>
+#include <arch/x86_64/panic.h>
 #include <arch/x86_64/cpu/interrupts.h>
 #include <stdio.h>
 
-void dispatch_interrupt(interrupt_frame_t *frame) {
-    switch (frame->vector) {
+void dispatch_interrupt(irq_saved_regs_t* regs, irq_cpu_frame_t* frame, uint64_t vector) {
+    switch (vector) {
+        case 0xFA:
+            printf("got test vector 0xFA\n");
+            break;
         default:
-            if (frame->vector <= 0x1F) {
-                panic_interrupt((char*)exception_names[frame->vector], frame);
+            if (vector <= 0x1F) {
+                panic_interrupt((char*)exception_names[vector], regs, frame, vector);
             } else {
-                printf(ANSI_RED "[FATAL] Got Unhandled IRQ 0x%02lx\n", frame->vector);
-                panic_interrupt("\x1b[1A", frame);
+                printf(ANSI_RED "[FATAL] Got Unhandled IRQ 0x%02lx\n", vector);
+                panic_interrupt("\x1b[1A", regs, frame, vector);
             }
     }
 }

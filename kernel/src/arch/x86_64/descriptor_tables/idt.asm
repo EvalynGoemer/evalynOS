@@ -32,9 +32,12 @@ dispatch_interupt_asm:
     push r14
     push r15
 
-    mov rdi, rsp
+    mov rdi, rsp         ; irq_saved_regs_t ; also same as lea rdi, [rsp + 0]
+    lea rsi, [rsp + 128] ; irq_cpu_frame_t
+    mov rdx, [rsp + 120] ; uint64_t vector
 
     cld
+    sti
     call dispatch_interrupt
     cli
 
