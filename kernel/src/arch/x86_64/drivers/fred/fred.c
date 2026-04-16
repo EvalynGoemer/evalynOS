@@ -2,6 +2,7 @@
 #include <arch/x86_64/cpu/interrupts.h>
 #include <arch/x86_64/cpu/msr.h>
 #include <arch/x86_64/cpu/cpuid.h>
+#include <arch/x86_64/cpu/CRx.h>
 #include <arch/x86_64/drivers/fred/fred.h>
 #include <arch/x86_64/descriptor_tables/gdt.h>
 #include <stdio.h>
@@ -14,14 +15,7 @@ bool setup_fred_bsp() {
     if (!cpuid_check(CPUID_HAS_FRED))
         return false;
 
-    asm volatile (
-        "mov %%cr4, %%rax\n"
-        "bts $32, %%rax\n"    // set FRED
-        "mov %%rax, %%cr4"
-        :
-        :
-        : "rax", "memory"
-    );
+    set_cr4_bit(CR4_BIT_FRED);
 
     uint64_t star = ((uint64_t)(0x18 | 3) << 48) | ((uint64_t)0x08 << 32);
     wrmsr(MSR_STAR, star);

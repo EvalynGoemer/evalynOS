@@ -6,7 +6,7 @@
 #include <inttypes.h>
 
 [[noreturn]]
-void panic_interrupt(char* message, void* interrupt_frame) {
+void panic_interrupt(const char* message, void* interrupt_frame) {
     disable_interrupts();
     panic_print_start(message);
     interrupt_frame_t* frame = interrupt_frame;

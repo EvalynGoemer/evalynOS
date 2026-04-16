@@ -1,66 +1,71 @@
 #include <arch/generic/panic.h>
 
-__attribute__((no_sanitize("undefined")))
+[[gnu::no_sanitize("undefined")]]
 void __ubsan_handle_out_of_bounds() {
-    panic("UBASAN: Out of bounds");
+    panic("UBSAN: Out of bounds");
 }
 
-__attribute__((no_sanitize("undefined")))
+[[gnu::no_sanitize("undefined")]]
 void __ubsan_handle_pointer_overflow() {
-    panic("UBASAN: Pointer overflow");
+    panic("UBSAN: Pointer overflow");
 }
 
-__attribute__((no_sanitize("undefined")))
+[[gnu::no_sanitize("undefined")]]
 void __ubsan_handle_load_invalid_value() {
-    panic("UBASAN: Load invalid value");
+    panic("UBSAN: Load invalid value");
 }
 
-__attribute__((no_sanitize("undefined")))
+[[gnu::no_sanitize("undefined")]]
 void __ubsan_handle_divrem_overflow() {
-    panic("UBASAN: Divide overflow");
+    panic("UBSAN: Divide overflow");
 }
 
-__attribute__((no_sanitize("undefined")))
+[[gnu::no_sanitize("undefined")]]
 void __ubsan_handle_add_overflow() {
-    panic("UBASAN: Add overflow");
+    panic("UBSAN: Add overflow");
 }
 
-__attribute__((no_sanitize("undefined")))
+[[gnu::no_sanitize("undefined")]]
 void __ubsan_handle_type_mismatch_v1() {
-    panic("UBASAN: Type missmatch");
+    panic("UBSAN: Type missmatch");
 }
 
-__attribute__((no_sanitize("undefined")))
+[[gnu::no_sanitize("undefined")]]
 void __ubsan_handle_shift_out_of_bounds() {
-    panic("UBASAN: Shift out of bounds");
+    panic("UBSAN: Shift out of bounds");
 }
 
-__attribute__((no_sanitize("undefined")))
+[[gnu::no_sanitize("undefined")]]
 void __ubsan_handle_builtin_unreachable() {
-    panic("UBASAN: Reached unreachable code");
+    panic("UBSAN: Reached unreachable code");
 }
 
-__attribute__((no_sanitize("undefined")))
+[[gnu::no_sanitize("undefined")]]
 void __ubsan_handle_sub_overflow() {
-    panic("UBASAN: Subtraction overflow");
+    panic("UBSAN: Subtraction overflow");
 }
 
-__attribute__((no_sanitize("undefined")))
+[[gnu::no_sanitize("undefined")]]
 void __ubsan_handle_mul_overflow() {
-    panic("UBASAN: Multiply overflow");
+    panic("UBSAN: Multiply overflow");
 }
 
-__attribute__((no_sanitize("undefined")))
+[[gnu::no_sanitize("undefined")]]
 void __ubsan_handle_function_type_mismatch() {
-    panic("UBASAN: Function type missmatch");
+    panic("UBSAN: Function type missmatch");
 }
 
-__attribute__((no_sanitize("undefined")))
+[[gnu::no_sanitize("undefined")]]
 void __ubsan_handle_negate_overflow() {
-    panic("UBASAN: Negate overflow");
+    panic("UBSAN: Negate overflow");
 }
 
-__attribute__((no_sanitize("undefined")))
+[[gnu::no_sanitize("undefined")]]
 void __ubsan_handle_invalid_builtin() {
-    panic("UBASAN: Invaid Builtin");
+    panic("UBSAN: Invaid Builtin");
+}
+
+[[gnu::no_sanitize("undefined")]]
+void __ubsan_handle_vla_bound_not_positive() {
+    panic("UBSAN: VLA Bound Not Positive");
 }

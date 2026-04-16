@@ -44,6 +44,7 @@ run-tcg:
 	./extras/generate-iso.sh
 	qemu-system-x86_64 \
 		-machine q35 \
+		-cpu max,+pdpe1gb,la57=on \
 		-M accel=tcg,smm=on -d int -no-reboot -no-shutdown -D qemu_log.txt \
 		-m 512M \
 		-drive if=pflash,format=raw,readonly=on,file=./extras/ovmf-code-x86_64.fd \

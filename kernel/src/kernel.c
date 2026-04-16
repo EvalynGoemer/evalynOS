@@ -5,6 +5,7 @@
 #include <arch/generic/cpu/halt.h>
 #include <arch/generic/panic.h>
 #include <arch/generic/init.h>
+#include <arch/generic/paging/paging.h>
 #include <mem/memmap.h>
 #include <mem/pmm.h>
 #include <mem/freelist_pmm.h>
@@ -28,10 +29,14 @@ void kmain() {
     memmap_print();
     freelist_pmm_init();
 
+    paging_init();
+
     #ifdef __x86_64__
-    while (1) {
         asm volatile ("int $0xfa");
-    }
+        asm volatile ("int $0xfa");
+        asm volatile ("int $0xfa");
+        asm volatile ("int $0xfa");
+        asm volatile ("int $0xfa");
     #endif
 
     printf("[KERNEL] Nothing to do; Halting");

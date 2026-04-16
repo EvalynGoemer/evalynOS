@@ -35,9 +35,11 @@ static inline cpuid_regs_t cpuid(uint32_t leaf, uint32_t subleaf) {
 #define CPUID_GET_FREQ_INFO1    0x00000015
 #define CPUID_GET_FREQ_INFO2    0x00000016
 #define CPUID_GET_MAX_EXTENDED  0x80000000
+#define CPUID_GET_EXT_FEATURES  0x80000001
 #define CPUID_GET_CAPABILITIES  0x80000007
 
-#define CPUID_x2APIC            21
+#define CPUID_1GB_PAGES         26  /* EDX */
+#define CPUID_x2APIC            21  /* ECX */
 #define CPUID_ADJUST_TSC        1   /* EBX */
 #define CPUID_INVARIANT_TSC     8   /* EDX */
 #define CPUID_LAPIC_TSC         24  /* ECX */
@@ -54,6 +56,7 @@ static inline cpuid_regs_t cpuid(uint32_t leaf, uint32_t subleaf) {
 #define CPUID_NO_SUBLEAF        0
 #define CPUID_SUBLEAF_1         1
 
+#define CPUID_HAS_1GB_PAGES     ((cpuid_request){ CPUID_GET_EXT_FEATURES, CPUID_NO_SUBLEAF, CPUID_EDX, CPUID_1GB_PAGES     })
 #define CPUID_HAS_x2APIC        ((cpuid_request){ CPUID_GET_FEATURES,     CPUID_NO_SUBLEAF, CPUID_ECX, CPUID_x2APIC        })
 #define CPUID_HAS_LAPIC_TSC     ((cpuid_request){ CPUID_GET_FEATURES,     CPUID_NO_SUBLEAF, CPUID_ECX, CPUID_LAPIC_TSC     })
 #define CPUID_HAS_ADJUST_TSC    ((cpuid_request){ CPUID_GET_CAPABILITIES, CPUID_NO_SUBLEAF, CPUID_EBX, CPUID_ADJUST_TSC    })

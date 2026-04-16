@@ -9,7 +9,7 @@ void dispatch_interrupt(irq_saved_regs_t* regs, irq_cpu_frame_t* frame, uint64_t
             break;
         default:
             if (vector <= 0x1F) {
-                panic_interrupt((char*)exception_names[vector], regs, frame, vector);
+                panic_interrupt(exception_names[vector], regs, frame, vector);
             } else {
                 printf(ANSI_RED "[FATAL] Got Unhandled IRQ 0x%02lx\n", vector);
                 panic_interrupt("\x1b[1A", regs, frame, vector);

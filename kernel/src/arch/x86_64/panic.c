@@ -5,7 +5,7 @@
 #include <inttypes.h>
 
 [[noreturn]]
-void panic_interrupt(char* message, irq_saved_regs_t* regs, irq_cpu_frame_t* frame, [[maybe_unused]] uint64_t vector) {
+void panic_interrupt(const char* message, irq_saved_regs_t* regs, irq_cpu_frame_t* frame, [[maybe_unused]] uint64_t vector) {
     panic_print_start(message);
 
     unsigned long cr0, cr2, cr3, cr4, cr8;

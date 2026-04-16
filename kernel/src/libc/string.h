@@ -1,6 +1,5 @@
 #pragma once
 
-#include <stdint.h>
 #include <stddef.h>
 
 #if defined(__x86_64__) || defined(__i386__)
