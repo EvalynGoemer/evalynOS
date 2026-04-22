@@ -1,5 +1,6 @@
 #pragma once
 #include <stddef.h>
+#include <utils/locks/spinlock.h>
 #include <limine.h>
 
 #define ANSI_RESET       "\x1b[0m"
@@ -43,3 +44,5 @@
 extern void stdio_init(struct limine_framebuffer* fb);
 extern int printf(const char* fmt, ...);
 extern int snprintf(char *buf, size_t size, const char *fmt, ...);
+
+extern spinlock_t stdio_spinlock;

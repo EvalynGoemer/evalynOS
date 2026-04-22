@@ -1,3 +1,4 @@
+#include "utils/locks/spinlock.h"
 #include <arch/generic/panic.h>
 #include <arch/generic/cpu/halt.h>
 #include <arch/x86_64/cpu/interrupts.h>
@@ -5,7 +6,15 @@
 #include <inttypes.h>
 
 [[noreturn]]
-void panic_interrupt(const char* message, irq_saved_regs_t* regs, irq_cpu_frame_t* frame, [[maybe_unused]] uint64_t vector) {
+void panic_interrupt(const char* message, interrupt_frame_t* frame) {
+    disable_interrupts();
+
+    if (__atomic_exchange_n(&panic_flag, 1, __ATOMIC_SEQ_CST) != 0)
+        hcf();
+
+    // force unlock stdio for panic; keep IRQs disabled
+    spinlock_unlock(&stdio_spinlock, 0);
+
     panic_print_start(message);
 
     unsigned long cr0, cr2, cr3, cr4, cr8;
@@ -19,28 +28,28 @@ void panic_interrupt(const char* message, irq_saved_regs_t* regs, irq_cpu_frame_
     );
 
     printf("\033[38;2;175;56;255mGeneral Registers:\n");
-    printf("RAX=0x%016lx RBX=0x%016lx ", regs->rax, regs->rbx);
-    printf("RCX=0x%016lx RDX=0x%016lx\n", regs->rcx, regs->rdx);
-    printf("RSI=0x%016lx RDI=0x%016lx ", regs->rsi, regs->rdi);
-    printf("RBP=0x%016lx RSP=0x%016lx\n", regs->rbp, frame->rsp);
-    printf("R8 =0x%016lx R9 =0x%016lx ", regs->r8, regs->r9);
-    printf("R10=0x%016lx R11=0x%016lx\n", regs->r10, regs->r11);
-    printf("R12=0x%016lx R13=0x%016lx ", regs->r12, regs->r13);
-    printf("R14=0x%016lx R15=0x%016lx\n", regs->r14, regs->r15);
+    printf("RAX=0x%016lx RBX=0x%016lx ", frame->regs.rax, frame->regs.rbx);
+    printf("RCX=0x%016lx RDX=0x%016lx\n", frame->regs.rcx, frame->regs.rdx);
+    printf("RSI=0x%016lx RDI=0x%016lx ", frame->regs.rsi, frame->regs.rdi);
+    printf("RBP=0x%016lx RSP=0x%016lx\n", frame->regs.rbp, frame->cpu_frame.rsp);
+    printf("R8 =0x%016lx R9 =0x%016lx ", frame->regs.r8, frame->regs.r9);
+    printf("R10=0x%016lx R11=0x%016lx\n", frame->regs.r10, frame->regs.r11);
+    printf("R12=0x%016lx R13=0x%016lx ", frame->regs.r12, frame->regs.r13);
+    printf("R14=0x%016lx R15=0x%016lx\n", frame->regs.r14, frame->regs.r15);
 
     printf("\033[38;2;231;133;255mInterrupt Frame:\n");
-    printf("IP=0x%016lx SP=0x%016lx\n", frame->ip, frame->rsp);
-    printf("SS=0x%016lx CS=0x%016lx\n", frame->ss, frame->cs);
+    printf("IP=0x%016lx SP=0x%016lx\n", frame->cpu_frame.ip, frame->cpu_frame.rsp);
+    printf("SS=0x%016lx CS=0x%016lx\n", frame->cpu_frame.ss, frame->cpu_frame.cs);
     printf("FLAGS: %08b %08b %08b %08b\n",
-           (int)frame->flags >> 24 & 0xFF,
-           (int)frame->flags >> 16 & 0xFF,
-           (int)frame->flags >> 8  & 0xFF,
-           (int)frame->flags       & 0xFF);
+           (int)frame->cpu_frame.flags >> 24 & 0xFF,
+           (int)frame->cpu_frame.flags >> 16 & 0xFF,
+           (int)frame->cpu_frame.flags >> 8  & 0xFF,
+           (int)frame->cpu_frame.flags       & 0xFF);
     printf("ERROR: %08b %08b %08b %08b\n",
-           (int)frame->error >> 24 & 0xFF,
-           (int)frame->error >> 16 & 0xFF,
-           (int)frame->error >> 8  & 0xFF,
-           (int)frame->error       & 0xFF);
+           (int)frame->cpu_frame.error >> 24 & 0xFF,
+           (int)frame->cpu_frame.error >> 16 & 0xFF,
+           (int)frame->cpu_frame.error >> 8  & 0xFF,
+           (int)frame->cpu_frame.error       & 0xFF);
 
     printf("\033[38;2;255;238;0mControl Registers:\n");
     printf("CR0: %08b %08b %08b %08b\n",

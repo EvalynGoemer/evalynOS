@@ -8,6 +8,13 @@
 [[noreturn]]
 void panic_interrupt(const char* message, void* interrupt_frame) {
     disable_interrupts();
+
+    if (__atomic_exchange_n(&panic_flag, 1, __ATOMIC_SEQ_CST) != 0)
+        hcf();
+
+    // force unlock stdio for panic; keep IRQs disabled
+    spinlock_unlock(&stdio_spinlock, 0);
+
     panic_print_start(message);
     interrupt_frame_t* frame = interrupt_frame;
 

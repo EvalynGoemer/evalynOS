@@ -1,4 +1,7 @@
 #include <stdio.h>
+#include <stdint.h>
+
+uint32_t panic_flag = 0;
 
 void panic_print_start(char* message) {
     printf(ANSI_BRED "[[ KERNEL PANIC ]]\n" ANSI_RESET);

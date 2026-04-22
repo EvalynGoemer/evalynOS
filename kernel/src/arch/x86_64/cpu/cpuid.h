@@ -46,6 +46,8 @@ static inline cpuid_regs_t cpuid(uint32_t leaf, uint32_t subleaf) {
 #define CPUID_HYPERVISOR        31  /* ECX */
 #define CPUID_SMEP              7   /* EBX */
 #define CPUID_SMAP              20  /* EBX */
+#define CPUID_MCE               7   /* EDX */
+#define CPUID_MCA               14  /* EDX */
 #define CPUID_FRED              17  /* EAX, subleaf 1 */
 
 #define CPUID_EAX               'a'
@@ -64,6 +66,8 @@ static inline cpuid_regs_t cpuid(uint32_t leaf, uint32_t subleaf) {
 #define CPUID_HAS_HYPERVISOR    ((cpuid_request){ CPUID_GET_FEATURES,     CPUID_NO_SUBLEAF, CPUID_ECX, CPUID_HYPERVISOR    })
 #define CPUID_HAS_SMEP          ((cpuid_request){ CPUID_GET_FEATURES_EXT, CPUID_NO_SUBLEAF, CPUID_EBX, CPUID_SMEP          })
 #define CPUID_HAS_SMAP          ((cpuid_request){ CPUID_GET_FEATURES_EXT, CPUID_NO_SUBLEAF, CPUID_EBX, CPUID_SMAP          })
+#define CPUID_HAS_MCE           ((cpuid_request){ CPUID_GET_FEATURES,     CPUID_NO_SUBLEAF, CPUID_EDX, CPUID_MCE           })
+#define CPUID_HAS_MCA           ((cpuid_request){ CPUID_GET_FEATURES,     CPUID_NO_SUBLEAF, CPUID_EDX, CPUID_MCA           })
 #define CPUID_HAS_FRED          ((cpuid_request){ CPUID_GET_FEATURES_EXT, CPUID_SUBLEAF_1,  CPUID_EAX, CPUID_FRED          })
 
 static inline bool cpuid_check(cpuid_request req) {

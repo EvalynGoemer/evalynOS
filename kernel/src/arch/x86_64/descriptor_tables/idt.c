@@ -37,12 +37,12 @@ void set_idt_entry(struct IDTEntry idt[], int index, int ist, int attr, void (*h
 
 void setup_bsp_idt() {
     for (int i = 0x00; i < 256; ++i) {
-        // set the ist here because UBSAN triggers otherwise
-        int ist = 0;
-        if (i == INTERRUPT_DOUBLE_FAULT) ist = 1;
-        if (i == INTERRUPT_NON_MASKABLE_INTERRUPT) ist = 2;
-        set_idt_entry(bsp_idt, i, ist, 0x8E, isr_table[i]);
+        set_idt_entry(bsp_idt, i, 0, 0x8E, isr_table[i]);
     }
+
+    set_idt_entry(bsp_idt, INTERRUPT_DOUBLE_FAULT,            1, 0x8E, isr_table[INTERRUPT_DOUBLE_FAULT]);
+    set_idt_entry(bsp_idt, INTERRUPT_NON_MASKABLE_INTERRUPT,  2, 0x8E, isr_table[INTERRUPT_NON_MASKABLE_INTERRUPT]);
+    set_idt_entry(bsp_idt, INTERRUPT_MACHINE_CHECK_EXCEPTION, 3, 0x8E, isr_table[INTERRUPT_MACHINE_CHECK_EXCEPTION]);
 
     bsp_idtr.limit = sizeof(bsp_idt) - 1;
     bsp_idtr.base = (uint64_t)&bsp_idt;

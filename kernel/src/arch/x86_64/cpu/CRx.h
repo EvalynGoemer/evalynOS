@@ -63,6 +63,7 @@ static inline void clear_cr0_bit(unsigned int bit) {
     write_cr0(val);
 }
 
+#define CR4_BIT_MCE  6
 #define CR4_BIT_FRED 32
 
 static inline void set_cr4_bit(unsigned int bit) {

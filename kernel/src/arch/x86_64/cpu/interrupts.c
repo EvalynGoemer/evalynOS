@@ -1,19 +1,50 @@
+#include <arch/generic/panic.h>
 #include <arch/x86_64/panic.h>
 #include <arch/x86_64/cpu/interrupts.h>
+#include <arch/x86_64/drivers/fred/fred.h>
+#include <stdint.h>
 #include <stdio.h>
 
-void dispatch_interrupt(irq_saved_regs_t* regs, irq_cpu_frame_t* frame, uint64_t vector) {
+void dispatch_interrupt(interrupt_frame_t* frame) {
+    uint64_t vector;
+
+    /* IDT Logic */
+    if (!fred_enabled) {
+        vector = frame->vector;
+        goto skip_fred;
+    }
+
+    /* FRED Logic */
+    vector = (frame->cpu_frame.ss >> 32) & 0xFF;
+    printf("GOT VECTOR 0x%02x VIA FRED!!!\n", vector);
+    if (frame->vector == FRED_FAKE_VECTOR_CPL3) {
+        uint8_t type = (frame->cpu_frame.ss >> 48) & 0xF;
+        if (type == FRED_EVENT_TYPE_SYSCALL) {
+            // TODO: when syscalls are setup replace this with the handle syscall function
+            panic("Kernel should not be getting syscalls right now");
+            return;
+        }
+        // TODO: when ring3 is properly setup remove this
+        panic("Kernel should not be getting interrupts from ring3 right now");
+    }
+    skip_fred:
+
+    /* Main Interrupt path */
     switch (vector) {
         case 0xFA:
             printf("got test vector 0xFA\n");
             break;
-        default:
+        case INTERRUPT_MACHINE_CHECK_EXCEPTION:
+            handle_exception_mce(frame);
+            break;
+        default: {
             if (vector <= 0x1F) {
-                panic_interrupt(exception_names[vector], regs, frame, vector);
+                panic_interrupt(exception_names[vector], frame);
             } else {
                 printf(ANSI_RED "[FATAL] Got Unhandled IRQ 0x%02lx\n", vector);
-                panic_interrupt("\x1b[1A", regs, frame, vector);
+                panic_interrupt("\x1b[1A", frame);
             }
+        }
     }
 }
 

@@ -5,17 +5,17 @@ global isr%1
 isr%1:
     push 0
     push %1
-    jmp dispatch_interupt_asm
+    jmp dispatch_interrupt_asm
 %endmacro
 
 %macro ISR_ERR 1
 global isr%1
 isr%1:
     push %1
-    jmp dispatch_interupt_asm
+    jmp dispatch_interrupt_asm
 %endmacro
 
-dispatch_interupt_asm:
+dispatch_interrupt_asm:
     push rax
     push rbx
     push rcx
@@ -32,9 +32,7 @@ dispatch_interupt_asm:
     push r14
     push r15
 
-    mov rdi, rsp         ; irq_saved_regs_t ; also same as lea rdi, [rsp + 0]
-    lea rsi, [rsp + 128] ; irq_cpu_frame_t
-    mov rdx, [rsp + 120] ; uint64_t vector
+    mov rdi, rsp
 
     cld
     sti
@@ -100,7 +98,7 @@ ISR     0x1F ; #???  Reserved Exception
 %endrep
 
 section .rodata
-align 8
+align 16
 global isr_table
 isr_table:
     dq isr0x00   ; #DE   Division Error

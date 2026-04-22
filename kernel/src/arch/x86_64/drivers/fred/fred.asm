@@ -1,23 +1,16 @@
-global fred_ring3_entry_asm_stub
-global fred_ring0_entry_asm_stub
 global fred_ring3_entry_asm
 global fred_ring0_entry_asm
 
-extern fred_ring3_entry
-extern fred_ring0_entry
+extern dispatch_interrupt
 
 section .text
 align 4096
 
-fred_ring3_entry_asm_stub:
-    jmp fred_ring3_entry_asm
-
-times 256 - ($ - fred_ring3_entry_asm_stub) db 0
-
-fred_ring0_entry_asm_stub:
-    jmp fred_ring0_entry_asm
-
 fred_ring3_entry_asm:
+    ; push dummy vector for frame
+    ; 3 = CPL3
+    push 3
+
     push rax
     push rbx
     push rcx
@@ -35,9 +28,8 @@ fred_ring3_entry_asm:
     push r15
 
     mov rdi, rsp
-
     sti
-    call fred_ring3_entry
+    call dispatch_interrupt
     cli
 
     pop r15
@@ -55,10 +47,17 @@ fred_ring3_entry_asm:
     pop rcx
     pop rbx
     pop rax
+    add rsp, 8 ; pop the dummy vector
 
     eretu
 
+times 256 - ($ - fred_ring3_entry_asm) db 0
+
 fred_ring0_entry_asm:
+    ; push dummy vector for frame
+    ; 0 = CPL0
+    push 0
+
     push rax
     push rbx
     push rcx
@@ -76,9 +75,8 @@ fred_ring0_entry_asm:
     push r15
 
     mov rdi, rsp
-
     sti
-    call fred_ring0_entry
+    call dispatch_interrupt
     cli
 
     pop r15
@@ -96,6 +94,7 @@ fred_ring0_entry_asm:
     pop rcx
     pop rbx
     pop rax
+    add rsp, 8 ; pop the dummy vector
 
     erets
 

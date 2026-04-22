@@ -32,11 +32,15 @@ void kmain() {
     paging_init();
 
     #ifdef __x86_64__
+    while (1) {
         asm volatile ("int $0xfa");
         asm volatile ("int $0xfa");
         asm volatile ("int $0xfa");
         asm volatile ("int $0xfa");
         asm volatile ("int $0xfa");
+        uint64_t start = __builtin_ia32_rdtsc();
+        while ((__builtin_ia32_rdtsc() - start) < 3000000000ULL);
+    }
     #endif
 
     printf("[KERNEL] Nothing to do; Halting");

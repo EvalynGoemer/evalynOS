@@ -4,6 +4,15 @@
 // LAPIC
 #define MSR_APIC_BASE           0x0000001B
 
+// Machine Check Exception Handling
+#define MSR_MCE_CAP             0x00000179
+#define MSR_MCE_STATUS          0x0000017A
+#define MSR_MCE_CTL             0x0000017B
+#define MSR_MCEn_CTL(n)         (0x00000400 + ((n) * 4))
+#define MSR_MCEn_STATUS(n)      (0x00000401 + ((n) * 4))
+#define MSR_MCEn_ADDR(n)        (0x00000402 + ((n) * 4))
+#define MSR_MCEn_MISC(n)        (0x00000403 + ((n) * 4))
+
 // FRED (Flexible Return and Event Delivery)
 #define MSR_FRED_CONFIG         0x000001D4
 #define MSR_FRED_RSP0           0x000001CC

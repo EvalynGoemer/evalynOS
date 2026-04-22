@@ -4,6 +4,7 @@
 
 [[gnu::aligned(64)]] uint8_t bsp_df_stack[4096];
 [[gnu::aligned(64)]] uint8_t bsp_nmi_stack[4096];
+[[gnu::aligned(64)]] uint8_t bsp_mce_stack[4096];
 
 static union GDTEntry bsp_gdt[8];
 static struct GDTR    bsp_gdtr;
@@ -43,6 +44,7 @@ void setup_bsp_gdt() {
 
     bsp_tss.ist[0] = (uint64_t)(bsp_df_stack + sizeof (bsp_df_stack));
     bsp_tss.ist[1] = (uint64_t)(bsp_nmi_stack + sizeof (bsp_nmi_stack));
+    bsp_tss.ist[2] = (uint64_t)(bsp_mce_stack + sizeof (bsp_mce_stack));
     bsp_gdtr.limit = sizeof(bsp_gdt) - 1;
     bsp_gdtr.base = (uint64_t)&bsp_gdt;
 
