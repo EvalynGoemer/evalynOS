@@ -34,7 +34,7 @@ void setup_mce() {
         uint64_t mcg_cap = rdmsr(MSR_MCE_CAP);
         uint8_t count = mcg_cap & 0xFF;
 
-        printf("[MCE] CPU has %d MCE Banks\n", count);
+        LOG_TAGGED("MCE", ANSI_BMAGENTA, "CPU has %d MCE Banks", count)
 
         if (mcg_cap & MCE_CAP_BIT_CTL_REG_PRESENT)
             wrmsr(MSR_MCE_CTL, 0xFFFFFFFFFFFFFFFF);
@@ -45,13 +45,13 @@ void setup_mce() {
         }
 
         set_cr4_bit(CR4_BIT_MCE);
-        printf("[MCE] MCE+MCA Exception MSRs Setup\n");
+        LOG_TAGGED("MCE", ANSI_BMAGENTA, "MCE+MCA Exception MSRs Setup")
         return;
     }
 
     if (mce_supported) {
         set_cr4_bit(CR4_BIT_MCE);
-        printf("[MCE] MCE Exception MSRs Setup\n");
+        LOG_TAGGED("MCE", ANSI_BMAGENTA, "MCE Exception MSRs Setup")
     }
 }
 
@@ -71,7 +71,7 @@ void handle_exception_mce(interrupt_frame_t* frame) {
         do_fatal_mce(frame);
 
     // TODO; make this goto an NMI safe log buffer
-    printf("[MCE] Got a non fatal #MCE\n");
+    LOG_TAGGED("MCE", ANSI_BMAGENTA, "Got a non fatal #MCE")
 
     // tell the CPU the #MCE was handled and to not die on the next one
     wrmsr(MSR_MCE_STATUS, mce_status & ~MCE_STATUS_IN_PROGRESS_FLAG);

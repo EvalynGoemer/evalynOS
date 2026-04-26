@@ -16,7 +16,7 @@ void dispatch_interrupt(interrupt_frame_t* frame) {
 
     /* FRED Logic */
     vector = (frame->cpu_frame.ss >> 32) & 0xFF;
-    printf("GOT VECTOR 0x%02x VIA FRED!!!\n", vector);
+    LOG("GOT VECTOR 0x%02lx VIA FRED!!!", vector);
     if (frame->vector == FRED_FAKE_VECTOR_CPL3) {
         uint8_t type = (frame->cpu_frame.ss >> 48) & 0xF;
         if (type == FRED_EVENT_TYPE_SYSCALL) {
@@ -32,7 +32,7 @@ void dispatch_interrupt(interrupt_frame_t* frame) {
     /* Main Interrupt path */
     switch (vector) {
         case 0xFA:
-            printf("got test vector 0xFA\n");
+            LOG("got test vector 0xFA");
             break;
         case INTERRUPT_MACHINE_CHECK_EXCEPTION:
             handle_exception_mce(frame);
@@ -41,7 +41,7 @@ void dispatch_interrupt(interrupt_frame_t* frame) {
             if (vector <= 0x1F) {
                 panic_interrupt(exception_names[vector], frame);
             } else {
-                printf(ANSI_RED "[FATAL] Got Unhandled IRQ 0x%02lx\n", vector);
+                LOG_TAGGED("FATAL", ANSI_RED, "Got Unhandled IRQ 0x%02lx", vector)
                 panic_interrupt("\x1b[1A", frame);
             }
         }

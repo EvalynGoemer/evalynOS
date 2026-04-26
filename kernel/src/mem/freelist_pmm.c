@@ -91,5 +91,5 @@ void freelist_pmm_init() {
     freelist_pmm_fill(512);
     pmm_alloc_page = freelist_pmm_allocate_page;
     pmm_free_page = freelist_pmm_free_page;
-    printf(ANSI_BGREEN "[MEMORY] " ANSI_RESET "Freelist PMM Init " ANSI_BGREEN "[OK]" ANSI_RESET "\n");
+    LOG_TAGGED_OK("MEMORY", ANSI_BGREEN, "Freelist PMM Init")
 }

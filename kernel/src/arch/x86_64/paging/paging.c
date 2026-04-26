@@ -66,20 +66,20 @@ static inline void handle_large_page(uint64_t current_pte_phys, uint64_t paddr, 
 
 void paging_init() {
     if (paging_mode_request.response->mode == LIMINE_PAGING_MODE_X86_64_5LVL) {
-        printf(ANSI_BGREEN "[MEMORY] " ANSI_RESET "System is using 5 Level Paging\n");
+        LOG_TAGGED("MEMORY", ANSI_BGREEN, "System is using 5 Level Paging")
         is_5_level_paging = true;
     } else {
-        printf(ANSI_BGREEN "[MEMORY] " ANSI_RESET "System is using 4 Level Paging\n");
+        LOG_TAGGED("MEMORY", ANSI_BGREEN, "System is using 4 Level Paging")
         is_5_level_paging = false;
     }
 
     if (cpuid_check(CPUID_HAS_1GB_PAGES)) {
-        printf(ANSI_BGREEN "[MEMORY] " ANSI_RESET "System supports up to 1GB pages\n");
-        printf(ANSI_BGREEN "[MEMORY] " ANSI_RESET "1GB Pages will be used for HHDM\n");
+        LOG_TAGGED("MEMORY", ANSI_BGREEN, "System supports up to 1GB pages")
+        LOG_TAGGED("MEMORY", ANSI_BGREEN, "1GB Pages will be used for HHDM")
         _1gb_pages_supported = true;
     } else {
-        printf(ANSI_BGREEN "[MEMORY] " ANSI_RESET "System supports up to 2MB pages\n");
-        printf(ANSI_BGREEN "[MEMORY] " ANSI_RESET "2MB Pages will be used for HHDM\n");
+        LOG_TAGGED("MEMORY", ANSI_BGREEN, "System supports up to 2MB pages")
+        LOG_TAGGED("MEMORY", ANSI_BGREEN, "2MB Pages will be used for HHDM")
         _1gb_pages_supported = false;
     }
 
@@ -92,7 +92,7 @@ void paging_init() {
     }
 
 
-    printf(ANSI_BGREEN "[MEMORY] " ANSI_RESET "Mapping HHDM\n");
+    LOG_TAGGED("MEMORY", ANSI_BGREEN, "Mapping HHDM")
     struct limine_memmap_response *memmap = memmap_request.response;
 
     for (uint64_t i = 0; i < memmap->entry_count; i++) {
@@ -120,12 +120,26 @@ void paging_init() {
         }
     }
 
-    printf(ANSI_BGREEN "[MEMORY] " ANSI_RESET "Mapping Kernel ELF\n");
+    LOG_TAGGED("MEMORY", ANSI_BGREEN, "Mapping Kernel ELF")
     struct limine_executable_address_response *kaddr = executable_address_request.response;
     struct limine_executable_file_response *kexec = executable_file_request.response;
     struct elf_header_64 *header = (struct elf_header_64 *)kexec->executable_file->address;
     struct elf_program_header_64 *prog_headers = (struct elf_program_header_64 *)((uint8_t *)kexec->executable_file->address + header->program_header_table);
-    for (uint64_t i = 0; i < header->program_header_entries; i++) {
+
+    uint64_t elf_base = -1;
+    for (uint16_t i = 0; i < header->program_header_entries; i++) {
+        struct elf_program_header_64 *ph = &prog_headers[i];
+        if (ph->type == ELF_PROG_PT_LOAD_TYPE && ph->virt_addr < elf_base)
+            elf_base = ph->virt_addr;
+    }
+    if (elf_base == (uint64_t)-1)
+        panic("Unable to get kernel base load address from elf");
+
+    LOG_TAGGED("MEMORY", ANSI_BGREEN, "Kernel ELF Base Addr: 0x%016lx", elf_base)
+    LOG_TAGGED("MEMORY", ANSI_BGREEN, "Kernel Loaded at Virt: 0x%016lx", kaddr->virtual_base)
+    LOG_TAGGED("MEMORY", ANSI_BGREEN, "Kernel Loaded at Phys: 0x%016lx", kaddr->physical_base)
+
+    for (uint16_t i = 0; i < header->program_header_entries; i++) {
         struct elf_program_header_64 *ph = &prog_headers[i];
         if (ph->type != ELF_PROG_PT_LOAD_TYPE) continue;
         uint64_t flags = PAGE_R;
@@ -133,8 +147,8 @@ void paging_init() {
         if (ph->flags & ELF_PROG_EXEC_FLAG) flags |= PAGE_X;
 
         uint64_t pages = ALIGN_UP(ph->mem_size, PAGE_SIZE) / PAGE_SIZE;
-        uint64_t vbase = ph->virt_addr;
-        uint64_t pbase = kaddr->physical_base + ph->virt_addr - 0xffffffff80000000;
+        uint64_t vbase = ph->virt_addr + kaddr->virtual_base - elf_base;
+        uint64_t pbase = kaddr->physical_base + ph->virt_addr - elf_base;
         for (uint64_t p = 0; p < pages; p++) {
             uint64_t vaddr = vbase + (p * PAGE_SIZE);
             uint64_t paddr = pbase + (p * PAGE_SIZE);
@@ -142,9 +156,9 @@ void paging_init() {
         }
     }
 
-    printf(ANSI_BGREEN "[MEMORY] " ANSI_RESET "Swapping to new page tables\n");
+    LOG_TAGGED("MEMORY", ANSI_BGREEN, "Swapping to new page tables")
     write_cr3(kernel_page_table);
-    printf(ANSI_BGREEN "[MEMORY] " ANSI_RESET "Paging Init " ANSI_BGREEN "[OK]" ANSI_RESET "\n");
+    LOG_TAGGED_OK("MEMORY", ANSI_BGREEN, "Paging Init")
 }
 
 static inline void check_align(uint64_t vaddr, uint64_t paddr, uint64_t align, const char *msg) {

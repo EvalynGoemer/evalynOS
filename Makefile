@@ -1,3 +1,5 @@
+KASLR ?= true
+
 .PHONY: default
 default:
 	@echo "Available Targets:"
@@ -25,7 +27,7 @@ mkiso:
 
 .PHONY: run
 run:
-	./extras/compile-kernel.sh
+	KASLR=$(KASLR) ./extras/compile-kernel.sh
 	./extras/generate-iso.sh
 	qemu-system-x86_64 \
 		-machine q35,accel=kvm,smm=on -s \
@@ -40,7 +42,7 @@ run:
 
 .PHONY: run-tcg
 run-tcg:
-	./extras/compile-kernel.sh
+	KASLR=$(KASLR) ./extras/compile-kernel.sh
 	./extras/generate-iso.sh
 	qemu-system-x86_64 \
 		-machine q35 \
@@ -57,7 +59,7 @@ run-tcg:
 
 .PHONY: run-debug
 run-debug:
-	./extras/compile-kernel.sh
+	KASLR="false" ./extras/compile-kernel.sh
 	./extras/generate-iso.sh
 	qemu-system-x86_64 \
 		-machine q35 \
@@ -74,7 +76,7 @@ run-debug:
 
 .PHONY: run-tcg-loongarch64
 run-tcg-loongarch64:
-	ARCH=loongarch64 ./extras/compile-kernel.sh
+	KASLR=$(KASLR) ARCH=loongarch64 ./extras/compile-kernel.sh
 	./extras/generate-iso.sh
 	qemu-system-loongarch64 \
 		-M virt \
@@ -91,7 +93,7 @@ run-tcg-loongarch64:
 
 .PHONY: run-debug-loongarch64
 run-debug-loongarch64:
-	ARCH=loongarch64 ./extras/compile-kernel.sh
+	KASLR="false" ARCH=loongarch64 ./extras/compile-kernel.sh
 	./extras/generate-iso.sh
 	qemu-system-loongarch64 \
 		-M virt \

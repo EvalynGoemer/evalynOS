@@ -8,6 +8,7 @@ PHDRS
     text PT_LOAD;
     rodata PT_LOAD;
     data PT_LOAD;
+    dynamic PT_DYNAMIC;
 }
 
 SECTIONS
@@ -43,6 +44,10 @@ SECTIONS
     .data : {
         *(.data .data.*)
     } :data
+
+    .dynamic : {
+        *(.dynamic)
+    } :data :dynamic
 
     . = ALIGN(CONSTANT(MAXPAGESIZE));
     .cpu_local : {

@@ -3,7 +3,7 @@
 #include <stdio.h>
 
 void memmap_print() {
-    printf(ANSI_BGREEN "[MEMORY] " ANSI_RESET "Got Limine Memory Map\n");
+    LOG_TAGGED("MEMORY", ANSI_BGREEN, "Got Limine Memory Map")
     printf(ANSI_BWHITE  "+-------+--------------------+--------------------+--------------------+------------------------+\n" ANSI_RESET);
     printf(ANSI_BWHITE  "| Index | Start              | End                | Size               | Type                   |\n" ANSI_RESET);
     printf(ANSI_BWHITE  "+-------+--------------------+--------------------+--------------------+------------------------+\n" ANSI_RESET);
@@ -49,6 +49,6 @@ void memmap_print() {
     }
     printf(ANSI_BWHITE  "+-------+--------------------+--------------------+--------------------+------------------------+\n" ANSI_RESET);
 
-    printf(ANSI_BGREEN "[MEMORY] " ANSI_RESET "Usable memory before reclaim: " ANSI_BYELLOW "%llu MB\n" ANSI_RESET, usable_ram_pre_reclaim / 1024 / 1024);
-    printf(ANSI_BGREEN "[MEMORY] " ANSI_RESET "Usable memory after reclaim: " ANSI_BYELLOW "%llu MB\n" ANSI_RESET, usable_ram_post_reclaim / 1024 / 1024);
+    LOG_TAGGED("MEMORY", ANSI_BGREEN, "Usable memory before reclaim: " ANSI_BYELLOW "%llu MB", usable_ram_pre_reclaim / 1024 / 1024)
+    LOG_TAGGED("MEMORY", ANSI_BGREEN, "Usable memory after reclaim: " ANSI_BYELLOW "%llu MB", usable_ram_post_reclaim / 1024 / 1024)
 }

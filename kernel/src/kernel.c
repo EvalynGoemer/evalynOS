@@ -21,7 +21,7 @@ void kmain() {
     else
         stdio_init(NULL);
 
-    printf("EvalynOS Started\n");
+    LOG("EvalynOS Started");
     print_build_info();
 
     arch_early_init();
@@ -32,18 +32,19 @@ void kmain() {
     paging_init();
 
     #ifdef __x86_64__
+    LOG_TAGGED("KERNEL", ANSI_RESET, "Starting Infinite Chunked `int 0xfa` Loop...")
     while (1) {
-        asm volatile ("int $0xfa");
-        asm volatile ("int $0xfa");
-        asm volatile ("int $0xfa");
-        asm volatile ("int $0xfa");
-        asm volatile ("int $0xfa");
         uint64_t start = __builtin_ia32_rdtsc();
         while ((__builtin_ia32_rdtsc() - start) < 3000000000ULL);
+        asm volatile ("int $0xfa");
+        asm volatile ("int $0xfa");
+        asm volatile ("int $0xfa");
+        asm volatile ("int $0xfa");
+        asm volatile ("int $0xfa");
     }
     #endif
 
-    printf("[KERNEL] Nothing to do; Halting");
+    LOG_TAGGED("KERNEL", ANSI_RESET, "Nothing to do; Halting")
 
     hcf();
 }

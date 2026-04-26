@@ -29,7 +29,7 @@ bool setup_fred_bsp() {
         FRED_STKLVL(INTERRUPT_MACHINE_CHECK_EXCEPTION, 3)
     );
 
-    printf(ANSI_BYELLOW "[ARCH EARLY INIT]" ANSI_RESET " FRED INIT " ANSI_BGREEN "[OK]\n" ANSI_RESET);
+    LOG_TAGGED_OK("ARCH EARLY INIT", ANSI_BYELLOW, "FRED INIT")
 
     fred_enabled = true;
     return true;

@@ -75,8 +75,8 @@ void setup_early_serial() {
     int status = serial_test(serial_port);
     if(status == 0) {
         serial_works = false;
-        printf("[16550 UART] Failed to init; Do you lack a serial port at I/O port 0x%x?\n", serial_port);
-        printf(ANSI_BYELLOW "[ARCH EARLY INIT]" ANSI_RESET " 16550 UART INIT " ANSI_BRED "[FAIL]\n" ANSI_RESET);
+        LOG_TAGGED("16550 UART", ANSI_RESET, "Failed to init; Do you lack a serial port at I/O port 0x%x?", serial_port)
+        LOG_TAGGED_FAIL("16550 UART", ANSI_RESET, "16550 UART INIT")
         return;
     }
 
@@ -88,10 +88,10 @@ void setup_early_serial() {
     serial_works = true;
 
     if (status == 1) {
-        printf("[16550 UART] Serial port at I/O port 0x%x failed part of self test\n", serial_port);
-        printf(ANSI_BYELLOW "[ARCH EARLY INIT]" ANSI_RESET " 16550 UART INIT " ANSI_BYELLOW "[WARN]\n" ANSI_RESET);
+        LOG_TAGGED("16550 UART", ANSI_RESET, "Serial port at I/O port 0x%x failed part of self test", serial_port)
+        LOG_TAGGED_WARN("16550 UART", ANSI_RESET, "16550 UART INIT")
         return;
     }
 
-    printf(ANSI_BYELLOW "[ARCH EARLY INIT]" ANSI_RESET " 16550 UART INIT " ANSI_BGREEN "[OK]\n" ANSI_RESET);
+    LOG_TAGGED_OK("ARCH EARLY INIT", ANSI_BYELLOW, "16550 UART INIT")
 }

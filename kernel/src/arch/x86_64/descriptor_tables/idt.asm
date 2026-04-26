@@ -97,7 +97,11 @@ ISR     0x1F ; #???  Reserved Exception
     %assign i i+1
 %endrep
 
+%ifdef KASLR
+section .data
+%else
 section .rodata
+%endif
 align 16
 global isr_table
 isr_table:

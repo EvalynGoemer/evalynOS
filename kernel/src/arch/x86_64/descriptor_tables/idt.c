@@ -49,5 +49,5 @@ void setup_bsp_idt() {
 
     asm volatile ("lidt %0" : : "m"(bsp_idtr));
 
-    printf(ANSI_BYELLOW "[ARCH EARLY INIT]" ANSI_RESET " IDT INIT " ANSI_BGREEN "[OK]\n" ANSI_RESET);
+    LOG_TAGGED_OK("ARCH EARLY INIT", ANSI_BYELLOW, "IDT INIT")
 }

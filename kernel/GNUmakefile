@@ -1,5 +1,7 @@
 ARCH   ?= x86_64
-CFLAGS := -O0 -g -fno-omit-frame-pointer
+KASLR  ?= true
+
+CFLAGS := -O2 -g -fno-omit-frame-pointer
 CPPFLAGS :=
 LDFLAGS :=
 
@@ -25,12 +27,10 @@ override CFLAGS += \
     -Wextra               \
     -std=gnu23            \
     -ffreestanding        \
-    -fno-PIC              \
-    -fno-pie              \
     -ffunction-sections   \
     -fdata-sections       \
     -fstack-protector-all \
-    -fsanitize=undefined  \
+    -fsanitize=undefined
 
 ifeq ($(ARCH),x86_64)
     override CFLAGS +=    \
@@ -73,12 +73,27 @@ override CPPFLAGS := \
 
 override LDFLAGS +=               \
     -nostdlib                     \
-    --no-pie                      \
     -static                       \
     -z max-page-size=0x1000       \
     --gc-sections                 \
     -T linker_scripts/$(ARCH).lds \
     --build-id=md5                \
+
+ifeq ($(KASLR),true)
+override CFLAGS += \
+    -fPIC \
+    -fpie
+override LDFLAGS += \
+    --pie
+override NASMFLAGS += \
+    -dKASLR
+else
+override CFLAGS += \
+    -fno-PIC \
+    -fno-pie
+override LDFLAGS += \
+    --no-pie
+endif
 
 override SRCFILES := $(shell find -L src -type f -not -path 'src/arch/*' 2>/dev/null | LC_ALL=C sort)
 override SRCFILES += $(shell find -L deps/cc-runtime/src -type f 2>/dev/null | LC_ALL=C sort)

@@ -32,4 +32,5 @@ qemu_log.txt
 *.sig
 *.idx
 *.iso
+*.stamp
 compile_commands.json

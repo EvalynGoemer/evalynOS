@@ -52,5 +52,5 @@ void setup_bsp_gdt() {
     reloadSegments();
     ltr(0x30);
 
-    printf(ANSI_BYELLOW "[ARCH EARLY INIT]" ANSI_RESET " GDT INIT " ANSI_BGREEN "[OK]\n" ANSI_RESET);
+    LOG_TAGGED_OK("ARCH EARLY INIT", ANSI_BYELLOW, "GDT INIT")
 }
