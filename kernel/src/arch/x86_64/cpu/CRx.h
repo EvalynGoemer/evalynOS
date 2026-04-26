@@ -51,6 +51,11 @@ static inline void write_cr8(uint64_t val) {
     asm volatile("mov %0, %%cr8" :: "r"(val) : "memory");
 }
 
+#define CR0_BIT_MP 1
+#define CR0_BIT_EM 2
+#define CR0_BIT_TS 3
+#define CR0_BIT_NE 5
+
 static inline void set_cr0_bit(unsigned int bit) {
     uint64_t val = read_cr0();
     val |= (1ull << bit);
@@ -63,8 +68,13 @@ static inline void clear_cr0_bit(unsigned int bit) {
     write_cr0(val);
 }
 
-#define CR4_BIT_MCE  6
-#define CR4_BIT_FRED 32
+#define CR4_BIT_PSE         4
+#define CR4_BIT_MCE         6
+#define CR4_BIT_OSFXSR      9
+#define CR4_BIT_OSXMMEXCPT  10
+#define CR4_BIT_SMEP        20
+#define CR4_BIT_SMAP        21
+#define CR4_BIT_FRED        32
 
 static inline void set_cr4_bit(unsigned int bit) {
     uint64_t val = read_cr4();
@@ -77,3 +87,7 @@ static inline void clear_cr4_bit(unsigned int bit) {
     val &= ~(1ull << bit);
     write_cr4(val);
 }
+
+extern void setup_control_regs();
+extern bool smep_enabled;
+extern bool smap_enabled;
