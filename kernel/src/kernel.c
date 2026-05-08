@@ -12,6 +12,8 @@
 #include <utils/misc/build_id.h>
 #include <utils/limine.h>
 
+#include <stdio.h>
+
 void kmain() {
     if (LIMINE_BASE_REVISION_SUPPORTED(limine_base_revision) == false)
         hcf();
@@ -32,6 +34,7 @@ void kmain() {
     paging_init();
 
     #ifdef __x86_64__
+    uint64_t loops = 0;
     LOG_TAGGED("KERNEL", ANSI_RESET, "Starting Infinite Chunked `int 0xfa` Loop...")
     while (1) {
         uint64_t start = __builtin_ia32_rdtsc();
@@ -41,6 +44,7 @@ void kmain() {
         asm volatile ("int $0xfa");
         asm volatile ("int $0xfa");
         asm volatile ("int $0xfa");
+        LOG("chunk %ld done", loops++)
     }
     #endif
 

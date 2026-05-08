@@ -1,7 +1,6 @@
 extern dispatch_interrupt
 
 %macro ISR 1
-global isr%1
 isr%1:
     push 0
     push %1
@@ -9,7 +8,6 @@ isr%1:
 %endmacro
 
 %macro ISR_ERR 1
-global isr%1
 isr%1:
     push %1
     jmp dispatch_interrupt_asm
@@ -58,88 +56,51 @@ dispatch_interrupt_asm:
     add rsp, 16
     iretq
 
-ISR     0x00 ; #DE   Division Error
-ISR     0x01 ; #DB   Debug Exception
-ISR     0x02 ; #NMI  Non Maskable Interrupt
-ISR     0x03 ; #BP   Breakpoint Exception
-ISR     0x04 ; #OF   Overflow Exception
-ISR     0x05 ; #BR   Bound Range Exception
-ISR     0x06 ; #UD   Invalid Opcode
-ISR     0x07 ; #NM   FPU Not Found
-ISR_ERR 0x08 ; #DF   Double Fault
-ISR     0x09 ; #CSO  Coprocessor Segment Overrun
-ISR_ERR 0x0A ; #TS   Invalid TSS
-ISR_ERR 0x0B ; #NP   Missing Segemnt
-ISR_ERR 0x0C ; #SS   Invalid Stack Segment
-ISR_ERR 0x0D ; #GPF  General Protection Fault
-ISR_ERR 0x0E ; #PF   Page Fault
-ISR     0x0F ; #???  Reserved Exception
-ISR     0x10 ; #MF   x87 FPU Exception
-ISR_ERR 0x11 ; #AC   Alignment Check Exception
-ISR     0x12 ; #MCE  Machine Check Exception
-ISR     0x13 ; #XM   SIMD FPU Exception
-ISR     0x14 ; #VE   Virtualization Exception
-ISR_ERR 0x15 ; #CP   Control Protection Exception
-ISR     0x16 ; #???  Reserved Exception
-ISR     0x17 ; #???  Reserved Exception
-ISR     0x18 ; #???  Reserved Exception
-ISR     0x19 ; #???  Reserved Exception
-ISR     0x1A ; #???  Reserved Exception
-ISR     0x1B ; #???  Reserved Exception
-ISR     0x1C ; #HV   Hypervisor Injection Exception
-ISR_ERR 0x1D ; #HC   VMM Communication Exception
-ISR_ERR 0x1E ; #DX   Security Exception
-ISR     0x1F ; #???  Reserved Exception
+ISR     0  ; #DE   Division Error
+ISR     1  ; #DB   Debug Exception
+ISR     2  ; #NMI  Non Maskable Interrupt
+ISR     3  ; #BP   Breakpoint Exception
+ISR     4  ; #OF   Overflow Exception
+ISR     5  ; #BR   Bound Range Exception
+ISR     6  ; #UD   Invalid Opcode
+ISR     7  ; #NM   FPU Not Found
+ISR_ERR 8  ; #DF   Double Fault
+ISR     9  ; #CSO  Coprocessor Segment Overrun
+ISR_ERR 10 ; #TS   Invalid TSS
+ISR_ERR 11 ; #NP   Missing Segment
+ISR_ERR 12 ; #SS   Invalid Stack Segment
+ISR_ERR 13 ; #GPF  General Protection Fault
+ISR_ERR 14 ; #PF   Page Fault
+ISR     15 ; #???  Reserved Exception
+ISR     16 ; #MF   x87 FPU Exception
+ISR_ERR 17 ; #AC   Alignment Check Exception
+ISR     18 ; #MCE  Machine Check Exception
+ISR     19 ; #XM   SIMD FPU Exception
+ISR     20 ; #VE   Virtualization Exception
+ISR_ERR 21 ; #CP   Control Protection Exception
+ISR     22 ; #???  Reserved Exception
+ISR     23 ; #???  Reserved Exception
+ISR     24 ; #???  Reserved Exception
+ISR     25 ; #???  Reserved Exception
+ISR     26 ; #???  Reserved Exception
+ISR     27 ; #???  Reserved Exception
+ISR     28 ; #HV   Hypervisor Injection Exception
+ISR_ERR 29 ; #HC   VMM Communication Exception
+ISR_ERR 30 ; #DX   Security Exception
+ISR     31 ; #???  Reserved Exception
 
-%assign i 0x20
-%rep    0xFF - 0x20 + 1
+%assign i 32
+%rep    255 - 32 + 1
     ISR i
     %assign i i+1
 %endrep
 
-%ifdef KASLR
-section .data
-%else
 section .rodata
-%endif
 align 16
-global isr_table
-isr_table:
-    dq isr0x00   ; #DE   Division Error
-    dq isr0x01   ; #DB   Debug Exception
-    dq isr0x02   ; #NMI  Non Maskable Interrupt
-    dq isr0x03   ; #BP   Breakpoint Exception
-    dq isr0x04   ; #OF   Overflow Exception
-    dq isr0x05   ; #BR   Bound Range Exception
-    dq isr0x06   ; #UD   Invalid Opcode
-    dq isr0x07   ; #NM   FPU Not Found
-    dq isr0x08   ; #DF   Double Fault
-    dq isr0x09   ; #CSO  Coprocessor Segment Overrun
-    dq isr0x0A   ; #TS   Invalid TSS
-    dq isr0x0B   ; #NP   Missing Segemnt
-    dq isr0x0C   ; #SS   Invalid Stack Segment
-    dq isr0x0D   ; #GPF  General Protection Fault
-    dq isr0x0E   ; #PF   Page Fault
-    dq isr0x0F   ; #???  Reserved Exception
-    dq isr0x10   ; #MF   x87 FPU Exception
-    dq isr0x11   ; #AC   Alignment Check Exception
-    dq isr0x12   ; #MCE  Machine Check Exception
-    dq isr0x13   ; #XM   SIMD FPU Exception
-    dq isr0x14   ; #VE   Virtualization Exception
-    dq isr0x15   ; #CP   Control Protection Exception
-    dq isr0x16   ; #???  Reserved Exception
-    dq isr0x17   ; #???  Reserved Exception
-    dq isr0x18   ; #???  Reserved Exception
-    dq isr0x19   ; #???  Reserved Exception
-    dq isr0x1A   ; #???  Reserved Exception
-    dq isr0x1B   ; #???  Reserved Exception
-    dq isr0x1C   ; #HV   Hypervisor Injection Exception
-    dq isr0x1D   ; #HC   VMM Communication Exception
-    dq isr0x1E   ; #DX   Security Exception
-    dq isr0x1F   ; #???  Reserved Exception
-
-    %assign i 0x20
-    %rep    0xFF - 0x20 + 1
-        dq isr %+ i
+global rel_isr_table
+rel_isr_table:
+    %assign i 0
+    %rep 255 + 1
+        dd isr %+ i - (rel_isr_table + i * 4)
         %assign i i+1
     %endrep
