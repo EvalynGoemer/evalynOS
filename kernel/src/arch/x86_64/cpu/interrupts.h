@@ -14,6 +14,8 @@ typedef struct interrupt_frame {
     irq_saved_regs_t regs;
     uint64_t vector;
     irq_cpu_frame_t cpu_frame;
+    // only safe to access when FRED is enabled
+    uint64_t fred_extra, fred_reserved;
 } interrupt_frame_t;
 
 extern void dispatch_interrupt(interrupt_frame_t* frame);

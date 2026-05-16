@@ -29,7 +29,6 @@ struct flanterm_context *ft_ctx;
 
 static const char cr = '\r';
 void internal_putc(int c, [[gnu::unused]] void *_) {
-
     if (ft_ctx != NULL) {
         int lock1r = spinlock_lock(&stdio_spinlock);
         if ((char)c == '\n')

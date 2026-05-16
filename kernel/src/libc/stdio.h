@@ -48,39 +48,39 @@ extern spinlock_t stdio_spinlock;
 
 #define LOG(fmt, ...)                \
 do {                                 \
-    printf(fmt "\n", ##__VA_ARGS__); \
+    printf(fmt "\n" __VA_OPT__(,) __VA_ARGS__); \
 } while (0);
 
 #define LOG_TAGGED(tag, tag_color, fmt, ...)    \
 do {                                            \
     LOG("%s[%s]%s " fmt,                        \
-    tag_color, tag, ANSI_RESET, ##__VA_ARGS__); \
+    tag_color, tag, ANSI_RESET __VA_OPT__(,) __VA_ARGS__); \
 } while (0);
 
 #define LOG_TAGGED_SUFFIX(tag, tag_color, suffix, suffix_color, fmt, ...) \
 do {                                                                      \
     LOG("%s[%s]%s " fmt " %s[%s]%s",                                      \
-    tag_color, tag, ANSI_RESET,                                           \
-    ##__VA_ARGS__,                                                        \
+    tag_color, tag, ANSI_RESET                                            \
+    __VA_OPT__(,) __VA_ARGS__,                                            \
     suffix_color, suffix, ANSI_RESET);                                    \
-} while (0);
+} while (0)
 
 #define LOG_TAGGED_OK(tag, tag_color, fmt, ...)                               \
 do {                                                                          \
-    LOG_TAGGED_SUFFIX(tag, tag_color, "OK", ANSI_BGREEN, fmt, ##__VA_ARGS__); \
+    LOG_TAGGED_SUFFIX(tag, tag_color, "OK", ANSI_BGREEN, fmt __VA_OPT__(,) __VA_ARGS__); \
 } while (0);
 
 #define LOG_TAGGED_PASS(tag, tag_color, fmt, ...)                               \
 do {                                                                            \
-    LOG_TAGGED_SUFFIX(tag, tag_color, "PASS", ANSI_BGREEN, fmt, ##__VA_ARGS__); \
+    LOG_TAGGED_SUFFIX(tag, tag_color, "PASS", ANSI_BGREEN, fmt __VA_OPT__(,) __VA_ARGS__); \
 } while (0);
 
 #define LOG_TAGGED_WARN(tag, tag_color, fmt, ...)                                \
 do {                                                                             \
-    LOG_TAGGED_SUFFIX(tag, tag_color, "WARN", ANSI_BYELLOW, fmt, ##__VA_ARGS__); \
+    LOG_TAGGED_SUFFIX(tag, tag_color, "WARN", ANSI_BYELLOW, fmt __VA_OPT__(,) __VA_ARGS__); \
 } while (0);
 
 #define LOG_TAGGED_FAIL(tag, tag_color, fmt, ...)                             \
 do {                                                                          \
-    LOG_TAGGED_SUFFIX(tag, tag_color, "FAIL", ANSI_BRED, fmt, ##__VA_ARGS__); \
+    LOG_TAGGED_SUFFIX(tag, tag_color, "FAIL", ANSI_BRED, fmt __VA_OPT__(,) __VA_ARGS__); \
 } while (0);

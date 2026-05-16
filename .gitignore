@@ -3,34 +3,42 @@
 jinx
 sources
 
-# Compiled Files
-*.efi
-*.EFI
-*.elf
-*.o
-*.so
-*.bin
-*.sys
-*.d
-/obj*/
-/bin*/
-
 # QEMU Files
 ovmf-code*
 ovmf-vars*
 NvVars
 qemu_log.txt
 
-# Misc
+# Bear
+/.cache
+/compile_commands.json
+*.idx
+
+# Compiled Files
+*.o
+*.d
+*.so
+*.elf
+*.bin
+*.sys
+*.efi
+*.EFI
+*.iso
+
+# Generated Files
+*.hashes
+*.stamp
+*.sig
+
+# Editors
 *.kate-swp
+*.zed
+
+# Archives
 *.zip
 *.tar.gz
 *.tar.xz
+
+# Misc
 *.WAD
 *.wad
-*.hashes
-*.sig
-*.idx
-*.iso
-*.stamp
-compile_commands.json

@@ -1,4 +1,9 @@
+# downloaded deps
 deps/cc-runtime
 deps/flanterm
 deps/freestnd-c-hdrs
 deps/limine-protocol
+
+# compiled artifacts
+bin-*
+obj-*

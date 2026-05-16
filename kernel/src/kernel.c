@@ -1,5 +1,6 @@
 #include <stddef.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 
 #include <arch/generic/cpu/halt.h>
@@ -11,8 +12,6 @@
 #include <mem/freelist_pmm.h>
 #include <utils/misc/build_id.h>
 #include <utils/limine.h>
-
-#include <stdio.h>
 
 void kmain() {
     if (LIMINE_BASE_REVISION_SUPPORTED(limine_base_revision) == false)

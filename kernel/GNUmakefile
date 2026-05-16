@@ -22,7 +22,8 @@ CFLAGS += --target=$(TARGET)
 CC := clang
 LD := ld.lld
 
-override CFLAGS += \
+override CFLAGS +=        \
+    -fdefer-ts            \
     -Wall                 \
     -Wextra               \
     -std=gnu23            \
@@ -50,7 +51,7 @@ endif
 ifeq ($(ARCH),loongarch64)
     override CFLAGS +=    \
     -mcmodel=extreme      \
-    -march=loongarch64    \
+    -march=la464          \
     -mabi=lp64s           \
     -mfpu=none            \
     -msimd=none
