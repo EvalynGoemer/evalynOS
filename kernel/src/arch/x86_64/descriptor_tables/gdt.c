@@ -45,6 +45,8 @@ void setup_bsp_gdt() {
     bsp_tss.ist[0] = (uint64_t)(bsp_df_stack + sizeof (bsp_df_stack));
     bsp_tss.ist[1] = (uint64_t)(bsp_nmi_stack + sizeof (bsp_nmi_stack));
     bsp_tss.ist[2] = (uint64_t)(bsp_mce_stack + sizeof (bsp_mce_stack));
+    bsp_tss.io_map_base = sizeof(struct TSS);
+
     bsp_gdtr.limit = sizeof(bsp_gdt) - 1;
     bsp_gdtr.base = (uint64_t)&bsp_gdt;
 
