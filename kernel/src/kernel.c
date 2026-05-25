@@ -1,6 +1,5 @@
 #include <stddef.h>
 #include <stdbool.h>
-#include <stdint.h>
 #include <stdio.h>
 
 #include <arch/generic/cpu/halt.h>
@@ -9,6 +8,7 @@
 #include <arch/generic/paging/paging.h>
 #include <mem/memmap.h>
 #include <mem/pmm.h>
+#include <mem/vmem.h>
 #include <mem/freelist_pmm.h>
 #include <utils/misc/build_id.h>
 #include <utils/limine.h>
@@ -31,6 +31,8 @@ void kmain() {
     freelist_pmm_init();
 
     paging_init();
+
+    vmem_init();
 
     #ifdef __x86_64__
     uint64_t loops = 0;

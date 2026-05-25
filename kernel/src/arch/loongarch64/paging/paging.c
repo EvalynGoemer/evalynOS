@@ -3,6 +3,9 @@
 
 uint64_t kernel_page_table;
 
+uint64_t VADDR_LOWER_HALF_TOP = 0;
+uint64_t VADDR_HIGHER_HALF_BASE = 0;
+
 void paging_init() {
     panic("paging_init() is unimplemented for loongarch64");
 }

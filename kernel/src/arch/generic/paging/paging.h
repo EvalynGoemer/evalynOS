@@ -36,3 +36,6 @@ extern void paging_map_page (uint64_t page_table, uint64_t vaddr, uint64_t paddr
 extern void paging_unmap_page (uint64_t page_table, uint64_t vaddr, int page_size);
 extern uint64_t paging_get_paddr (uint64_t page_table, uint64_t vaddr);
 extern uint64_t paging_get_pte(uint64_t page_table, uint64_t vaddr,int* size_out);
+
+extern uint64_t VADDR_LOWER_HALF_TOP;
+extern uint64_t VADDR_HIGHER_HALF_BASE;

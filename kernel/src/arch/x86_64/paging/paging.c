@@ -18,6 +18,9 @@ uint64_t kernel_page_table;
 bool _1gb_pages_supported;
 bool is_5_level_paging = false;
 
+uint64_t VADDR_LOWER_HALF_TOP = 0;
+uint64_t VADDR_HIGHER_HALF_BASE = 0;
+
 /* Internal Helpers */
 static inline uint64_t prot_to_mmu_flags(uint64_t perm) {
     if (perm == PAGE_NONE) return 0;
@@ -68,9 +71,13 @@ void paging_init() {
     if (paging_mode_request.response->mode == LIMINE_PAGING_MODE_X86_64_5LVL) {
         LOG_TAGGED("MEMORY", ANSI_BGREEN, "System is using 5 Level Paging")
         is_5_level_paging = true;
+        VADDR_LOWER_HALF_TOP   = 0x00FFFFFFFFFFFFFF;
+        VADDR_HIGHER_HALF_BASE = 0xFF00000000000000;
     } else {
         LOG_TAGGED("MEMORY", ANSI_BGREEN, "System is using 4 Level Paging")
         is_5_level_paging = false;
+        VADDR_LOWER_HALF_TOP   = 0x00007FFFFFFFFFFF;
+        VADDR_HIGHER_HALF_BASE = 0xFFFF800000000000;
     }
 
     if (cpuid_check(CPUID_HAS_1GB_PAGES)) {
