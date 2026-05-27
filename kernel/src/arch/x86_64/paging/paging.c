@@ -15,22 +15,24 @@
 #define PAGE_SIZE_1GB  (1ULL * 1024 * 1024 * 1024)
 
 uint64_t kernel_page_table;
-bool _1gb_pages_supported;
-bool is_5_level_paging = false;
 
 uint64_t VADDR_LOWER_HALF_TOP = 0;
 uint64_t VADDR_HIGHER_HALF_BASE = 0;
 
+static bool gb_pages_supported = false;
+static bool is_5_level_paging = false;
+static uint64_t nx_mask = 0;
+
 /* Internal Helpers */
 static inline uint64_t prot_to_mmu_flags(uint64_t perm) {
-    if (perm == PAGE_NONE) return 0;
-    uint64_t flags = X86_64_PTE_NX;
+    uint64_t flags = 0;
     flags |= (perm & PAGE_R)  ? X86_64_PTE_PRESENT  : 0;
     flags |= (perm & PAGE_W)  ? X86_64_PTE_WRITABLE : 0;
     flags |= (perm & PAGE_U)  ? X86_64_PTE_USER     : 0;
     flags |= (perm & PAGE_UC) ? X86_64_PTE_UC       : 0;
     flags |= (perm & PAGE_WC) ? X86_64_PTE_WC       : 0;
-    flags ^= (perm & PAGE_X)  ? X86_64_PTE_NX       : 0;
+    flags |= (~perm & PAGE_X) ? nx_mask             : 0;
+
     return flags;
 }
 
@@ -80,14 +82,22 @@ void paging_init() {
         VADDR_HIGHER_HALF_BASE = 0xFFFF800000000000;
     }
 
+    if(cpuid_check(CPUID_HAS_NX)) {
+        LOG_TAGGED("MEMORY", ANSI_BGREEN, "System supports non executable pages")
+        nx_mask = X86_64_PTE_NX;
+    } else {
+        LOG_TAGGED("MEMORY", ANSI_BGREEN, "System lacks support for non executable pages")
+        nx_mask = 0;
+    }
+
     if (cpuid_check(CPUID_HAS_1GB_PAGES)) {
         LOG_TAGGED("MEMORY", ANSI_BGREEN, "System supports up to 1GB pages")
         LOG_TAGGED("MEMORY", ANSI_BGREEN, "1GB Pages will be used for HHDM")
-        _1gb_pages_supported = true;
+        gb_pages_supported = true;
     } else {
         LOG_TAGGED("MEMORY", ANSI_BGREEN, "System supports up to 2MB pages")
         LOG_TAGGED("MEMORY", ANSI_BGREEN, "2MB Pages will be used for HHDM")
-        _1gb_pages_supported = false;
+        gb_pages_supported = false;
     }
 
     kernel_page_table = pmm_alloc_page();
@@ -114,7 +124,7 @@ void paging_init() {
 
         uint64_t addr = base;
         while (addr < end) {
-            if (_1gb_pages_supported && addr + PAGE_SIZE_1GB <= end && IS_ALIGNED(addr, PAGE_SIZE_1GB)) {
+            if (gb_pages_supported && addr + PAGE_SIZE_1GB <= end && IS_ALIGNED(addr, PAGE_SIZE_1GB)) {
                 paging_map_page(kernel_page_table, addr + hhdm_request.response->offset, addr, flags, PAGE_SIZE_GIANT);
                 addr += PAGE_SIZE_1GB;
             } else if (addr + PAGE_SIZE_2MB <= end && IS_ALIGNED(addr, PAGE_SIZE_2MB)) {
