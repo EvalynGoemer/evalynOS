@@ -1,7 +1,7 @@
 ARCH   ?= x86_64
 KASLR  ?= true
 
-CFLAGS := -O2 -g -fno-omit-frame-pointer
+CFLAGS := -O2 -flto -g -fno-omit-frame-pointer
 CPPFLAGS :=
 LDFLAGS :=
 
@@ -56,7 +56,8 @@ ifeq ($(ARCH),loongarch64)
     -mfpu=none            \
     -msimd=none
     override LDFLAGS +=   \
-    -m elf64loongarch
+    -m elf64loongarch     \
+    -mllvm='--target-abi=lp64s'
 endif
 
 override CPPFLAGS := \

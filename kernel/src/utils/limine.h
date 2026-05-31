@@ -12,6 +12,7 @@ extern volatile struct limine_hhdm_request hhdm_request;
 extern volatile struct limine_paging_mode_request paging_mode_request;
 extern volatile struct limine_executable_address_request executable_address_request;
 extern volatile struct limine_executable_file_request executable_file_request;
+extern volatile struct limine_rsdp_request rsdp_request;
 
 extern volatile uint64_t limine_requests_end_marker[];
 

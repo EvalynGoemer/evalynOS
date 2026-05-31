@@ -13,9 +13,6 @@ uint16_t serial_port = 0x3F8;
 bool serial_enabled = true;
 bool serial_works = false;
 
-volatile uint8_t serial_buffer_index;
-volatile char serial_buffer[256] = {'\0'};
-
 static inline void serial_set_dlab(uint16_t port, bool setting) {
     uint8_t lcr = inbd(port + SERIAL_LINE_CONF);
     if (setting)

@@ -30,7 +30,7 @@ run:
 	KASLR=$(KASLR) ./extras/compile-kernel.sh
 	./extras/generate-iso.sh
 	qemu-system-x86_64 \
-		-machine q35,accel=kvm,smm=on -s \
+		-machine q35,accel=kvm,smm=on -s -smp 4 \
 		-cpu host,+x2apic,+invtsc,+pdpe1gb \
 		-m 512M \
 		-drive if=pflash,format=raw,readonly=on,file=./extras/ovmf-code-x86_64.fd \
@@ -45,7 +45,7 @@ run-tcg:
 	KASLR=$(KASLR) ./extras/compile-kernel.sh
 	./extras/generate-iso.sh
 	qemu-system-x86_64 \
-		-machine q35 \
+		-machine q35 -smp 2 \
 		-cpu max,+pdpe1gb,la57=on \
 		-M accel=tcg,smm=on -d int -no-reboot -no-shutdown -D qemu_log.txt \
 		-m 512M \
@@ -79,7 +79,7 @@ run-tcg-loongarch64:
 	KASLR=$(KASLR) ARCH=loongarch64 ./extras/compile-kernel.sh
 	./extras/generate-iso.sh
 	qemu-system-loongarch64 \
-		-M virt \
+		-M virt -smp 2 \
 		-cpu la464 \
 		-device ramfb \
 		-device qemu-xhci \

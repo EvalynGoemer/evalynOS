@@ -41,8 +41,8 @@ typedef struct bstree_node bstree_node_t;
 
 typedef struct bstree {
     uint64_t (*value_of_node)(bstree_node_t* node);
-    bstree_node_t* root;
     bstree_tree_type_t type;
+    bstree_node_t* root;
 } bstree_t;
 
 typedef struct bstree_node {

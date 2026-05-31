@@ -54,5 +54,11 @@ volatile struct limine_executable_file_request executable_file_request = {
     .revision = 0,
 };
 
+[[gnu::used, gnu::section(".limine_requests")]]
+volatile struct limine_rsdp_request rsdp_request = {
+    .id = LIMINE_RSDP_REQUEST_ID,
+    .revision = 0,
+};
+
 [[gnu::used, gnu::section(".limine_requests_end")]]
 volatile uint64_t limine_requests_end_marker[] = LIMINE_REQUESTS_END_MARKER;

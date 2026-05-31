@@ -12,6 +12,7 @@
 #include <mem/freelist_pmm.h>
 #include <utils/misc/build_id.h>
 #include <utils/limine.h>
+#include <acpi/acpi.h>
 
 void kmain() {
     if (LIMINE_BASE_REVISION_SUPPORTED(limine_base_revision) == false)
@@ -30,24 +31,32 @@ void kmain() {
     memmap_print();
     freelist_pmm_init();
 
+    #ifdef __loongarch64
+    setup_acpi();
+    #endif
+
     paging_init();
 
     vmem_init();
 
     #ifdef __x86_64__
-    uint64_t loops = 0;
-    LOG_TAGGED("KERNEL", ANSI_RESET, "Starting Infinite Chunked `int 0xfa` Loop...")
-    while (1) {
-        uint64_t start = __builtin_ia32_rdtsc();
-        while ((__builtin_ia32_rdtsc() - start) < 3000000000ULL);
-        asm volatile ("int $0xfa");
-        asm volatile ("int $0xfa");
-        asm volatile ("int $0xfa");
-        asm volatile ("int $0xfa");
-        asm volatile ("int $0xfa");
-        LOG("chunk %ld done", loops++)
-    }
+    setup_acpi();
     #endif
+
+    // #ifdef __x86_64__
+    // uint64_t loops = 0;
+    // LOG_TAGGED("KERNEL", ANSI_RESET, "Starting Infinite Chunked `int 0xfa` Loop...")
+    // while (1) {
+    //     uint64_t start = __builtin_ia32_rdtsc();
+    //     while ((__builtin_ia32_rdtsc() - start) < 3000000000ULL);
+    //     asm volatile ("int $0xfa");
+    //     asm volatile ("int $0xfa");
+    //     asm volatile ("int $0xfa");
+    //     asm volatile ("int $0xfa");
+    //     asm volatile ("int $0xfa");
+    //     LOG("chunk %ld done", loops++)
+    // }
+    // #endif
 
     LOG_TAGGED("KERNEL", ANSI_RESET, "Nothing to do; Halting")
 
