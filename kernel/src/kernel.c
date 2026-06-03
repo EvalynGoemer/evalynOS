@@ -1,4 +1,3 @@
-#include <stddef.h>
 #include <stdbool.h>
 #include <stdio.h>
 
@@ -18,10 +17,8 @@ void kmain() {
     if (LIMINE_BASE_REVISION_SUPPORTED(limine_base_revision) == false)
         hcf();
 
-    if (framebuffer_request.response != NULL && framebuffer_request.response->framebuffer_count >= 1)
-        stdio_init(framebuffer_request.response->framebuffers[0]);
-    else
-        stdio_init(NULL);
+    arch_bootstrap_init();
+    arch_earlycon_init();
 
     LOG("EvalynOS Started");
     print_build_info();

@@ -3,6 +3,8 @@
 #include <acpi/tables/sdt.h>
 #include <stdint.h>
 
+#define ACPI_HPET_TABLE_SIGNATURE "HPET"
+
 struct [[gnu::packed]] HPET {
     struct SDTHeader header;
     uint8_t hardware_rev_id;
@@ -13,6 +15,3 @@ struct [[gnu::packed]] HPET {
     uint16_t minimum_tick;
     uint8_t page_protection;
 };
-
-extern uint64_t hpet_phys;
-extern void acpi_parse_hpet();

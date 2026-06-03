@@ -1,14 +1,16 @@
 #include <stdarg.h>
 #include <stddef.h>
 #include <string.h>
+#include <utils/defer.h>
 
 #include <limine.h>
 #include <flanterm.h>
 #include <flanterm_backends/fb.h>
 #include <utils/locks/spinlock.h>
 
+#include <drivers/16550uart.h>
+
 #if defined (__x86_64__)
-#include <arch/x86_64/drivers/16550uart.h>
 #include <arch/x86_64/drivers/portio.h>
 #endif
 
@@ -30,24 +32,26 @@ struct flanterm_context *ft_ctx;
 static const char cr = '\r';
 void internal_putc(int c, [[gnu::unused]] void *_) {
     if (ft_ctx != NULL) {
-        int lock1r = spinlock_lock(&stdio_spinlock);
         if ((char)c == '\n')
             flanterm_write(ft_ctx, &cr, 1);
         flanterm_write(ft_ctx, (char*)&c, 1);
-        spinlock_unlock(&stdio_spinlock, lock1r);
+    }
+
+    if (earlycon_serial.working) {
+        if ((char)c == '\n')
+            serial_send(&earlycon_serial, cr);
+        serial_send(&earlycon_serial, c);
     }
 
     #if defined (__x86_64__)
-    if (serial_works) {
-        if ((char)c == '\n')
-            serial_send(cr);
-        serial_send(c);
-    }
     outb(0xE9, c);
     #endif
 }
 
 int printf(const char* fmt, ...) {
+    int lock1r = spinlock_lock(&stdio_spinlock);
+    defer spinlock_unlock(&stdio_spinlock, lock1r);
+
     va_list args;
     va_start(args, fmt);
     int ret = npf_vpprintf(internal_putc, NULL, fmt, args);

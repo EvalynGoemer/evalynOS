@@ -33,6 +33,9 @@ static void* acpi_find_sdt_xsdt(const char* signature) {
 }
 
 void* acpi_find_sdt(const char* signature) {
+    if (!rsdp_request.response || !rsdp_request.response->address)
+        return nullptr;
+
     struct RSDP* rsdp = (struct RSDP*)rsdp_request.response->address;
     if(rsdp->revision < 2)
         return acpi_find_sdt_rsdt(signature);

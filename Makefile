@@ -88,7 +88,7 @@ run-tcg-loongarch64:
 		-M accel=tcg -no-reboot -no-shutdown \
 		-m 512M \
 		-drive if=pflash,unit=0,format=raw,file=./extras/ovmf-code-loongarch64.fd,readonly=on \
-		-cdrom ./evalynOS.iso \
+		-cdrom ./evalynOS.iso -serial stdio \
 		-boot d \
 
 .PHONY: run-debug-loongarch64
@@ -106,5 +106,5 @@ run-debug-loongarch64:
 		-M accel=tcg -d int -no-reboot -no-shutdown -D qemu_log.txt \
 		-m 512M \
 		-drive if=pflash,unit=0,format=raw,file=./extras/ovmf-code-loongarch64.fd,readonly=on \
-		-cdrom ./evalynOS.iso \
+		-cdrom ./evalynOS.iso -serial stdio \
 		-boot d \

@@ -2,8 +2,8 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include <arch/x86_64/drivers/portio.h>
 #include <arch/generic/cpu/halt.h>
+#include <arch/generic/mmio.h>
 
 /* Serial Port Registers */
 #define SERIAL_RX_BUFF     0 // read  ; DLAB = 0
@@ -66,34 +66,19 @@
 #define SERIAL_TEST_MAGIC      0x69
 #define SERIAL_TEST_RETRIES    5
 
-extern uint16_t serial_port;
-extern bool serial_enabled;
-extern bool serial_works;
+typedef struct serial_ctx {
+    uint64_t addr;
+    bool portIO;
+    bool working;
+} serial_ctx_t;
+
+extern serial_ctx_t earlycon_serial;
 
 extern volatile uint8_t serial_buffer_index;
 extern volatile char serial_buffer[256];
 
-extern void setup_early_serial();
+extern bool detect_early_serial(uint64_t* addr_out, bool* portIO_out);
+extern int setup_early_serial(uint64_t addr, bool portIO);
 
-static inline int serial_transmit_empty() {
-    return inbd(serial_port + SERIAL_LINE_INFO) & SERIAL_TX_EMPTY_BIT;
-}
-
-static inline int serial_data_ready() {
-    return inbd(serial_port + SERIAL_LINE_INFO) & SERIAL_DATA_READY_BIT;
-}
-
-static inline void serial_send(char c) {
-    for (int i = 0; i < 100000; i++) {
-        if (serial_transmit_empty())
-            break;
-        spin();
-    }
-    outbd(serial_port + SERIAL_TX_BUFF, c);
-}
-
-static inline int serial_read() {
-    if (!serial_data_ready())
-        return -1;
-    return inbd(serial_port + SERIAL_RX_BUFF);
-}
+extern int serial_read(serial_ctx_t* ctx);
+extern void serial_send(serial_ctx_t* ctx, char c);
