@@ -1,4 +1,4 @@
-#include "utils/dstruct/llist.h"
+#include <utils/dstruct/llist.h>
 #include <stdio.h>
 #include <string.h>
 #include <acpi/tables/madt.h>
@@ -10,9 +10,10 @@ llist_t  detected_ioapics = LLIST_INIT;
 llist_t  irq_overrides    = LLIST_INIT;
 
 static spalloc_allocator_t alloc;
-static uint32_t detected_cpus;
 static uint32_t madt_entries = 0;
 static uint32_t unknown_madt_entries = 0;
+
+uint32_t detected_cpus;
 
 static uint64_t detected_apic_get_value(bstree_node_t* node) {
     detected_apic_t* x = CONTAINER_OF(node, detected_apic_t, node);

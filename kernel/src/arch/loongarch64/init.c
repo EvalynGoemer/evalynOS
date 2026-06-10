@@ -27,3 +27,10 @@ void arch_early_init() {
 
 }
 
+void arch_post_mm_init() {
+
+}
+
+void arch_init_aps() {
+
+}

@@ -20,8 +20,8 @@ uint64_t VADDR_LOWER_HALF_TOP = 0;
 uint64_t VADDR_HIGHER_HALF_BASE = 0;
 
 static bool gb_pages_supported = false;
-static bool is_5_level_paging = false;
 static uint64_t nx_mask = 0;
+bool is_5_level_paging = false;
 
 /* Internal Helpers */
 static inline uint64_t prot_to_mmu_flags(uint64_t perm) {

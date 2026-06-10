@@ -18,3 +18,5 @@
 
 #define X86_64_PTE_UC (X86_64_PTE_PWT | X86_64_PTE_PCD)
 #define X86_64_PTE_WC (X86_64_PTE_PAT | X86_64_PTE_PWT)
+
+extern bool is_5_level_paging;

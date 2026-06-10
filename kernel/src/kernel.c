@@ -2,6 +2,7 @@
 #include <stdio.h>
 
 #include <arch/generic/cpu/halt.h>
+#include <arch/generic/cpu/ap.h>
 #include <arch/generic/panic.h>
 #include <arch/generic/init.h>
 #include <arch/generic/paging/paging.h>
@@ -40,6 +41,9 @@ void kmain() {
     setup_acpi();
     #endif
 
+    arch_post_mm_init();
+    arch_init_aps();
+
     // #ifdef __x86_64__
     // uint64_t loops = 0;
     // LOG_TAGGED("KERNEL", ANSI_RESET, "Starting Infinite Chunked `int 0xfa` Loop...")
@@ -55,7 +59,7 @@ void kmain() {
     // }
     // #endif
 
-    LOG_TAGGED("KERNEL", ANSI_RESET, "Nothing to do; Halting")
+    // LOG_TAGGED("KERNEL", ANSI_RESET, "Nothing to do; Halting")
 
     hcf();
 }

@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <utils/limine.h>
 #include <libc/stdio.h>
+#include <arch/x86_64/apic/lapic.h>
 #include <arch/x86_64/cpu/CRx.h>
 #include <arch/x86_64/drivers/mce/mce.h>
 #include <arch/x86_64/descriptor_tables/gdt.h>
@@ -43,3 +44,6 @@ void arch_early_init() {
     setup_mce();
 }
 
+void arch_post_mm_init() {
+    setup_lapic();
+}
