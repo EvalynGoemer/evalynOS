@@ -5,9 +5,9 @@
 #include <assert.h>
 #include <stdio.h>
 
+#include <utils/lib.h>
 #include <arch/x86_64/cpu/ap.h>
 #include <utils/limine.h>
-#include <utils/align.h>
 #include <arch/x86_64/apic/lapic.h>
 #include <arch/x86_64/cpu/cpuid.h>
 #include <arch/x86_64/acpi/madt.h>
@@ -16,10 +16,6 @@
 #include <mem/spalloc.h>
 #include <mem/pmm.h>
 #include <mem/vmem.h>
-
-#define TO_HHDM_PTR(x) (void*)(x) + hhdm_request.response->offset
-#define MIN(a, b) ((a) < (b) ? (a) : (b))
-#define MAX(a, b) ((a) > (b) ? (a) : (b))
 
 static uint64_t get_nth_lomem_page(uint64_t n) {
     uint64_t count = 0;
@@ -68,14 +64,13 @@ static uint64_t setup_trampoline() {
     if (cpuid_check(CPUID_HAS_NX)) x86_ap_trampoline_config |= x86_AP_TRAMPOLINE_CONF_NX;
 
     // copy the trampoline to the second lomem page and return the phys address of it
-    memcpy((void*)(trampoline_page + hhdm_request.response->offset), x86_ap_trampoline, 4096);
+    memcpy(TO_HHDM_PTR(trampoline_page), x86_ap_trampoline, 4096);
     return trampoline_page;
 }
 
 static spalloc_allocator_t per_ap_data_allocator;
 
 static void setup_global_ap_data() {
-    uint64_t hhdm_off = hhdm_request.response->offset;
 
     uint64_t global_data_size = sizeof(global_ap_data_t) + sizeof(per_ap_data_t*) * detected_cpus;
     uint64_t global_data_pages = ALIGN_UP(global_data_size, PAGE_SIZE) / PAGE_SIZE;
@@ -98,7 +93,7 @@ static void setup_global_ap_data() {
         per_ap_data_t* per_data = spalloc_malloc(&per_ap_data_allocator);
 
         uint64_t stack_paddr = pmm_alloc_page();
-        per_data->sp = (stack_paddr + hhdm_off) + 4096;
+        per_data->sp = TO_HHDM(stack_paddr) + 4096;
         global_ap_data->per_ap_data_ptrs[i] = per_data;
     }
 }
@@ -114,12 +109,10 @@ void arch_init_aps() {
     uint32_t bsp_apic_id = arch_get_local_coreid();
 
     LOG_TAGGED("AP/INIT", ANSI_BYELLOW, "Sending INIT IPIs to %d APs", detected_cpus - 1)
-    bstree_node_t* node = bstree_minimum(detected_apics.root);
-    while (node != NULL) {
+    BSTREE_FOR_EACH(detected_apics, node) {
         detected_apic_t* apic = CONTAINER_OF(node, detected_apic_t, node);
         if (apic->apic_id != bsp_apic_id)
             x86_send_init(apic->apic_id);
-        node = bstree_successor(node);
     }
 
     LOG_TAGGED("AP/INIT", ANSI_BYELLOW, "Waiting to send SIPIs")
@@ -128,12 +121,10 @@ void arch_init_aps() {
     while ((__builtin_ia32_rdtsc() - start) < 1000000000ULL);
 
     LOG_TAGGED("AP/INIT", ANSI_BYELLOW, "Sending SIPI IPIs to %d APs", detected_cpus - 1)
-    node = bstree_minimum(detected_apics.root);
-    while (node != NULL) {
+    BSTREE_FOR_EACH(detected_apics, node) {
         detected_apic_t* apic = CONTAINER_OF(node, detected_apic_t, node);
         if (apic->apic_id != bsp_apic_id)
             x86_send_sipi(apic->apic_id, trampoline_page / 4096);
-        node = bstree_successor(node);
     }
 }
 

@@ -4,6 +4,7 @@
 
 #include <arch/generic/cpu/interrupts.h>
 #include <arch/generic/panic.h>
+#include <utils/lib.h>
 
 #define NUBSAN_VOID [[gnu::no_sanitize("undefined")]] void
 
@@ -129,7 +130,7 @@ void __ubsan_handle_out_of_bounds(struct ubsan_array_out_of_bounds_data *data) {
 void __ubsan_handle_type_mismatch_v1(struct ubsan_type_mismatch_v1_data *data, uintptr_t ptr) {
     if (!ptr) {
         report("use of NULL pointer", data->location, data->type);
-    } else if (ptr & (((uint64_t)1 << data->log_alignment) - 1)) {
+    } else if (!IS_ALIGNED(ptr, (uint64_t)1 << data->log_alignment)) {
         report("use of misaligned pointer", data->location, data->type);
     } else {
         report("insufficient space for object", data->location, data->type);

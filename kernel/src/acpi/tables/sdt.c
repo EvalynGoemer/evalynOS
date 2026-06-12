@@ -1,18 +1,19 @@
 #include <acpi/tables/sdt.h>
 #include <stdint.h>
 #include <utils/limine.h>
+#include <utils/lib.h>
 #include <stdio.h>
 #include <string.h>
 
 static void* acpi_find_sdt_rsdt(const char* signature) {
     struct RSDP* rsdp = (struct RSDP*)rsdp_request.response->address;
-    struct RSDT *rsdt = (struct RSDT *) (rsdp->rsdtAddress + hhdm_request.response->offset);
+    struct RSDT *rsdt = TO_HHDM_PTR(rsdp->rsdtAddress);
     int entries = (rsdt->header.length - sizeof(rsdt->header)) / 4;
 
     for (int i = 0; i < entries; i++) {
-        struct SDTHeader *header = (struct SDTHeader *) (rsdt->pointerSDTs[i] + hhdm_request.response->offset);
+        struct SDTHeader* header = TO_HHDM_PTR(rsdt->pointerSDTs[i]);
         if (!strncmp(header->signature, signature, 4))
-            return (void *) header;
+            return (void*)header;
     }
 
     return nullptr;
@@ -20,13 +21,13 @@ static void* acpi_find_sdt_rsdt(const char* signature) {
 
 static void* acpi_find_sdt_xsdt(const char* signature) {
     struct XSDP* xsdp = (struct XSDP*)rsdp_request.response->address;
-    struct XSDT *xsdt = (struct XSDT *) (xsdp->xsdtAddress + hhdm_request.response->offset);
+    struct XSDT *xsdt = TO_HHDM_PTR(xsdp->xsdtAddress);
     int entries = (xsdt->header.length - sizeof(xsdt->header)) / 8;
 
     for (int i = 0; i < entries; i++) {
-        struct SDTHeader *header = (struct SDTHeader *) (xsdt->pointerSDTs[i] + hhdm_request.response->offset);
+        struct SDTHeader *header = TO_HHDM_PTR(xsdt->pointerSDTs[i]);
         if (!strncmp(header->signature, signature, 4))
-            return (void *) header;
+            return (void*)header;
     }
 
     return nullptr;
@@ -44,13 +45,13 @@ void* acpi_find_sdt(const char* signature) {
 
 static int acpi_table_count_rsdt() {
     struct RSDP *rsdp = (struct RSDP *)rsdp_request.response->address;
-    struct RSDT *rsdt = (struct RSDT *)(rsdp->rsdtAddress + hhdm_request.response->offset);
+    struct RSDT *rsdt = TO_HHDM_PTR(rsdp->rsdtAddress);
     return (rsdt->header.length - sizeof(rsdt->header)) / 4;
 }
 
 static int acpi_table_count_xsdt() {
     struct XSDP *xsdp = (struct XSDP *)rsdp_request.response->address;
-    struct XSDT *xsdt = (struct XSDT *)(xsdp->xsdtAddress + hhdm_request.response->offset);
+    struct XSDT *xsdt = TO_HHDM_PTR(xsdp->xsdtAddress);
     return (xsdt->header.length - sizeof(xsdt->header)) / 8;
 }
 
@@ -63,20 +64,20 @@ int acpi_table_count() {
 
 static void* acpi_get_sdt_rsdt(int n) {
     struct RSDP *rsdp = (struct RSDP *)rsdp_request.response->address;
-    struct RSDT *rsdt = (struct RSDT *)(rsdp->rsdtAddress + hhdm_request.response->offset);
+    struct RSDT *rsdt = TO_HHDM_PTR(rsdp->rsdtAddress);
     int entries = (rsdt->header.length - sizeof(rsdt->header)) / 4;
     if (n < 0 || n >= entries)
         return nullptr;
-    return (void *)(rsdt->pointerSDTs[n] + hhdm_request.response->offset);
+    return TO_HHDM_PTR(rsdt->pointerSDTs[n]);
 }
 
 static void* acpi_get_sdt_xsdt(int n) {
     struct XSDP *xsdp = (struct XSDP *)rsdp_request.response->address;
-    struct XSDT *xsdt = (struct XSDT *)(xsdp->xsdtAddress + hhdm_request.response->offset);
+    struct XSDT *xsdt = TO_HHDM_PTR(xsdp->xsdtAddress);
     int entries = (xsdt->header.length - sizeof(xsdt->header)) / 8;
     if (n < 0 || n >= entries)
         return nullptr;
-    return (void *)(xsdt->pointerSDTs[n] + hhdm_request.response->offset);
+    return TO_HHDM_PTR(xsdt->pointerSDTs[n]);
 }
 
 void* acpi_get_sdt(int n) {

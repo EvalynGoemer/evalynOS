@@ -4,12 +4,14 @@
 #include <utils/dstruct/rbtree.h>
 
 bstree_node_t* bstree_minimum(bstree_node_t* node) {
+    if (!node) return nullptr;
     while (node->left != nullptr)
         node = node->left;
     return node;
 }
 
 bstree_node_t* bstree_maximum(bstree_node_t* node) {
+    if (!node) return nullptr;
     while (node->right != nullptr)
         node = node->right;
     return node;

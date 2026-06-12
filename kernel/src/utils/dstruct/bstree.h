@@ -1,15 +1,37 @@
 #pragma once
 
 #include <stdint.h>
+#include <utils/lib.h>
 
 #define BSTREE_INIT ((bstree_t) {0})
 #define BSTREE_NODE_INIT ((bstree_node_t) {0})
 
-#define CONTAINER_OF(PTR, TYPE, MEMBER)                                                                                           \
-({                                                                                                                                \
-    static_assert(__builtin_types_compatible_p(typeof(((TYPE*) 0)->MEMBER), typeof(*PTR)), "member type does not match pointer"); \
-    (TYPE*) (((uintptr_t) (PTR)) - __builtin_offsetof(TYPE, MEMBER));                                                             \
-})
+#define BSTREE_SUCCESSOR_OR_NULL(node)   ((node) ? bstree_successor(node) : nullptr)
+#define BSTREE_PREDECESSOR_OR_NULL(node) ((node) ? bstree_predecessor(node) : nullptr)
+
+#define BSTREE_FOR_EACH(tree, it)                            \
+    for (bstree_node_t *(it) = bstree_minimum((tree).root);  \
+         (it);                                               \
+         (it) = bstree_successor((it)))
+
+#define BSTREE_FOR_EACH_REVERSE(tree, it)                    \
+    for (bstree_node_t *(it) = bstree_maximum((tree).root);  \
+         (it);                                               \
+         (it) = bstree_predecessor((it)))
+
+#define BSTREE_FOR_EACH_SAFE(tree, it, nx)                      \
+    for (bstree_node_t *(it) = bstree_minimum((tree).root),     \
+                       *(nx) = BSTREE_SUCCESSOR_OR_NULL(it);    \
+         (it);                                                  \
+         (it) = (nx),                                           \
+         (nx) = BSTREE_SUCCESSOR_OR_NULL(nx))
+
+#define BSTREE_FOR_EACH_REVERSE_SAFE(tree, it, px)              \
+    for (bstree_node_t *(it) = bstree_maximum((tree).root),     \
+                       *(px) = BSTREE_PREDECESSOR_OR_NULL(it);  \
+         (it);                                                  \
+         (it) = (px),                                           \
+         (px) = BSTREE_PREDECESSOR_OR_NULL(px))
 
 typedef enum bstree_direction_t: uint_fast8_t {
     BST_LEFT,

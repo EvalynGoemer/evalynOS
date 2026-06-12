@@ -4,9 +4,9 @@
 #include <string.h>
 
 #include <arch/generic/panic.h>
-#include <utils/align.h>
-#include <utils/limine.h>
 #include <utils/locks/ticketlock.h>
+#include <utils/limine.h>
+#include <utils/lib.h>
 
 #include <mem/freelist_pmm.h>
 #include <mem/pmm.h>
@@ -33,8 +33,7 @@ void freelist_pmm_fill(uint64_t pages) {
         uint64_t aligned_end   = ALIGN_DOWN(entry->base + entry->length, PAGE_SIZE);
 
         // dont allocate memory in the first 1MB
-        if (aligned_start < 0x100000ULL)
-            aligned_start = 0x100000ULL;
+        aligned_start = MAX(0x100000ull, aligned_start);
 
         if (aligned_end <= aligned_start) {
             freelist_pmm_fill_entry++;
@@ -47,7 +46,7 @@ void freelist_pmm_fill(uint64_t pages) {
 
         while (entry->base + freelist_pmm_fill_offset + PAGE_SIZE <= aligned_end && pages_added < pages) {
             uint64_t page_addr = entry->base + freelist_pmm_fill_offset;
-            freelist_pmm_node_t *node = (freelist_pmm_node_t*)(page_addr + hhdm_request.response->offset);
+            freelist_pmm_node_t *node = TO_HHDM_PTR(page_addr);
             node->next = freelist_pmm_head;
             freelist_pmm_head = node;
             pages_added++;
@@ -69,7 +68,7 @@ uint64_t freelist_pmm_allocate_page() {
 
     freelist_pmm_node_t* node = freelist_pmm_head;
     freelist_pmm_head = node->next;
-    uint64_t phys = (uint64_t)((uintptr_t)node - hhdm_request.response->offset);
+    uint64_t phys = FROM_HHDM((uintptr_t)node);
 
     ticketlock_unlock(&freelist_pmm_lock, lock1r);
 
@@ -80,7 +79,7 @@ uint64_t freelist_pmm_allocate_page() {
 void freelist_pmm_free_page(uint64_t phys) {
     int lock1r = ticketlock_lock(&freelist_pmm_lock);
 
-    freelist_pmm_node_t* node = (freelist_pmm_node_t*)(phys + hhdm_request.response->offset);
+    freelist_pmm_node_t* node = TO_HHDM_PTR(phys);
     node->next = freelist_pmm_head;
     freelist_pmm_head = node;
 

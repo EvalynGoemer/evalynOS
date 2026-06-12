@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <utils/limine.h>
+#include <utils/lib.h>
 #include <stdio.h>
 
 void memmap_print() {
@@ -12,7 +13,7 @@ void memmap_print() {
     uint64_t usable_ram_post_reclaim = 0;
 
     for (uint64_t i = 0; i < memmap_request.response->entry_count; i++) {
-        uint64_t base = memmap_request.response->entries[i]->base + hhdm_request.response->offset;
+        uint64_t base = TO_HHDM(memmap_request.response->entries[i]->base);
         uint64_t length = memmap_request.response->entries[i]->length;
         uint64_t type = memmap_request.response->entries[i]->type;
 

@@ -2,7 +2,7 @@
 #include <utils/dstruct/llist.h>
 #include <utils/limine.h>
 #include <utils/locks/ticketlock.h>
-#include <utils/align.h>
+#include <utils/lib.h>
 #include <mem/spalloc.h>
 #include <stdint.h>
 #include <utils/defer.h>
@@ -19,7 +19,7 @@
 [[gnu::always_inline]]
 static inline uint32_t spalloc_obj_count(uint32_t size, uint32_t align) {
     uint32_t n = (PAGE_SIZE - SPALLOC_PAGE_HDR_SIZE(align)) / SPALLOC_OBJ_STRIDE(size, align);
-    return n > 128u ? 128u : n;
+    return MIN(128, n);
 }
 
 [[gnu::always_inline]]
@@ -89,7 +89,7 @@ void *spalloc_malloc(spalloc_allocator_t *alloc) {
     spalloc_page_header_t *hdr;
     if (node == NULL) {
         uintptr_t phys = pmm_alloc_page();
-        hdr = (spalloc_page_header_t *)(phys + hhdm_request.response->offset);
+        hdr = TO_HHDM_PTR(phys);
         hdr->bmap[0] = alloc->word0_initial_state;
         hdr->bmap[1] = alloc->word1_initial_state;
     } else {
@@ -135,7 +135,7 @@ void spalloc_free(spalloc_allocator_t *alloc, void *obj) {
     // if this page is empty free it and remove from freelist
     if (hdr_isempty(alloc, hdr)) {
         if (!was_full) llist_node_delete(&alloc->partial_list, &hdr->llnode);
-        pmm_free_page((uintptr_t)hdr - hhdm_request.response->offset);
+        pmm_free_page(FROM_HHDM((uintptr_t)hdr));
         return;
     }
 

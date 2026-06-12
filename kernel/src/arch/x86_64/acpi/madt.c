@@ -4,6 +4,7 @@
 #include <acpi/tables/madt.h>
 #include <arch/x86_64/acpi/madt.h>
 #include <mem/spalloc.h>
+#include <utils/lib.h>
 
 bstree_t detected_apics   = BSTREE_INIT;
 llist_t  detected_ioapics = LLIST_INIT;
@@ -30,21 +31,17 @@ void arch_madt_parse_end() {
     LOG_TAGGED("ACPI/MADT", ANSI_BMAGENTA, "Found %d unknown entries in the MADT", unknown_madt_entries);
     LOG_TAGGED("ACPI/MADT", ANSI_BMAGENTA, "Found %d CPU(s)", detected_cpus);
     LOG_TAGGED("ACPI/MADT", ANSI_BMAGENTA, "Detected IOAPICs:");
-    llist_node_t* ioapic_node = detected_ioapics.head;
-    while (ioapic_node) {
+    LLIST_FOR_EACH(detected_ioapics, ioapic_node) {
         detected_ioapic* ioapic = CONTAINER_OF(ioapic_node, detected_ioapic, node);
         LOG_TAGGED("ACPI/MADT", ANSI_BMAGENTA, "  IOAPIC id=%u phys=0x%08x gsi_base=%u",
                    ioapic->ioapic_id, ioapic->phys_addr, ioapic->gsi_base);
-        ioapic_node = ioapic_node->next;
     }
 
     LOG_TAGGED("ACPI/MADT", ANSI_BMAGENTA, "Detected IRQ overrides:");
-    llist_node_t* irq_node = irq_overrides.tail;
-    while (irq_node) {
+    LLIST_FOR_EACH_REVERSE(irq_overrides, irq_node) {
         acpi_irq_override_t* ovr = CONTAINER_OF(irq_node, acpi_irq_override_t, node);
         LOG_TAGGED("ACPI/MADT", ANSI_BMAGENTA, "  IRQ %u -> GSI %u flags=0x%02x",
                    ovr->irq, ovr->gsi, ovr->flags);
-        irq_node = irq_node->prev;
     }
 }
 

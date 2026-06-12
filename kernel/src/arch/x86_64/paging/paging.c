@@ -1,4 +1,5 @@
 #include "arch/generic/panic.h"
+#include <assert.h>
 #include <stdint.h>
 #include <stdio.h>
 
@@ -9,7 +10,7 @@
 #include <loader/elf_structs.h>
 #include <mem/pmm.h>
 #include <utils/limine.h>
-#include <utils/align.h>
+#include <utils/lib.h>
 
 #define PAGE_SIZE_2MB  (2ULL * 1024 * 1024)
 #define PAGE_SIZE_1GB  (1ULL * 1024 * 1024 * 1024)
@@ -37,7 +38,7 @@ static inline uint64_t prot_to_mmu_flags(uint64_t perm) {
 }
 
 static inline uint64_t get_next_level_and_allocate(uint64_t pte, int perms) {
-    uint64_t* vpte = (uint64_t*)(pte + hhdm_request.response->offset);
+    uint64_t* vpte = TO_HHDM_PTR(pte);
     uint64_t entry = *vpte;
 
     if (!(entry & X86_64_PTE_PRESENT)) {
@@ -51,7 +52,7 @@ static inline uint64_t get_next_level_and_allocate(uint64_t pte, int perms) {
 
 static inline bool pte_walk(uint64_t table, uint16_t index, uint64_t **pte_out, uint64_t *next_table_out) {
     uint64_t phys = table + (index * sizeof(uint64_t));
-    uint64_t *pte = (uint64_t*)(phys + hhdm_request.response->offset);
+    uint64_t *pte = TO_HHDM_PTR(phys);
     *pte_out = pte;
     if (!(*pte & X86_64_PTE_PRESENT)) return false;
     *next_table_out = *pte & X86_64_PTE_MASK;
@@ -59,7 +60,7 @@ static inline bool pte_walk(uint64_t table, uint16_t index, uint64_t **pte_out, 
 }
 
 static inline void handle_large_page(uint64_t current_pte_phys, uint64_t paddr, uint64_t vaddr, int perms) {
-    uint64_t *pte_virt = (uint64_t *)(current_pte_phys + hhdm_request.response->offset);
+    uint64_t *pte_virt = TO_HHDM_PTR(current_pte_phys);
     uint64_t flags = prot_to_mmu_flags(perms);
     // PAT is bit 12 on large pages
     if (flags & X86_64_PTE_PAT) flags |= (1 << 12);
@@ -125,15 +126,19 @@ void paging_init() {
         uint64_t addr = base;
         while (addr < end) {
             if (gb_pages_supported && addr + PAGE_SIZE_1GB <= end && IS_ALIGNED(addr, PAGE_SIZE_1GB)) {
-                paging_map_page(kernel_page_table, addr + hhdm_request.response->offset, addr, flags, PAGE_SIZE_GIANT);
+                paging_map_page(kernel_page_table, TO_HHDM(addr), addr, flags, PAGE_SIZE_GIANT);
                 addr += PAGE_SIZE_1GB;
-            } else if (addr + PAGE_SIZE_2MB <= end && IS_ALIGNED(addr, PAGE_SIZE_2MB)) {
-                paging_map_page(kernel_page_table, addr + hhdm_request.response->offset, addr, flags, PAGE_SIZE_LARGE);
-                addr += PAGE_SIZE_2MB;
-            } else {
-                paging_map_page(kernel_page_table, addr + hhdm_request.response->offset, addr, flags, PAGE_SIZE_NORM);
-                addr += PAGE_SIZE;
+                continue;
             }
+
+            if (addr + PAGE_SIZE_2MB <= end && IS_ALIGNED(addr, PAGE_SIZE_2MB)) {
+                paging_map_page(kernel_page_table, TO_HHDM(addr), addr, flags, PAGE_SIZE_LARGE);
+                addr += PAGE_SIZE_2MB;
+                continue;
+            }
+
+            paging_map_page(kernel_page_table, TO_HHDM(addr), addr, flags, PAGE_SIZE_NORM);
+            addr += PAGE_SIZE;
         }
     }
 
@@ -222,7 +227,7 @@ void paging_map_page (uint64_t page_table, uint64_t vaddr, uint64_t paddr, int p
     }
     current_table = get_next_level_and_allocate(current_pte_phys, PAGE_URWX);
 
-    uint64_t* pte_virt = (uint64_t*)((current_table + (pml1i * sizeof(uint64_t))) + hhdm_request.response->offset );
+    uint64_t* pte_virt = TO_HHDM_PTR(current_table + (pml1i * sizeof(uint64_t)));
     *pte_virt = (paddr & X86_64_PTE_MASK) | prot_to_mmu_flags(perms);
     asm volatile("invlpg (%0)" ::"r"(vaddr) : "memory");
 }

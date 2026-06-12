@@ -3,9 +3,7 @@
 #include <string.h>
 #include <acpi/tables/sdt.h>
 #include <acpi/tables/fadt.h>
-
-#define MIN(a, b) ((a) < (b) ? (a) : (b))
-#define MAX(a, b) ((a) > (b) ? (a) : (b))
+#include <utils/lib.h>
 
 #define MAX_FADT_REVISION 4
 #define FADT_FLAG_HW_REDUCED_ACPI (1 << 20)

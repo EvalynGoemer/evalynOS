@@ -3,6 +3,7 @@
 #include <arch/x86_64/cpu/cpuid.h>
 #include <mem/pmm.h>
 #include <mem/vmem.h>
+#include <utils/lib.h>
 #include <arch/generic/mmio.h>
 #include <arch/x86_64/cpu/msr.h>
 #include <arch/x86_64/apic/lapic.h>

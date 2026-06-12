@@ -1,14 +1,30 @@
 #pragma once
 
 #include <stddef.h>
+#include <utils/lib.h>
 
 #define LLIST_INIT ((llist_t) { .count = 0, .head = nullptr, .tail = nullptr })
 
-#define CONTAINER_OF(PTR, TYPE, MEMBER)                                                                                               \
-    ({                                                                                                                                \
-        static_assert(__builtin_types_compatible_p(typeof(((TYPE*) 0)->MEMBER), typeof(*PTR)), "member type does not match pointer"); \
-        (TYPE*) (((uintptr_t) (PTR)) - __builtin_offsetof(TYPE, MEMBER));                                                             \
-    })
+#define LLIST_NEXT_OR_NULL(node)  ((node) ? (node)->next : nullptr)
+#define LLIST_PREV_OR_NULL(node)  ((node) ? (node)->prev : nullptr)
+
+#define LLIST_FOR_EACH(list, it) \
+    for (llist_node_t *(it) = (list).head; (it); (it) = (it)->next)
+
+#define LLIST_FOR_EACH_REVERSE(list, it) \
+    for (llist_node_t *(it) = (list).tail; (it); (it) = (it)->prev)
+
+#define LLIST_FOR_EACH_SAFE(list, it, nx)              \
+    for (llist_node_t *(it) = (list).head,             \
+                       *(nx) = LLIST_NEXT_OR_NULL(it); \
+         (it);                                         \
+         (it) = (nx), (nx) = LLIST_NEXT_OR_NULL(nx))
+
+#define LLIST_FOR_EACH_REVERSE_SAFE(list, it, px)      \
+    for (llist_node_t *(it) = (list).tail,             \
+                       *(px) = LLIST_PREV_OR_NULL(it); \
+         (it);                                         \
+         (it) = (px), (px) = LLIST_PREV_OR_NULL(px))
 
 typedef struct llist_node llist_node_t;
 typedef struct llist llist_t;

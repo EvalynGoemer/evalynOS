@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <math.h>
 
-#include <utils/align.h>
+#include <utils/lib.h>
 #include <utils/defer.h>
 #include <utils/limine.h>
 #include <utils/dstruct/llist.h>
@@ -22,8 +22,6 @@
 #include <arch/generic/panic.h>
 #include <arch/generic/paging/paging.h>
 #include <loader/elf_structs.h>
-
-#define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 
 vmem_allocator_t kernel_vmem_allocator = {0};
 
@@ -131,11 +129,9 @@ static struct fit_alloc_ret fit_alloc(vmem_allocator_t* alloc, uint64_t size, ui
     assert(index < ARRAY_SIZE(alloc->freelists));
 
     for (uint32_t i = index; i < ARRAY_SIZE(alloc->freelists); i++) {
-        llist_node_t *cnode = alloc->freelists[i].head;
-        while (cnode != nullptr) {
+        LLIST_FOR_EACH(alloc->freelists[i], cnode) {
             vmem_segment_t* cseg = CONTAINER_OF(cnode, vmem_segment_t, freelist_node);
-            defer cnode = cnode->next;
-            uint64_t alloc_start = (min > cseg->base) ? min : cseg->base;
+            uint64_t alloc_start = MAX(min, cseg->base);
             alloc_start = ALIGN_UP(alloc_start, alloc->quantum);
 
             if (alloc_start < min)
@@ -284,7 +280,7 @@ void vmem_free(vmem_allocator_t* alloc, uint64_t addr, uint64_t size) {
             bstree_insert(&alloc->segments_tree, &right_seg->segment_tree_node);
         }
 
-        cur_addr = seg_end < end_addr ? seg_end : end_addr;
+        cur_addr = MIN(seg_end, end_addr);
 
         seg->allocated = false;
 
