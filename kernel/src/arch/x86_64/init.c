@@ -3,6 +3,7 @@
 #include <libc/stdio.h>
 #include <arch/x86_64/apic/lapic.h>
 #include <arch/x86_64/cpu/CRx.h>
+#include <arch/x86_64/cpu/cpuid.h>
 #include <arch/x86_64/drivers/mce/mce.h>
 #include <arch/x86_64/descriptor_tables/gdt.h>
 #include <arch/x86_64/descriptor_tables/idt.h>
@@ -10,7 +11,7 @@
 #include <drivers/16550uart.h>
 
 void arch_bootstrap_init() {
-    // x86-64 does not require bootstrap init
+    is_hypervisor = cpuid_check(CPUID_HAS_HYPERVISOR);
 }
 
 void arch_earlycon_init() {
@@ -34,6 +35,7 @@ void arch_earlycon_init() {
 }
 
 void arch_early_init() {
+    parse_cpuid();
     setup_bsp_gdt();
 
     if (!setup_fred_bsp())

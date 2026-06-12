@@ -12,6 +12,7 @@
 
 #if defined (__x86_64__)
 #include <arch/x86_64/drivers/portio.h>
+#include <arch/x86_64/cpu/cpuid.h>
 #endif
 
 #define NANOPRINTF_IMPLEMENTATION
@@ -44,7 +45,8 @@ void internal_putc(int c, [[gnu::unused]] void *_) {
     }
 
     #if defined (__x86_64__)
-    outb(0xE9, c);
+    if (is_hypervisor)
+        outb(0xE9, c);
     #endif
 }
 
