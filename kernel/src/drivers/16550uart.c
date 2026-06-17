@@ -1,14 +1,13 @@
 #include "acpi/tables/sdt.h"
-#include <arch/generic/cpu/halt.h>
+#include <arch/intrin/spin.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <assert.h>
 #include <acpi/tables/spcr.h>
-
-#include <arch/generic/mmio.h>
+#include <arch/intrin/mmio.h>
 
 #ifdef __x86_64__
-#include <arch/x86_64/drivers/portio.h>
+#include <arch/x86_64/intrin/portio.h>
 #endif
 
 #include <drivers/16550uart.h>

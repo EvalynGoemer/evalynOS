@@ -2,8 +2,6 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include <arch/generic/cpu/halt.h>
-#include <arch/generic/mmio.h>
 
 /* Serial Port Registers */
 #define SERIAL_RX_BUFF     0 // read  ; DLAB = 0
@@ -73,9 +71,6 @@ typedef struct serial_ctx {
 } serial_ctx_t;
 
 extern serial_ctx_t earlycon_serial;
-
-extern volatile uint8_t serial_buffer_index;
-extern volatile char serial_buffer[256];
 
 extern bool detect_early_serial(uint64_t* addr_out, bool* portIO_out);
 extern int setup_early_serial(uint64_t addr, bool portIO);

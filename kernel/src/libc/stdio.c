@@ -11,7 +11,7 @@
 #include <drivers/16550uart.h>
 
 #if defined (__x86_64__)
-#include <arch/x86_64/drivers/portio.h>
+#include <arch/x86_64/intrin/portio.h>
 #include <arch/x86_64/cpu/cpuid.h>
 #endif
 

@@ -1,6 +1,5 @@
 #include <arch/generic/panic.h>
-#include <arch/generic/cpu/halt.h>
-#include <arch/generic/cpu/interrupts.h>
+#include <arch/intrin/interrupts.h>
 #include <arch/loongarch64/cpu/interrupts.h>
 #include <stdio.h>
 #include <inttypes.h>

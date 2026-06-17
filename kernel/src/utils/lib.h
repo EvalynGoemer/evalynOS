@@ -17,6 +17,9 @@
 #define UNLIKELY(x) __builtin_expect(!!(x), 0)
 #define UNUSED(x)   ((void)(x))
 
+#define STRINGIFY_IMPL(x) #x
+#define STRINGIFY(x) STRINGIFY_IMPL(x)
+
 #define CONTAINER_OF(PTR, TYPE, MEMBER)                                                                                               \
     ({                                                                                                                                \
         static_assert(__builtin_types_compatible_p(typeof(((TYPE*) 0)->MEMBER), typeof(*PTR)), "member type does not match pointer"); \

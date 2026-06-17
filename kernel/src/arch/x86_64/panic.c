@@ -1,6 +1,6 @@
 #include "utils/locks/spinlock.h"
 #include <arch/generic/panic.h>
-#include <arch/generic/cpu/halt.h>
+#include <arch/intrin/interrupts.h>
 #include <arch/x86_64/cpu/interrupts.h>
 #include <stdio.h>
 #include <inttypes.h>

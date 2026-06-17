@@ -1,10 +1,10 @@
-#include <arch/generic/cpu/halt.h>
+#include <arch/intrin/spin.h>
 #include <arch/generic/paging/paging.h>
 #include <arch/x86_64/cpu/cpuid.h>
 #include <mem/pmm.h>
 #include <mem/vmem.h>
 #include <utils/lib.h>
-#include <arch/generic/mmio.h>
+#include <arch/intrin/mmio.h>
 #include <arch/x86_64/cpu/msr.h>
 #include <arch/x86_64/apic/lapic.h>
 #include <assert.h>

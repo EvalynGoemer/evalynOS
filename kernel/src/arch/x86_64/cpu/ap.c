@@ -1,4 +1,3 @@
-#include "arch/generic/cpu/halt.h"
 #include <string.h>
 #include <stdbool.h>
 #include <stdint.h>

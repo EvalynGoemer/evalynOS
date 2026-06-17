@@ -1,7 +1,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-#include <arch/generic/cpu/halt.h>
+#include <arch/intrin/interrupts.h>
 #include <arch/generic/cpu/ap.h>
 #include <arch/generic/panic.h>
 #include <arch/generic/init.h>

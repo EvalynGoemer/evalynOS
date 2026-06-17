@@ -55,6 +55,14 @@ x86_ap_trampoline32:
     ; ebx = base address
     ; esi = config bitfield
 
+    ; setup segment regsters
+    mov ax, 0x18
+    mov ds, ax
+    mov ss, ax
+    mov es, ax
+    mov fs, ax
+    mov gs, ax
+
     ; setup CR3
     mov eax, [x86_ap_trampoline_cr3 - x86_ap_trampoline + ebx]
     mov cr3, eax
@@ -121,6 +129,7 @@ x86_ap_trampoline_gdt:
     dq 0x0000000000000000  ; null    ; 0x00
     dq 0x00cf9a000000ffff  ; 32 code ; 0x08
     dq 0x00af9b000000ffff  ; 64 code ; 0x10
+    dq 0x00cf93000000ffff  ; data    ; 0x18
 
 ; patched at runtime by BSP
 x86_ap_trampoline_gdtr:

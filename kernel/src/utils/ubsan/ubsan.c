@@ -2,7 +2,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#include <arch/generic/cpu/interrupts.h>
+#include <arch/intrin/interrupts.h>
 #include <arch/generic/panic.h>
 #include <utils/lib.h>
 

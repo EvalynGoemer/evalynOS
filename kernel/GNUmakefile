@@ -70,6 +70,7 @@ override CPPFLAGS := \
     -isystem src/libc                     \
     $(CPPFLAGS)                           \
     -DLIMINE_API_REVISION=6               \
+    -DTARGET_ARCH=${ARCH}                 \
     -MMD                                  \
     -MP                                   \
 
@@ -87,8 +88,6 @@ override CFLAGS += \
     -fpie
 override LDFLAGS += \
     --pie
-override NASMFLAGS += \
-    -dKASLR
 else
 override CFLAGS += \
     -fno-PIC \

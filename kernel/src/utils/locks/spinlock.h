@@ -1,7 +1,7 @@
 #pragma once
 #include <stdint.h>
-#include <arch/generic/cpu/interrupts.h>
-#include <arch/generic/cpu/halt.h>
+#include <arch/intrin/interrupts.h>
+#include <arch/intrin/spin.h>
 
 typedef struct {
     uint32_t flag;

@@ -7,7 +7,7 @@
 
 static void* acpi_find_sdt_rsdt(const char* signature) {
     struct RSDP* rsdp = (struct RSDP*)rsdp_request.response->address;
-    struct RSDT *rsdt = TO_HHDM_PTR(rsdp->rsdtAddress);
+    struct RSDT* rsdt = TO_HHDM_PTR(rsdp->rsdtAddress);
     int entries = (rsdt->header.length - sizeof(rsdt->header)) / 4;
 
     for (int i = 0; i < entries; i++) {

@@ -1,3 +1,4 @@
+#include <utils/lib.h>
 #include <stdint.h>
 #include <stdio.h>
 
@@ -14,19 +15,7 @@ void print_build_id() {
 }
 
 void print_build_info() {
-    #if defined(__x86_64__)
-    printf("Arch: x86-64; BuildID: ");
-    #elif defined(__i386__)
-    printf("Arch: i686; BuildID: ");
-    #elif defined(__aarch64__)
-    printf("Arch: aarch64; BuildID: ");
-    #elif defined(__riscv) && __riscv_xlen == 64
-    printf("Arch: riscv64; BuildID: ");
-    #elif defined(__loongarch64)
-    printf("Arch: loongarch64; BuildID: ");
-    #else
-    _Static_assert(0, "unimplemented");
-    #endif
+    printf("Arch: " STRINGIFY(TARGET_ARCH) "; BuildID: ");
 
     print_build_id();
     printf("\n");

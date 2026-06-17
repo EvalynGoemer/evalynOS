@@ -36,12 +36,12 @@ struct [[gnu::packed]] SDTHeader {
 
 struct [[gnu::packed]] RSDT {
     struct SDTHeader header;
-    [[gnu::aligned(4)]] uint32_t pointerSDTs[];
+    uint32_t pointerSDTs[];
 };
 
 struct [[gnu::packed]] XSDT {
     struct SDTHeader header;
-    [[gnu::aligned(4)]] uint64_t pointerSDTs[];
+    uint64_t pointerSDTs[];
 };
 
 typedef enum: uint8_t {

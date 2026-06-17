@@ -1,5 +1,5 @@
 #include <arch/generic/panic.h>
-#include <arch/generic/cpu/interrupts.h>
+#include <arch/intrin/interrupts.h>
 #include <stdio.h>
 
 void __assert_fail(const char *assertion, const char *file, unsigned int line, const char *function) {
