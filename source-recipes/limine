@@ -4,5 +4,5 @@ name=limine
 version=0.0git
 allow_network=yes
 
-git_url="https://codeberg.org/Limine/Limine.git"
-commit="32ee2a3667bf4f4406d46f1dc658e46206e8346a"
+git_url="https://github.com/Limine-Bootloader/Limine.git"
+commit="bdf4c7756ad37b3f2b6f85b452c01d4cc7c67fef"

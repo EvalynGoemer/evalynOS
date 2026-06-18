@@ -31,7 +31,7 @@ clone_repo_commit() {
 }
 
 clone_repo_commit                                      \
-    https://codeberg.org/Mintsuki/jinx.git             \
+    https://github.com/Mintsuki/Jinx.git               \
     "$JINX_DIR"                                        \
     6940f35b6031df4aa7d06c94d968e674ad93019e
 

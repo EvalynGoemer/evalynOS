@@ -13,6 +13,8 @@ ifeq ($(ARCH),x86_64)
     TARGET := x86_64-unknown-elf
 else ifeq ($(ARCH),loongarch64)
     TARGET := loongarch64-unknown-elf
+else ifeq ($(ARCH),riscv64)
+    TARGET := riscv64-unknown-elf
 else
     $(error Architecture $(ARCH) not supported)
 endif
@@ -58,6 +60,14 @@ ifeq ($(ARCH),loongarch64)
     override LDFLAGS +=   \
     -m elf64loongarch     \
     -mllvm='--target-abi=lp64s'
+endif
+ifeq ($(ARCH),riscv64)
+    override CFLAGS +=          \
+    -march=rv64imac_zihintpause \
+    -mabi=lp64                  \
+    -mcmodel=medany
+    override LDFLAGS +=         \
+    -m elf64lriscv
 endif
 
 override CPPFLAGS := \

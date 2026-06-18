@@ -13,6 +13,8 @@
 #if defined (__x86_64__)
 #include <arch/x86_64/intrin/portio.h>
 #include <arch/x86_64/cpu/cpuid.h>
+#elif defined (__riscv)
+#include <arch/riscv64/sbi/console.h>
 #endif
 
 #define NANOPRINTF_IMPLEMENTATION
@@ -47,6 +49,8 @@ void internal_putc(int c, [[gnu::unused]] void *_) {
     #if defined (__x86_64__)
     if (is_hypervisor)
         outb(0xE9, c);
+    #elif defined (__riscv)
+    sbi_console_putchar(c);
     #endif
 }
 

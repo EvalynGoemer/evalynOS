@@ -13,4 +13,6 @@ package() {
     cp ./ovmf-vars-x86_64.fd ${dest_dir}
     cp ./ovmf-code-loongarch64.fd ${dest_dir}
     cp ./ovmf-vars-loongarch64.fd ${dest_dir}
+    cp ./ovmf-code-riscv64.fd ${dest_dir}
+    cp ./ovmf-vars-riscv64.fd ${dest_dir}
 }

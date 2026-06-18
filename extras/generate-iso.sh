@@ -9,6 +9,7 @@ ISO_DIR="$(realpath ./iso/)"
 mkdir -p ${ISO_DIR}/EFI/BOOT/
 cp ${JINX_DIR}/host-pkgs/limine/usr/local/share/limine/BOOTX64.EFI         ${ISO_DIR}/EFI/BOOT/
 cp ${JINX_DIR}/host-pkgs/limine/usr/local/share/limine/BOOTLOONGARCH64.EFI ${ISO_DIR}/EFI/BOOT/
+cp ${JINX_DIR}/host-pkgs/limine/usr/local/share/limine/BOOTRISCV64.EFI     ${ISO_DIR}/EFI/BOOT/
 cp ${JINX_DIR}/host-pkgs/limine/usr/local/share/limine/limine-bios-cd.bin  ${ISO_DIR}
 cp ${JINX_DIR}/host-pkgs/limine/usr/local/share/limine/limine-uefi-cd.bin  ${ISO_DIR}
 cp ${JINX_DIR}/host-pkgs/limine/usr/local/share/limine/limine-bios.sys     ${ISO_DIR}
@@ -16,6 +17,8 @@ cp ${JINX_DIR}/host-pkgs/ovmf2-bin/ovmf-code-x86_64.fd .
 cp ${JINX_DIR}/host-pkgs/ovmf2-bin/ovmf-vars-x86_64.fd .
 cp ${JINX_DIR}/host-pkgs/ovmf2-bin/ovmf-code-loongarch64.fd .
 cp ${JINX_DIR}/host-pkgs/ovmf2-bin/ovmf-vars-loongarch64.fd .
+cp ${JINX_DIR}/host-pkgs/ovmf2-bin/ovmf-code-riscv64.fd .
+cp ${JINX_DIR}/host-pkgs/ovmf2-bin/ovmf-vars-riscv64.fd .
 
 xorriso \
   -as mkisofs \

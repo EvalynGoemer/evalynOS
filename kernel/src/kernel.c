@@ -29,17 +29,12 @@ void kmain() {
     memmap_print();
     freelist_pmm_init();
 
-    #ifdef __loongarch64
-    setup_acpi();
-    #endif
-
-    paging_init();
-
-    vmem_init();
-
     #ifdef __x86_64__
-    setup_acpi();
+    paging_init();
+    vmem_init();
     #endif
+
+    setup_acpi();
 
     arch_post_mm_init();
     arch_init_aps();
@@ -59,7 +54,7 @@ void kmain() {
     // }
     // #endif
 
-    // LOG_TAGGED("KERNEL", ANSI_RESET, "Nothing to do; Halting")
+    LOG_TAGGED("KERNEL", ANSI_RESET, "Nothing to do; Halting")
 
     hcf();
 }

@@ -4,5 +4,5 @@ name=ovmf2-bin
 version=0.0git
 allow_network=yes
 
-tarball_url="https://github.com/osdev0/edk2-ovmf-nightly/releases/download/nightly-20260320T015644Z/edk2-ovmf.tar.xz"
-tarball_sha256="3465e8942fc8e462643fe78ed1c7e7cf6b3d3b835de33b81126c6b4824870bfb"
+tarball_url="https://github.com/osdev0/edk2-ovmf-stable-bins/releases/download/20260526T165842Z/edk2-ovmf-bins.tar.xz"
+tarball_blake2b="c4d6fad935452f4e447073fe74498613c0f0fa53b08dfcba8a4dbca66b72a939cfa6c5247d5d36e197269b6cfa926569599115ce212c825e5aafd1ba2b43f432"

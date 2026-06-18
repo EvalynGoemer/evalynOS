@@ -37,8 +37,14 @@ volatile struct limine_paging_mode_request paging_mode_request = {
     .mode = LIMINE_PAGING_MODE_LOONGARCH_4LVL,
     .min_mode = LIMINE_PAGING_MODE_LOONGARCH_4LVL,
     .max_mode = LIMINE_PAGING_MODE_LOONGARCH_4LVL,
-#else
-    _Static_assert(0, "unimplemented");
+#elif defined(__riscv)
+    .mode = LIMINE_PAGING_MODE_RISCV_SV48,
+    .min_mode = LIMINE_PAGING_MODE_RISCV_SV39,
+    .max_mode = LIMINE_PAGING_MODE_RISCV_SV57,
+#elif defined(__aarch64__)
+    .mode = LIMINE_PAGING_MODE_AARCH64_4LVL,
+    .min_mode = LIMINE_PAGING_MODE_AARCH64_4LVL,
+    .max_mode = LIMINE_PAGING_MODE_AARCH64_5LVL,
 #endif
 };
 
