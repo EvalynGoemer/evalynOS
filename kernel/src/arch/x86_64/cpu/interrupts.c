@@ -1,5 +1,4 @@
 #include <arch/generic/panic.h>
-#include <arch/x86_64/panic.h>
 #include <arch/x86_64/cpu/interrupts.h>
 #include <arch/x86_64/drivers/fred/fred.h>
 #include <stdint.h>

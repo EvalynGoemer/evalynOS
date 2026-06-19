@@ -10,6 +10,7 @@
 #define CSR_SCAUSE    0x142
 #define CSR_STVAL     0x143
 #define CSR_SATP      0x180
+#define CSR_TIME      0xC01
 
 #define SSTATUS_SIE   (1ull << 1)
 #define SSTATUS_SPP   (1ull << 8)

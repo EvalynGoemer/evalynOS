@@ -2,10 +2,10 @@
 #include <libc/stdio.h>
 #include <utils/limine.h>
 
-#include <arch/loongarch64/cpu/csr.h>
+#include <arch/loongarch64/intrin/csr.h>
 #include <arch/loongarch64/cpu/dmw.h>
 
-static inline void *rebase_ptr(void *ptr, uint64_t old_hhdm, uint64_t new_hhdm) {
+static inline void* rebase_ptr(void *ptr, uint64_t old_hhdm, uint64_t new_hhdm) {
     if (!ptr)
         return NULL;
 

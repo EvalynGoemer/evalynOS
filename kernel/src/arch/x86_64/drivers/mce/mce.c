@@ -1,6 +1,5 @@
 #include <arch/x86_64/drivers/mce/mce.h>
 #include <arch/generic/panic.h>
-#include <arch/x86_64/panic.h>
 #include <arch/x86_64/cpu/msr.h>
 #include <arch/x86_64/cpu/CRx.h>
 #include <arch/x86_64/cpu/cpuid.h>

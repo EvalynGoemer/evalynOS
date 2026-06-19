@@ -5,8 +5,9 @@
 .extern panic_interrupt
 
 panic:
-    addi sp, sp, -256
+    addi sp, sp, -288
 
+    # registers
     sd   x0,  0(sp)
     sd   x1,  8(sp)
     sd   x2,  16(sp)
@@ -40,9 +41,15 @@ panic:
     sd   x30, 240(sp)
     sd   x31, 248(sp)
 
+    # fake interrupt frame
+    sd    x0, 256(sp)
+    sd    x0, 264(sp)
+    sd    x0, 272(sp)
+    sd    x0, 280(sp)
+
     mv   a1, sp
     call panic_interrupt
-    addi sp, sp, 256
+    addi sp, sp, 288
 
     loop:
         j loop

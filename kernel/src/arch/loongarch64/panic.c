@@ -5,24 +5,29 @@
 #include <inttypes.h>
 
 [[noreturn]]
-void panic_interrupt(const char* message, void* interrupt_frame) {
+void panic_interrupt(const char* message, interrupt_frame_t* frame) {
     disable_interrupts();
 
     if (__atomic_exchange_n(&panic_flag, 1, __ATOMIC_SEQ_CST) != 0)
         hcf();
 
-    // force unlock stdio for panic; keep IRQs disabled
     spinlock_unlock(&stdio_spinlock, 0);
 
     panic_print_start(message);
-    interrupt_frame_t* frame = interrupt_frame;
 
     printf("\033[38;2;175;56;255mGeneral Registers:\n");
     for (int i = 0; i < 32; i++) {
-        printf("x%-2d=0x%016llx ", i, frame->x[i]);
+        printf("r%-2d=0x%016llx ", i, frame->x[i]);
         if ((i + 1) % 4 == 0)
             printf("\n");
     }
+
+    printf("\033[38;2;231;133;255mInterrupt Frame:\n");
+    printf("ERA   = 0x%016llx\n", frame->era);
+    printf("PRMD  = 0x%016llx\n", frame->prmd);
+    printf("ESTAT = 0x%016llx\n", frame->estat);
+    printf("BADV  = 0x%016llx\n", frame->badv);
+    printf("BADI  = 0x%08lx\n", (uint32_t)frame->badi);
 
     panic_print_end();
 

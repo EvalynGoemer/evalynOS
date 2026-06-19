@@ -5,7 +5,7 @@
 .extern panic_interrupt
 
 panic:
-    addi.d  $sp, $sp, -256
+    addi.d  $sp, $sp, -304
 
     st.d    $r0,  $sp, 0
     st.d    $r1,  $sp, 8
@@ -40,9 +40,16 @@ panic:
     st.d    $r30, $sp, 240
     st.d    $r31, $sp, 248
 
+    # fake interrupt frame
+    st.d    $r0, $sp, 256
+    st.d    $r0, $sp, 264
+    st.d    $r0, $sp, 272
+    st.d    $r0, $sp, 280
+    st.d    $r0, $sp, 288
+
     move    $r5, $sp
     bl      panic_interrupt
-    addi.d  $sp, $sp, 256
+    addi.d  $sp, $sp, 304
 
     loop:
         b loop

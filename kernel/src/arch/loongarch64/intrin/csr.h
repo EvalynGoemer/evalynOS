@@ -2,8 +2,15 @@
 
 #include <stdint.h>
 
-#define CSR_CRMD    0x000
+#define CSR_CRMD    0x00
 #define CSR_CRMD_IE (1 << 2)
+
+#define CSR_ECFG   0x04
+#define CSR_EENTRY 0x0C
+
+#define CSR_SAVE0 0x30
+
+#define CSR_TLBRENTRY 0x88
 
 #define CSR_DMW0  0x180
 #define CSR_DMW1  0x181

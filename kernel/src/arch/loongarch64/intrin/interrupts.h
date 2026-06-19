@@ -1,5 +1,5 @@
 #pragma once
-#include <arch/loongarch64/cpu/csr.h>
+#include <arch/loongarch64/intrin/csr.h>
 
 static inline int interrupts_enabled() {
     return (csrrd(CSR_CRMD) & CSR_CRMD_IE) != 0;

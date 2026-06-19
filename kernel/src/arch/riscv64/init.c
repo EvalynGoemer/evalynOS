@@ -1,3 +1,4 @@
+#include <arch/riscv64/cpu/interrupts.h>
 #include <utils/limine.h>
 #include <stdio.h>
 
@@ -13,7 +14,7 @@ void arch_earlycon_init() {
 }
 
 void arch_early_init() {
-
+    setup_interrupts();
 }
 
 void arch_post_mm_init() {
