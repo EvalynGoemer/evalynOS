@@ -79,3 +79,9 @@ int strncmp(const char *s1, const char *s2, size_t n) {
     return s1[i] - s2[i];
 }
 
+char* strcpy(char *dest, const char *src) {
+    char *tmp = dest;
+    while((*dest++ = *src++) != '\0');
+    return tmp;
+}
+

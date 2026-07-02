@@ -15,6 +15,7 @@
 #include <mem/spalloc.h>
 #include <mem/pmm.h>
 #include <mem/vmem.h>
+#include <arch/x86_64/drivers/pvclock/pvclock.h>
 
 static uint64_t get_nth_lomem_page(uint64_t n) {
     uint64_t count = 0;
@@ -129,5 +130,9 @@ void arch_init_aps() {
 
 void x86_ap_entry(uint32_t core_id) {
     LOG_TAGGED("AP/STARTUP", ANSI_BYELLOW, "AP %d started", core_id);
+
+    if (is_hypervisor)
+        setup_pvclock(core_id);
+
     hcf();
 }

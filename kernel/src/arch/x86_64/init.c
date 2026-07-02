@@ -8,6 +8,7 @@
 #include <arch/x86_64/descriptor_tables/gdt.h>
 #include <arch/x86_64/descriptor_tables/idt.h>
 #include <arch/x86_64/drivers/fred/fred.h>
+#include <arch/x86_64/drivers/pvclock/pvclock.h>
 #include <drivers/16550uart.h>
 
 void arch_bootstrap_init() {
@@ -48,4 +49,7 @@ void arch_early_init() {
 
 void arch_post_mm_init() {
     setup_lapic();
+
+    if (is_hypervisor)
+        setup_pvclock(0);
 }

@@ -46,8 +46,17 @@ enum HypervisorType {
     HYPERVISOR_TYPE_TCG,
     HYPERVISOR_TYPE_VBOX,
     HYPERVISOR_TYPE_VMWARE,
+    HYPERVISOR_TYPE_HYPERV,
     HYPERVISOR_TYPE_OTHER,
 };
+
+#define CPUID_EAX               'a'
+#define CPUID_EBX               'b'
+#define CPUID_ECX               'c'
+#define CPUID_EDX               'd'
+
+#define CPUID_NO_SUBLEAF        0
+#define CPUID_SUBLEAF_1         1
 
 #define CPUID_GET_MAX_STANDARD  0x00000000
 #define CPUID_GET_FEATURES      0x00000001
@@ -71,14 +80,6 @@ enum HypervisorType {
 #define CPUID_MCA               14  /* EDX */
 #define CPUID_FRED              17  /* EAX, subleaf 1 */
 
-#define CPUID_EAX               'a'
-#define CPUID_EBX               'b'
-#define CPUID_ECX               'c'
-#define CPUID_EDX               'd'
-
-#define CPUID_NO_SUBLEAF        0
-#define CPUID_SUBLEAF_1         1
-
 #define CPUID_HAS_1GB_PAGES     ((cpuid_request_t){ CPUID_GET_EXT_FEATURES, CPUID_NO_SUBLEAF, CPUID_EDX, CPUID_1GB_PAGES     })
 #define CPUID_HAS_NX            ((cpuid_request_t){ CPUID_GET_EXT_FEATURES, CPUID_NO_SUBLEAF, CPUID_EDX, CPUID_NX            })
 #define CPUID_HAS_x2APIC        ((cpuid_request_t){ CPUID_GET_FEATURES,     CPUID_NO_SUBLEAF, CPUID_ECX, CPUID_x2APIC        })
@@ -91,6 +92,17 @@ enum HypervisorType {
 #define CPUID_HAS_MCE           ((cpuid_request_t){ CPUID_GET_FEATURES,     CPUID_NO_SUBLEAF, CPUID_EDX, CPUID_MCE           })
 #define CPUID_HAS_MCA           ((cpuid_request_t){ CPUID_GET_FEATURES,     CPUID_NO_SUBLEAF, CPUID_EDX, CPUID_MCA           })
 #define CPUID_HAS_FRED          ((cpuid_request_t){ CPUID_GET_FEATURES_EXT, CPUID_SUBLEAF_1,  CPUID_EAX, CPUID_FRED          })
+
+
+// hypervisor specific CPUID bits
+#define KVM_CPUID_FEATURES       0x40000001
+#define KVM_CPUID_PVCLOCK        3   /* EAX */
+#define KVM_CPUID_HAS_PVCLOCK    ((cpuid_request_t){ KVM_CPUID_FEATURES, CPUID_NO_SUBLEAF, CPUID_EAX, KVM_CPUID_PVCLOCK })
+
+#define HYPERV_CPUID_INFO        0x40000001
+#define HYPERV_CPUID_FEATURES    0x40000003
+#define HYPERV_CPUID_PVCLOCK     9   /* EAX */
+#define HYPERV_CPUID_HAS_PVCLOCK ((cpuid_request_t){ HYPERV_CPUID_FEATURES, CPUID_NO_SUBLEAF, CPUID_EAX, HYPERV_CPUID_PVCLOCK })
 
 extern bool cpuid_check(cpuid_request_t req);
 extern void get_cpu_vendor(char buf[static 13]);

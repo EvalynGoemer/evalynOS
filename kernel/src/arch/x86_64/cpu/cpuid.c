@@ -41,10 +41,21 @@ static void classify_hypervisor(char hv[static 13]) {
         hypervisor_type = HYPERVISOR_TYPE_VBOX;
     } else if (strcmp(hv, "VMwareVMware") == 0) {
         hypervisor_type = HYPERVISOR_TYPE_VMWARE;
+    } else if (strcmp(hv, "Microsoft Hv") == 0) {
+        hypervisor_type = HYPERVISOR_TYPE_HYPERV;
     } else if (!is_hypervisor) {
         hypervisor_type = HYPERVISOR_TYPE_NONE;
     } else {
         hypervisor_type = HYPERVISOR_TYPE_OTHER;
+    }
+
+    // fallback check for hyperv w/ WHPX
+    if (hypervisor_type == HYPERVISOR_TYPE_OTHER) {
+        // check the interface signature
+        if (cpuid(HYPERV_CPUID_INFO, 0).eax == 0x31237648) {
+            hypervisor_type = HYPERVISOR_TYPE_HYPERV;
+            strcpy(hv, "Microsoft Hv");
+        }
     }
 }
 
@@ -70,6 +81,8 @@ bool cpuid_check(cpuid_request_t req) {
     if (req.leaf >= CPUID_GET_MAX_EXTENDED) {
         cpuid_regs_t r = cpuid(CPUID_GET_MAX_EXTENDED, 0);
         if (r.eax < req.leaf) return false;
+    } else if (req.leaf >= 0x40000000) {
+        if (!is_hypervisor && req.leaf <= 0x4FFFFFFF) return false;
     } else {
         cpuid_regs_t r = cpuid(CPUID_GET_MAX_STANDARD, 0);
         if (r.eax < req.leaf) return false;

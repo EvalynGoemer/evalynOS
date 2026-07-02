@@ -52,6 +52,11 @@
 #define MSR_UGSBASE             0xC0000101
 #define MSR_KGSBASE             0xC0000102
 
+// Paravirtualized MSRs
+#define KVM_MSR_PVCLOCK         0x4B564D01
+#define HYPERV_MSR_PVCLOCK_REG  0x40000020
+#define HYPERV_MSR_PVCLOCK_PAGE 0x40000021
+
 static inline uint64_t rdmsr(uint32_t msr) {
     uint32_t low, high;
     asm volatile("rdmsr" : "=a"(low), "=d"(high) : "c"(msr) : "memory");
