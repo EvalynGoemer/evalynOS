@@ -1,3 +1,4 @@
+#include <arch/x86_64/cpu/msr.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <arch/x86_64/descriptor_tables/gdt.h>
@@ -53,6 +54,9 @@ void setup_bsp_gdt() {
     lgdt(&bsp_gdtr);
     reloadSegments();
     ltr(0x30);
+
+    wrmsr(MSR_UGSBASE, 0);
+    wrmsr(MSR_KGSBASE, 0);
 
     LOG_TAGGED_OK("ARCH EARLY INIT", ANSI_BYELLOW, "GDT INIT")
 }

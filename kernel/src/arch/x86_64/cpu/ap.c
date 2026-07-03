@@ -16,6 +16,7 @@
 #include <mem/pmm.h>
 #include <mem/vmem.h>
 #include <arch/x86_64/drivers/pvclock/pvclock.h>
+#include <arch/intrin/cpulocal.h>
 
 static uint64_t get_nth_lomem_page(uint64_t n) {
     uint64_t count = 0;
@@ -89,11 +90,29 @@ static void setup_global_ap_data() {
     bool status = spalloc_init(&per_ap_data_allocator, sizeof(per_ap_data_t), _Alignof(per_ap_data_t));
     assert(status == true);
 
-    for (uint32_t i = 0; i < detected_cpus; i++) {
+    uint64_t cpulocal_size = (uint64_t)__cpu_local_end - (uint64_t)__cpu_local_start;
+    uint64_t cpulocal_pages = cpulocal_size / PAGE_SIZE;
+
+    for (uint32_t i = 1; i < detected_cpus; i++) {
         per_ap_data_t* per_data = spalloc_malloc(&per_ap_data_allocator);
 
         uint64_t stack_paddr = pmm_alloc_page();
-        per_data->sp = TO_HHDM(stack_paddr) + 4096;
+        per_data->sp = TO_HHDM(stack_paddr) + PAGE_SIZE;
+
+        if (cpulocal_pages == 1) {
+            uint64_t cpulocal_vaddr = TO_HHDM(pmm_alloc_page());
+            memcpy((void*)cpulocal_vaddr, (void*)__cpu_local_start, cpulocal_size);
+            per_data->cpulocal_base = cpulocal_vaddr - (uint64_t)__cpu_local_start;
+        } else {
+            uint64_t cpulocal_vaddr = vmem_alloc(&kernel_vmem_allocator, cpulocal_size, 0);
+            for (uint64_t p = 0; p < cpulocal_pages; p++) {
+                uint64_t paddr = pmm_alloc_page();
+                paging_map_page(kernel_page_table, cpulocal_vaddr + p * 4096, paddr, PAGE_KRW, PAGE_SIZE_NORM);
+            }
+            memcpy((void*)cpulocal_vaddr, (void*)__cpu_local_start, cpulocal_size);
+            per_data->cpulocal_base = cpulocal_vaddr - (uint64_t)__cpu_local_start;
+        }
+
         global_ap_data->per_ap_data_ptrs[i] = per_data;
     }
 }
@@ -130,6 +149,9 @@ void arch_init_aps() {
 
 void x86_ap_entry(uint32_t core_id) {
     LOG_TAGGED("AP/STARTUP", ANSI_BYELLOW, "AP %d started", core_id);
+
+    per_ap_data_t* per_data = global_ap_data->per_ap_data_ptrs[core_id];
+    SET_CPU_LOCAL(per_data->cpulocal_base);
 
     if (is_hypervisor)
         setup_pvclock(core_id);

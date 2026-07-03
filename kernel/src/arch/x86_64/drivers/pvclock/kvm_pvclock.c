@@ -3,9 +3,9 @@
 #include <arch/x86_64/cpu/cpuid.h>
 #include <arch/x86_64/cpu/msr.h>
 #include <arch/x86_64/drivers/pvclock/kvm_pvclock.h>
+#include <arch/intrin/cpulocal.h>
 
-// TODO make this CPU local
-static kvm_pvclock_t* local_pvclock;
+CPU_LOCAL static kvm_pvclock_t* local_pvclock;
 
 bool setup_kvm_pvclock() {
     if (hypervisor_type != HYPERVISOR_TYPE_KVM)
@@ -15,15 +15,13 @@ bool setup_kvm_pvclock() {
 
     uint64_t paddr = pmm_alloc_page();
     wrmsr(KVM_MSR_PVCLOCK, paddr | 1);
-    // TODO: do a cpu local write
-    local_pvclock = TO_HHDM_PTR(paddr);
+    CPU_LOCAL_WRITE8(local_pvclock, TO_HHDM_PTR(paddr));
     return true;
 }
 
 uint64_t kvm_pvclock_get_ns() {
-    // TODO: do a cpu local read
     // TODO: disable preemption / thread migration while reading via cpu local
-    kvm_pvclock_t* pvclock = local_pvclock;
+    kvm_pvclock_t* pvclock = CPU_LOCAL_READ8(local_pvclock);
 
     uint32_t version;
     uint64_t tsc, delta;

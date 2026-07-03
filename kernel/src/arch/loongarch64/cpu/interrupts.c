@@ -32,13 +32,6 @@ const char *exception_names[] = {
     "Hypervisor Call (0x17)",
 };
 
-typedef struct cpu_local {
-    void* current_thread;
-    uint64_t scrarch[3];
-} cpu_local_t;
-
-cpu_local_t cpu_local = {0};
-
 void dispatch_interrupt(interrupt_frame_t* frame) {
     uint8_t  ecode   = (frame->estat >> 16) & 0x3F;
     uint16_t irq_num =  frame->estat        & 0x1FFF;
@@ -65,7 +58,6 @@ void dispatch_interrupt(interrupt_frame_t* frame) {
 }
 
 void setup_interrupts() {
-    csrwr(CSR_SAVE0, (uint64_t)&cpu_local);
     csrwr(CSR_ECFG, 0);
     csrwr(CSR_EENTRY, (uint64_t)interrupt_handler_asm);
 }

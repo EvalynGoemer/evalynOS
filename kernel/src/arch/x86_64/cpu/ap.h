@@ -4,6 +4,7 @@
 
 typedef struct [[gnu::packed]] per_ap_data {
     uint64_t sp;
+    uint64_t cpulocal_base;
 } per_ap_data_t;
 
 typedef struct [[gnu::packed]] global_ap_data {

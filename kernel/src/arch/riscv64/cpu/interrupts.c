@@ -65,16 +65,6 @@ void dispatch_interrupt(interrupt_frame_t* frame) {
     }
 }
 
-// HACK: cpu local is required for interrupts
-// this is a minimal stub for kernel only intterupts
-typedef struct cpu_local {
-    void* current_thread; // untouched for kernel interrupts
-    uint64_t scrarch[3];
-} cpu_local_t;
-
-cpu_local_t cpu_local = {0};
-
 void setup_interrupts() {
-    csrw(CSR_SSCRATCH, (uint64_t)&cpu_local);
     csrw(CSR_STVEC, (uint64_t)interrupt_handler_asm);
 }

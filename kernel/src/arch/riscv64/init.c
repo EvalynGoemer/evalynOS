@@ -1,9 +1,11 @@
+#include <arch/riscv64/cpu/cpulocal.h>
 #include <arch/riscv64/cpu/interrupts.h>
+#include <arch/intrin/cpulocal.h>
 #include <utils/limine.h>
 #include <stdio.h>
 
 void arch_bootstrap_init() {
-
+    setup_cpulocal_bsp();
 }
 
 void arch_earlycon_init() {

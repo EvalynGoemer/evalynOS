@@ -1,6 +1,8 @@
 #include <stdint.h>
 #include <utils/limine.h>
 #include <libc/stdio.h>
+#include <arch/x86_64/cpu/cpulocal.h>
+#include <arch/intrin/cpulocal.h>
 #include <arch/x86_64/apic/lapic.h>
 #include <arch/x86_64/cpu/CRx.h>
 #include <arch/x86_64/cpu/cpuid.h>
@@ -13,6 +15,7 @@
 
 void arch_bootstrap_init() {
     is_hypervisor = cpuid_check(CPUID_HAS_HYPERVISOR);
+    setup_cpulocal_bsp();
 }
 
 void arch_earlycon_init() {
