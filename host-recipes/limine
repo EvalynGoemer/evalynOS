@@ -1,4 +1,4 @@
-#! /bin/sh
+#!/bin/sh
 
 name=limine
 from_source=limine
@@ -8,7 +8,6 @@ allow_network=yes
 
 build() {
     cp -rpf "${source_dir}"/. ./
-    ./bootstrap
     CFLAGS_FOR_TARGET="-O2 -pipe" \
     ./configure --enable-all --prefix="${prefix}"
 

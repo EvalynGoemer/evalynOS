@@ -1,8 +1,8 @@
 #!/bin/sh
 
 name=limine
-version=0.0git
+version=12.4.0
 allow_network=yes
 
-git_url="https://github.com/Limine-Bootloader/Limine.git"
-commit="bdf4c7756ad37b3f2b6f85b452c01d4cc7c67fef"
+tarball_url="https://github.com/Limine-Bootloader/Limine/releases/download/v${version}/limine-${version}.tar.xz"
+tarball_blake2b="3ae95a0d38135da6244f946a3383268633f61f90eed39b49128284da084e3fb1c9cd821c483ed4bd4539224b0479f981e3c2159bb7e84b72ec1da6aae15885ae"

@@ -10,7 +10,7 @@ const char *exception_names[] = {
     "Page Invalid For Load (0x01)",
     "Page Invalid For Store (0x02)",
     "Page Invalid For Fetch (0x03)",
-    "Page Modification (0x04)",
+    "Page Non-Writable (0x04)",
     "Page Non-Readable (0x05)",
     "Page Non-Executable (0x06)",
     "Page Privilege Level Illegal (0x07)",
@@ -30,6 +30,7 @@ const char *exception_names[] = {
     "Binary Translation Exception (0x15)",
     "Guest Sensitive Privileged Resource (0x16)",
     "Hypervisor Call (0x17)",
+    "Guest CSR Change Exception (0x18)",
 };
 
 void dispatch_interrupt(interrupt_frame_t* frame) {
