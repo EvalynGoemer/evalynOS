@@ -1,4 +1,4 @@
-#include "utils/locks/spinlock.h"
+#include <utils/locks/irqlock.h>
 #include <arch/generic/panic.h>
 #include <arch/intrin/interrupts.h>
 #include <arch/x86_64/cpu/interrupts.h>
@@ -12,8 +12,7 @@ void panic_interrupt(const char* message, interrupt_frame_t* frame) {
     if (__atomic_exchange_n(&panic_flag, 1, __ATOMIC_SEQ_CST) != 0)
         hcf();
 
-    // force unlock stdio for panic; keep IRQs disabled
-    spinlock_unlock(&stdio_spinlock, 0);
+    irqlock_unlock(&stdio_spinlock, IRQLOCK_IRQS_DISABLED);
 
     panic_print_start(message);
 

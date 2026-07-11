@@ -6,7 +6,7 @@
 #include <limine.h>
 #include <flanterm.h>
 #include <flanterm_backends/fb.h>
-#include <utils/locks/spinlock.h>
+#include <utils/locks/irqlock.h>
 
 #include <drivers/16550uart.h>
 
@@ -29,8 +29,8 @@
 #include <nanoprintf.h>
 
 // align to a cache line
-[[gnu::aligned(64)]] spinlock_t stdio_spinlock = {0};
-struct flanterm_context *ft_ctx;
+[[gnu::aligned(64)]] irqlock_t stdio_spinlock = {0};
+struct flanterm_context *ft_ctx = nullptr;
 
 static const char cr = '\r';
 void internal_putc(int c, [[gnu::unused]] void *_) {
@@ -55,8 +55,8 @@ void internal_putc(int c, [[gnu::unused]] void *_) {
 }
 
 int printf(const char* fmt, ...) {
-    int lock1r = spinlock_lock(&stdio_spinlock);
-    defer spinlock_unlock(&stdio_spinlock, lock1r);
+    int lock1r = irqlock_lock(&stdio_spinlock);
+    defer irqlock_unlock(&stdio_spinlock, lock1r);
 
     va_list args;
     va_start(args, fmt);

@@ -2,6 +2,7 @@
 #include <arch/intrin/interrupts.h>
 #include <arch/riscv64/cpu/interrupts.h>
 #include <stdio.h>
+#include <utils/locks/irqlock.h>
 
 [[noreturn]]
 void panic_interrupt(const char* message, interrupt_frame_t* frame) {
@@ -10,7 +11,7 @@ void panic_interrupt(const char* message, interrupt_frame_t* frame) {
     if (__atomic_exchange_n(&panic_flag, 1, __ATOMIC_SEQ_CST) != 0)
         hcf();
 
-    spinlock_unlock(&stdio_spinlock, 0);
+    irqlock_unlock(&stdio_spinlock, IRQLOCK_IRQS_DISABLED);
 
     panic_print_start(message);
 
