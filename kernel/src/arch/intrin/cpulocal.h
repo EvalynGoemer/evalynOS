@@ -3,7 +3,7 @@
 #include <utils/lib.h>
 #include <stdint.h> // IWYU pragma: keep
 
-#define CPU_LOCAL [[gnu::section(".cpu_local")]]
+#define CPU_LOCAL [[gnu::section(".cpu_local"), gnu::used]]
 
 extern unsigned char __cpu_local_start[];
 extern unsigned char __cpu_local_end[];

@@ -3,7 +3,7 @@
 #include <arch/riscv64/intrin/csr.h>
 #include <stdint.h>
 
-[[gnu::section(".cpu_local_fixed")]]
+[[gnu::section(".cpu_local_fixed"), gnu::used]]
 fixed_cpu_local_t fixed_cpu_local = {0};
 
 void setup_cpulocal_bsp() {

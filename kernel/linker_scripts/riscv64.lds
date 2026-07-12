@@ -58,8 +58,8 @@ SECTIONS
     . = ALIGN(CONSTANT(MAXPAGESIZE));
     .cpu_local : {
         __cpu_local_start = .;
-        *(.cpu_local_fixed)
-        *(.cpu_local)
+        KEEP(*(.cpu_local_fixed))
+        KEEP(*(.cpu_local))
         . = ALIGN(CONSTANT(MAXPAGESIZE));
         __cpu_local_end   = .;
     }

@@ -102,6 +102,8 @@ static void setup_global_ap_data() {
         if (cpulocal_pages == 1) {
             uint64_t cpulocal_vaddr = TO_HHDM(pmm_alloc_page());
             memcpy((void*)cpulocal_vaddr, (void*)__cpu_local_start, cpulocal_size);
+            // setup the cpulocal self pointer
+            *(uintptr_t*)cpulocal_vaddr = cpulocal_vaddr;
             per_data->cpulocal_base = cpulocal_vaddr - (uint64_t)__cpu_local_start;
         } else {
             uint64_t cpulocal_vaddr = vmem_alloc(&kernel_vmem_allocator, cpulocal_size, 0);
@@ -110,6 +112,8 @@ static void setup_global_ap_data() {
                 paging_map_page(kernel_page_table, cpulocal_vaddr + p * PAGE_SIZE, paddr, PAGE_KRW, PAGE_SIZE_NORM);
             }
             memcpy((void*)cpulocal_vaddr, (void*)__cpu_local_start, cpulocal_size);
+            // setup the cpulocal self pointer
+            *(uintptr_t*)cpulocal_vaddr = cpulocal_vaddr;
             per_data->cpulocal_base = cpulocal_vaddr - (uint64_t)__cpu_local_start;
         }
 
