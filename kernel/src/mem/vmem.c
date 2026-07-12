@@ -91,8 +91,8 @@ void vmem_allocator_init(vmem_allocator_t* alloc, uint64_t base, uint64_t size, 
 }
 
 void vmem_add_segment(vmem_allocator_t* alloc, uint64_t base, uint64_t size) {
-    int lock1r = ticketlock_lock(&alloc->lock);
-    defer ticketlock_unlock(&alloc->lock, lock1r);
+    ticketlock_lock(&alloc->lock);
+    defer ticketlock_unlock(&alloc->lock);
 
     vmem_segment_t* seg = spalloc_malloc(&alloc->segment_allocator);
     memset(seg, 0, sizeof(vmem_segment_t));
@@ -152,8 +152,8 @@ static struct fit_alloc_ret fit_alloc(vmem_allocator_t* alloc, uint64_t size, ui
 
 // addr 0 means any address
 uint64_t vmem_alloc(vmem_allocator_t* alloc, uint64_t size, uint64_t addr) {
-    int lock1r = ticketlock_lock(&alloc->lock);
-    defer ticketlock_unlock(&alloc->lock, lock1r);
+    ticketlock_lock(&alloc->lock);
+    defer ticketlock_unlock(&alloc->lock);
 
     size = ALIGN_UP(size, alloc->quantum);
     if (!IS_ALIGNED(addr, alloc->quantum))
@@ -226,8 +226,8 @@ static vmem_segment_t* vmem_find_segment_nolock(vmem_allocator_t* alloc, uint64_
 }
 
 void vmem_free(vmem_allocator_t* alloc, uint64_t addr, uint64_t size) {
-    int lock1r = ticketlock_lock(&alloc->lock);
-    defer ticketlock_unlock(&alloc->lock, lock1r);
+    ticketlock_lock(&alloc->lock);
+    defer ticketlock_unlock(&alloc->lock);
 
     size = ALIGN_UP(size, alloc->quantum);
     addr = ALIGN_UP(addr, alloc->quantum);
@@ -316,7 +316,7 @@ void vmem_free(vmem_allocator_t* alloc, uint64_t addr, uint64_t size) {
 }
 
 vmem_segment_t* vmem_find_segment(vmem_allocator_t* alloc, uint64_t addr) {
-    int lock1r = ticketlock_lock(&alloc->lock);
-    defer ticketlock_unlock(&alloc->lock, lock1r);
+    ticketlock_lock(&alloc->lock);
+    defer ticketlock_unlock(&alloc->lock);
     return vmem_find_segment_nolock(alloc, addr);
 }

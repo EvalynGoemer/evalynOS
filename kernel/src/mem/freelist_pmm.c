@@ -61,7 +61,7 @@ void freelist_pmm_fill(uint64_t pages) {
 }
 
 uint64_t freelist_pmm_allocate_page() {
-    int lock1r = ticketlock_lock(&freelist_pmm_lock);
+    ticketlock_lock(&freelist_pmm_lock);
 
     if (freelist_pmm_head == NULL) freelist_pmm_fill(512);
     if (freelist_pmm_head == NULL) panic("PMM: out of memory");
@@ -70,20 +70,20 @@ uint64_t freelist_pmm_allocate_page() {
     freelist_pmm_head = node->next;
     uint64_t phys = FROM_HHDM((uintptr_t)node);
 
-    ticketlock_unlock(&freelist_pmm_lock, lock1r);
+    ticketlock_unlock(&freelist_pmm_lock);
 
     memset(node, 0, PAGE_SIZE);
     return phys;
 }
 
 void freelist_pmm_free_page(uint64_t phys) {
-    int lock1r = ticketlock_lock(&freelist_pmm_lock);
+    ticketlock_lock(&freelist_pmm_lock);
 
     freelist_pmm_node_t* node = TO_HHDM_PTR(phys);
     node->next = freelist_pmm_head;
     freelist_pmm_head = node;
 
-    ticketlock_unlock(&freelist_pmm_lock, lock1r);
+    ticketlock_unlock(&freelist_pmm_lock);
 }
 
 void freelist_pmm_init() {

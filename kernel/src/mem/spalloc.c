@@ -82,8 +82,8 @@ bool spalloc_init(spalloc_allocator_t *alloc, int obj_size, int obj_align) {
 
 [[gnu::malloc]]
 void *spalloc_malloc(spalloc_allocator_t *alloc) {
-    int lock1r = ticketlock_lock(&alloc->lock);
-    defer ticketlock_unlock(&alloc->lock, lock1r);
+    ticketlock_lock(&alloc->lock);
+    defer ticketlock_unlock(&alloc->lock);
 
     llist_node_t *node = llist_pop(&alloc->partial_list);
     spalloc_page_header_t *hdr;
@@ -117,8 +117,8 @@ void *spalloc_malloc(spalloc_allocator_t *alloc) {
 }
 
 void spalloc_free(spalloc_allocator_t *alloc, void *obj) {
-    int lock1r = ticketlock_lock(&alloc->lock);
-    defer ticketlock_unlock(&alloc->lock, lock1r);
+    ticketlock_lock(&alloc->lock);
+    defer ticketlock_unlock(&alloc->lock);
 
     // find the pos of the object
     spalloc_page_header_t *hdr = SPALLOC_PAGE_OF(obj);
