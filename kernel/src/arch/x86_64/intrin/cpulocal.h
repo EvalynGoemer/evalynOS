@@ -30,3 +30,11 @@
 #define CPU_LOCAL_FIXED_WRITE16(FIELD, VAL) (CPU_LOCAL_X86_APPLY_GS(fixed_cpu_local.FIELD) = (VAL))
 #define CPU_LOCAL_FIXED_WRITE32(FIELD, VAL) (CPU_LOCAL_X86_APPLY_GS(fixed_cpu_local.FIELD) = (VAL))
 #define CPU_LOCAL_FIXED_WRITE64(FIELD, VAL) (CPU_LOCAL_X86_APPLY_GS(fixed_cpu_local.FIELD) = (VAL))
+#define CPU_LOCAL_FIXED_PTR(FIELD) \
+    ({ uintptr_t __self = (uintptr_t)CPU_LOCAL_X86_APPLY_GS(fixed_cpu_local.self); \
+       (void*)(__self + offsetof(fixed_cpu_local_t, FIELD)); })
+
+#define CPU_LOCAL_GET_CURRENT_THREAD()  (thread_t*)CPU_LOCAL_FIXED_READ64(current_thread)
+#define CPU_LOCAL_SET_CURRENT_THREAD(VAL) CPU_LOCAL_FIXED_WRITE64(current_thread, (VAL))
+#define CPU_LOCAL_GET_SCHED_LOCK_PTR() ((spinlock_t*)CPU_LOCAL_FIXED_PTR(sched_lock))
+#define CPU_LOCAL_GET_RUN_QUEUE_PTR() ((llist_t*)CPU_LOCAL_FIXED_PTR(run_queue))

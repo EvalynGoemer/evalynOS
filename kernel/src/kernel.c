@@ -12,8 +12,33 @@
 #include <mem/vmem.h>
 #include <mem/freelist_pmm.h>
 #include <utils/misc/build_id.h>
+#include <utils/lib.h>
 #include <utils/limine.h>
+#include <sched/scheduler.h>
 #include <acpi/acpi.h>
+#include <arch/generic/thread/init.h>
+#include <arch/intrin/cpulocal.h>
+#include <utils/dstruct/llist.h>
+#include <utils/locks/irqlock.h>
+
+static void test_thread(int n) {
+    while (1) {
+        printf("test thread %d running\n", n);
+        #ifdef __x86_64__
+        uint64_t start = __builtin_ia32_rdtsc();
+        while ((__builtin_ia32_rdtsc() - start) < 3000000000ULL);
+        #elif __riscv
+        uint64_t start = csrr(0xC01);
+        while ((csrr(0xC01) - start) < 10000000ULL);
+        #elif __loongarch64
+        uint64_t start = ({ uint64_t v; asm volatile("rdtime.d %0, $zero" : "=r"(v)); v; });
+        while (({ uint64_t v; asm volatile("rdtime.d %0, $zero" : "=r"(v)); v; }) - start < 60000000ULL);
+        #endif
+        schedule();
+    }
+}
+
+static thread_t test_threads[3];
 
 void kmain() {
     if (LIMINE_BASE_REVISION_SUPPORTED(limine_base_revision) == false)
@@ -26,6 +51,8 @@ void kmain() {
     print_build_info();
 
     arch_early_init();
+
+    early_sched_init();
 
     memmap_print();
     freelist_pmm_init();
@@ -40,10 +67,24 @@ void kmain() {
     arch_post_mm_init();
     arch_init_aps();
 
-    #ifdef __x86_64__
-    uint64_t loops = 0;
-    LOG_TAGGED("KERNEL", ANSI_RESET, "Starting Infinite Chunked `int 0xfa` Loop...")
+    irqlock_t* lock = (irqlock_t*)CPU_LOCAL_GET_SCHED_LOCK_PTR();
+    int lock1r = irqlock_lock(lock);
+
+    for (unsigned int i = 0; i < ARRAY_SIZE(test_threads); i++) {
+        uintptr_t paddr = (uintptr_t)pmm_alloc_page();
+        test_threads[i].kstack_alloc_base = paddr;
+        test_threads[i].kstack_alloc_size = PAGE_SIZE;
+        test_threads[i].kstack = arch_prepare_thread_stack(TO_HHDM(paddr) + PAGE_SIZE, (uintptr_t)test_thread, i);
+        test_threads[i].state = THREAD_RUNABLE;
+        llist_push_back(CPU_LOCAL_GET_RUN_QUEUE_PTR(), &test_threads[i].node);
+    }
+
+    irqlock_unlock(lock, lock1r);
+
+    LOG("Starting Scheduler");
     while (1) {
+        printf("idle/bsp thread running\n");
+        #ifdef __x86_64__
         uint64_t start = __builtin_ia32_rdtsc();
         while ((__builtin_ia32_rdtsc() - start) < 3000000000ULL);
         asm volatile ("int $0xfa");
@@ -51,14 +92,7 @@ void kmain() {
         asm volatile ("int $0xfa");
         asm volatile ("int $0xfa");
         asm volatile ("int $0xfa");
-        LOG("chunk %ld done", loops++)
-    }
-    #endif
-
-    #ifdef __riscv
-    uint64_t loops = 0;
-    LOG_TAGGED("KERNEL", ANSI_RESET, "Starting Infinite Chunked `ebreak` Loop...")
-    while (1) {
+        #elif __riscv
         uint64_t start = csrr(0xC01);
         while ((csrr(0xC01) - start) < 10000000ULL);
         asm volatile ("ebreak");
@@ -66,14 +100,7 @@ void kmain() {
         asm volatile ("ebreak");
         asm volatile ("ebreak");
         asm volatile ("ebreak");
-        LOG("chunk %ld done", loops++)
-    }
-    #endif
-
-    #ifdef __loongarch64
-    uint64_t loops = 0;
-    LOG_TAGGED("KERNEL", ANSI_RESET, "Starting Infinite Chunked `break 0` Loop...")
-    while (1) {
+        #elif __loongarch64
         uint64_t start = ({ uint64_t v; asm volatile("rdtime.d %0, $zero" : "=r"(v)); v; });
         while (({ uint64_t v; asm volatile("rdtime.d %0, $zero" : "=r"(v)); v; }) - start < 60000000ULL);
         asm volatile ("break 0");
@@ -81,11 +108,9 @@ void kmain() {
         asm volatile ("break 0");
         asm volatile ("break 0");
         asm volatile ("break 0");
-        LOG("chunk %ld done", loops++)
+        #endif
+        schedule();
     }
-    #endif
-
-    LOG_TAGGED("KERNEL", ANSI_RESET, "Nothing to do; Halting")
 
     hcf();
 }

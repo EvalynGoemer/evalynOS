@@ -61,3 +61,11 @@
     asm volatile("sw %0, %1(tp)" :: "r"((uint32_t)(VAL)), "i"(__builtin_offsetof(fixed_cpu_local_t, FIELD)) : "memory")
 #define CPU_LOCAL_FIXED_WRITE64(FIELD, VAL) \
     asm volatile("sd %0, %1(tp)" :: "r"((uint64_t)(VAL)), "i"(__builtin_offsetof(fixed_cpu_local_t, FIELD)) : "memory")
+
+#define CPU_LOCAL_FIXED_PTR(FIELD) \
+    ({ uintptr_t __ptr; asm volatile("add %0, tp, %1" : "=r"(__ptr) : "i"(__builtin_offsetof(fixed_cpu_local_t, FIELD))); (void*)__ptr; })
+
+#define CPU_LOCAL_GET_CURRENT_THREAD()  (thread_t*)CPU_LOCAL_FIXED_READ64(current_thread)
+#define CPU_LOCAL_SET_CURRENT_THREAD(VAL) CPU_LOCAL_FIXED_WRITE64(current_thread, (uint64_t)(VAL))
+#define CPU_LOCAL_GET_SCHED_LOCK_PTR() ((spinlock_t*)CPU_LOCAL_FIXED_PTR(sched_lock))
+#define CPU_LOCAL_GET_RUN_QUEUE_PTR() ((llist_t*)CPU_LOCAL_FIXED_PTR(run_queue))
