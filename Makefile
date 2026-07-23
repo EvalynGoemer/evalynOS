@@ -9,6 +9,7 @@ default:
 	@echo "  - run-tcg-loongarch64    // Compiles the kernel for loongarch64 and runs in qemu w/ TCG"
 	@echo "  - run-debug-loongarch64  // Compiles the kernel for loongarch64 and runs in qemu w/ TCG & Debugger"
 	@echo "  - run-tcg-riscv64        // Compiles the kernel for riscv64 and runs in qemu w/ TCG"
+	@echo "  - run-tcg-riscv64-acpi   // Compiles the kernel for riscv64 and runs in qemu w/ TCG & ACPI"
 	@echo "  - run-debug-riscv64      // Compiles the kernel for riscv64 and runs in qemu w/ TCG & Debugger"
 	@echo "  - mkiso                  // Makes an ISO that can be ran (Also rebuilds kernel)"
 
@@ -114,7 +115,24 @@ run-tcg-riscv64:
 	ARCH=riscv64 ./extras/compile-kernel.sh
 	./extras/generate-iso.sh
 	qemu-system-riscv64 \
-		-M virt -smp 2 \
+		-M virt,acpi=off -smp 2 \
+		-cpu rv64 \
+		-device ramfb \
+		-device qemu-xhci \
+		-device usb-kbd \
+		-device usb-tablet \
+		-M accel=tcg -no-reboot -no-shutdown \
+		-m 512M \
+		-drive if=pflash,unit=0,format=raw,file=./extras/ovmf-code-riscv64.fd,readonly=on \
+		-cdrom ./evalynOS.iso -serial stdio \
+		-boot d
+
+.PHONY: run-tcg-riscv64-acpi
+run-tcg-riscv64-acpi:
+	ARCH=riscv64 ./extras/compile-kernel.sh
+	./extras/generate-iso.sh
+	qemu-system-riscv64 \
+		-M virt,acpi=on -smp 2 \
 		-cpu rv64 \
 		-device ramfb \
 		-device qemu-xhci \
@@ -131,7 +149,7 @@ run-debug-riscv64:
 	KASLR="false" ARCH=riscv64 ./extras/compile-kernel.sh
 	./extras/generate-iso.sh
 	qemu-system-riscv64 \
-		-M virt \
+		-M virt,acpi=off \
 		-cpu rv64 \
 		-device ramfb \
 		-device qemu-xhci \

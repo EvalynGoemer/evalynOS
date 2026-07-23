@@ -14,5 +14,13 @@ extern volatile struct limine_executable_address_request executable_address_requ
 extern volatile struct limine_executable_file_request executable_file_request;
 extern volatile struct limine_rsdp_request rsdp_request;
 
+#if !defined(__x86_64__)
+extern volatile struct limine_dtb_request dtb_request;
+#endif
+
+#if defined(__riscv)
+extern volatile struct limine_riscv_bsp_hartid_request riscv_bsp_hartid_request;
+#endif
+
 extern volatile uint64_t limine_requests_end_marker[];
 

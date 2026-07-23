@@ -3,13 +3,18 @@ global panic
 
 panic:
     cli
+
+    ; fake interrupt frame
     push 0
     push 0
+    push 0
+    push rsp
     pushfq
     push 0
     push 0
     push 0
     push 999
+
     push rax
     push rbx
     push rcx
@@ -28,22 +33,6 @@ panic:
 
     mov rsi, rsp
     call panic_interrupt
-
-    pop r15
-    pop r14
-    pop r13
-    pop r12
-    pop r11
-    pop r10
-    pop r9
-    pop r8
-    pop rbp
-    pop rdi
-    pop rsi
-    pop rdx
-    pop rcx
-    pop rbx
-    pop rax
 
     halt:
     hlt

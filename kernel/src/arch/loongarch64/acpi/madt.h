@@ -1,3 +1,3 @@
 #pragma once
 
-// TODO: add defines for loongarch64 MADT entries
+extern void acpi_parse_madt();

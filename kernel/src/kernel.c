@@ -15,11 +15,14 @@
 #include <utils/lib.h>
 #include <utils/limine.h>
 #include <sched/scheduler.h>
-#include <acpi/acpi.h>
 #include <arch/generic/thread/init.h>
 #include <arch/intrin/cpulocal.h>
 #include <utils/dstruct/llist.h>
 #include <utils/locks/irqlock.h>
+
+#ifdef __riscv
+#include <arch/riscv64/timer/timer.h>
+#endif
 
 static void test_thread(int n) {
     while (1) {
@@ -28,8 +31,7 @@ static void test_thread(int n) {
         uint64_t start = __builtin_ia32_rdtsc();
         while ((__builtin_ia32_rdtsc() - start) < 3000000000ULL);
         #elif __riscv
-        uint64_t start = csrr(0xC01);
-        while ((csrr(0xC01) - start) < 10000000ULL);
+        timer_spin_wait_ms(1000);
         #elif __loongarch64
         uint64_t start = ({ uint64_t v; asm volatile("rdtime.d %0, $zero" : "=r"(v)); v; });
         while (({ uint64_t v; asm volatile("rdtime.d %0, $zero" : "=r"(v)); v; }) - start < 60000000ULL);
@@ -47,6 +49,7 @@ void kmain() {
     arch_bootstrap_init();
     arch_earlycon_init();
 
+    printf(ANSI_CLEAR ANSI_HOME);
     LOG("EvalynOS Started");
     print_build_info();
 
@@ -61,8 +64,6 @@ void kmain() {
     paging_init();
     vmem_init();
     #endif
-
-    setup_acpi();
 
     arch_post_mm_init();
     arch_init_aps();
@@ -93,13 +94,12 @@ void kmain() {
         asm volatile ("int $0xfa");
         asm volatile ("int $0xfa");
         #elif __riscv
-        uint64_t start = csrr(0xC01);
-        while ((csrr(0xC01) - start) < 10000000ULL);
         asm volatile ("ebreak");
         asm volatile ("ebreak");
         asm volatile ("ebreak");
         asm volatile ("ebreak");
         asm volatile ("ebreak");
+        timer_spin_wait_ms(1000);
         #elif __loongarch64
         uint64_t start = ({ uint64_t v; asm volatile("rdtime.d %0, $zero" : "=r"(v)); v; });
         while (({ uint64_t v; asm volatile("rdtime.d %0, $zero" : "=r"(v)); v; }) - start < 60000000ULL);

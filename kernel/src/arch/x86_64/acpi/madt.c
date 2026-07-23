@@ -21,30 +21,6 @@ static uint64_t detected_apic_get_value(bstree_node_t* node) {
     return x->apic_id;
 }
 
-void arch_madt_parse_start() {
-    spalloc_init(&alloc, 64, 8);
-    detected_apics = (bstree_t){detected_apic_get_value, BST_TYPE_RB, 0};
-}
-
-void arch_madt_parse_end() {
-    LOG_TAGGED("ACPI/MADT", ANSI_BMAGENTA, "Found %d known entries in the MADT", madt_entries - unknown_madt_entries);
-    LOG_TAGGED("ACPI/MADT", ANSI_BMAGENTA, "Found %d unknown entries in the MADT", unknown_madt_entries);
-    LOG_TAGGED("ACPI/MADT", ANSI_BMAGENTA, "Found %d CPU(s)", detected_cpus);
-    LOG_TAGGED("ACPI/MADT", ANSI_BMAGENTA, "Detected IOAPICs:");
-    LLIST_FOR_EACH(detected_ioapics, ioapic_node) {
-        detected_ioapic* ioapic = CONTAINER_OF(ioapic_node, detected_ioapic, node);
-        LOG_TAGGED("ACPI/MADT", ANSI_BMAGENTA, "  IOAPIC id=%u phys=0x%08x gsi_base=%u",
-                   ioapic->ioapic_id, ioapic->phys_addr, ioapic->gsi_base);
-    }
-
-    LOG_TAGGED("ACPI/MADT", ANSI_BMAGENTA, "Detected IRQ overrides:");
-    LLIST_FOR_EACH_REVERSE(irq_overrides, irq_node) {
-        acpi_irq_override_t* ovr = CONTAINER_OF(irq_node, acpi_irq_override_t, node);
-        LOG_TAGGED("ACPI/MADT", ANSI_BMAGENTA, "  IRQ %u -> GSI %u flags=0x%02x",
-                   ovr->irq, ovr->gsi, ovr->flags);
-    }
-}
-
 static void madt_register_lapic(uint32_t apic_id, uint32_t acpi_id, uint32_t flags) {
     // bit one not being set means this CPU is not usable
     if (!(flags & 0x1))
@@ -67,7 +43,7 @@ static void madt_register_lapic(uint32_t apic_id, uint32_t acpi_id, uint32_t fla
     detected_cpus++;
 }
 
-void arch_madt_handle_entry(struct MADTEntryHeader* entry) {
+static void handle_entry(struct MADTEntryHeader* entry) {
     madt_entries++;
     switch (entry->type) {
         case MADT_TYPE_APIC: {
@@ -111,5 +87,39 @@ void arch_madt_handle_entry(struct MADTEntryHeader* entry) {
             unknown_madt_entries++;
             break;
         }
+    }
+}
+
+void acpi_parse_madt() {
+    spalloc_init(&alloc, 64, 8);
+    detected_apics = (bstree_t){detected_apic_get_value, BST_TYPE_RB, 0};
+
+    uint8_t* madt_base = acpi_find_sdt(MADT_SDT_SIGNATURE);
+
+    if (!madt_base) {
+        LOG_TAGGED("ACPI/MADT", ANSI_BMAGENTA, "MADT table is not present")
+        return;
+    }
+
+    struct MADTEntryHeader* entry;
+    MADT_FOR_EACH_ENTRY(madt_base, entry) {
+        handle_entry(entry);
+    }
+
+    LOG_TAGGED("ACPI/MADT", ANSI_BMAGENTA, "Found %d known entries in the MADT", madt_entries - unknown_madt_entries);
+    LOG_TAGGED("ACPI/MADT", ANSI_BMAGENTA, "Found %d unknown entries in the MADT", unknown_madt_entries);
+    LOG_TAGGED("ACPI/MADT", ANSI_BMAGENTA, "Found %d CPU(s)", detected_cpus);
+    LOG_TAGGED("ACPI/MADT", ANSI_BMAGENTA, "Detected IOAPICs:");
+    LLIST_FOR_EACH(detected_ioapics, ioapic_node) {
+        detected_ioapic* ioapic = CONTAINER_OF(ioapic_node, detected_ioapic, node);
+        LOG_TAGGED("ACPI/MADT", ANSI_BMAGENTA, "  IOAPIC id=%u phys=0x%08x gsi_base=%u",
+                   ioapic->ioapic_id, ioapic->phys_addr, ioapic->gsi_base);
+    }
+
+    LOG_TAGGED("ACPI/MADT", ANSI_BMAGENTA, "Detected IRQ overrides:");
+    LLIST_FOR_EACH_REVERSE(irq_overrides, irq_node) {
+        acpi_irq_override_t* ovr = CONTAINER_OF(irq_node, acpi_irq_override_t, node);
+        LOG_TAGGED("ACPI/MADT", ANSI_BMAGENTA, "  IRQ %u -> GSI %u flags=0x%02x",
+                   ovr->irq, ovr->gsi, ovr->flags);
     }
 }

@@ -7,14 +7,14 @@
 
 bool acpi_works = false;
 
-void setup_acpi() {
+bool verify_acpi() {
     if(!acpi_verify_rsdp())
-        return;
+        return false;
 
     int count = acpi_table_count();
     LOG_TAGGED("ACPI", ANSI_BMAGENTA, "Found %d tables in the RSDT", count)
     for (int i = 0; i < count; i++) {
-        struct SDTHeader* header = (struct SDTHeader *)acpi_get_sdt(i);
+        struct SDTHeader* header = (struct SDTHeader*)acpi_get_sdt(i);
         if (!header) continue;
 
         char signature[5]  = {0};
@@ -30,8 +30,8 @@ void setup_acpi() {
             LOG_TAGGED_WARN("ACPI", ANSI_BMAGENTA, "%4s 0x%016llx %08x v%02d {%6s %8s}", signature, (uint64_t)header, header->length, header->revision, oemID, oemTableID)
     }
 
-    acpi_parse_fadt();
-    acpi_parse_madt();
+    acpi_verify_fadt();
 
     acpi_works = true;
+    return true;
 }

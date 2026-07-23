@@ -2,4 +2,4 @@
 
 extern bool acpi_works;
 
-extern void setup_acpi();
+extern bool verify_acpi();

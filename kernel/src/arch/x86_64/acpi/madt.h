@@ -65,6 +65,8 @@ extern llist_t  irq_overrides;
 
 extern uint32_t detected_cpus;
 
+extern void acpi_parse_madt();
+
 // ensure these can be allocated by the 64b internal allocator
 _Static_assert(sizeof(detected_apic_t)     <= 64, "detected_apic_t too large");
 _Static_assert(sizeof(detected_ioapic)     <= 64, "detected_ioapic too large");

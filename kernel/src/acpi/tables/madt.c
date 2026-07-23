@@ -1,32 +1,44 @@
 #include <stdint.h>
-#include <stdio.h>
+#include <stddef.h>
 #include <acpi/tables/madt.h>
 
-void acpi_parse_madt() {
-    uint8_t* madt_base = acpi_find_sdt("APIC");
+struct MADTEntryHeader* madt_first_entry(struct MADT* madt) {
+    uint8_t* base = (uint8_t*)madt;
+    uint8_t* end  = base + madt->header.length;
+    uint8_t* ptr  = base + sizeof(struct MADT);
 
-    if (!madt_base) {
-        LOG_TAGGED("ACPI/MADT", ANSI_BMAGENTA, "MADT table is not present")
-        return;
-    }
+    if (ptr + sizeof(struct MADTEntryHeader) > end)
+        return NULL;
 
-    arch_madt_parse_start();
+    struct MADTEntryHeader* entry = (void*)ptr;
 
-    struct MADT* madt = (struct MADT*)madt_base;
-    uint8_t* ptr = madt_base + sizeof(struct MADT);
-    uint8_t* end = madt_base + madt->header.length;
+    if (entry->length < sizeof(struct MADTEntryHeader))
+        return NULL;
 
-    while (ptr + sizeof(struct MADTEntryHeader) <= end) {
-        struct MADTEntryHeader* entry = (struct MADTEntryHeader*)ptr;
-        if (ptr + entry->length > end)
-            break;
-        if (entry->length < sizeof(struct MADTEntryHeader))
-            break;
+    if (ptr + entry->length > end)
+        return NULL;
 
-        arch_madt_handle_entry(entry);
+    return entry;
+}
 
-        ptr += entry->length;
-    }
+struct MADTEntryHeader* madt_next_entry(struct MADT* madt, struct MADTEntryHeader* entry) {
+    if (entry == NULL)
+        return madt_first_entry(madt);
 
-    arch_madt_parse_end();
+    uint8_t* base = (uint8_t*)madt;
+    uint8_t* end  = base + madt->header.length;
+    uint8_t* ptr  = (uint8_t*)entry + entry->length;
+
+    if (ptr + sizeof(struct MADTEntryHeader) > end)
+        return NULL;
+
+    struct MADTEntryHeader* next = (struct MADTEntryHeader*)ptr;
+
+    if (next->length < sizeof(struct MADTEntryHeader))
+        return NULL;
+
+    if (ptr + next->length > end)
+        return NULL;
+
+    return next;
 }

@@ -1,24 +1,41 @@
 #include <stdio.h>
 #include <acpi/tables/madt.h>
 
+static uint32_t detected_harts = 0;
 static uint32_t madt_entries = 0;
 static uint32_t unknown_madt_entries = 0;
 
-void arch_madt_parse_start() {
-
-}
-
-void arch_madt_parse_end() {
-    LOG_TAGGED("ACPI/MADT", ANSI_BMAGENTA, "Found %d known entries in the MADT", madt_entries - unknown_madt_entries);
-    LOG_TAGGED("ACPI/MADT", ANSI_BMAGENTA, "Found %d unknown entries in the MADT", unknown_madt_entries);
-}
-
-void arch_madt_handle_entry(struct MADTEntryHeader* entry) {
+static void handle_entry(struct MADTEntryHeader* entry) {
     madt_entries++;
     switch (entry->type) {
+        case MADT_TYPE_RINTC: {
+            detected_harts++;
+            break;
+        }
+        case MADT_TYPE_IMSIC:
+        case MADT_TYPE_APLIC:
+        case MADT_TYPE_PLIC : break;
         default: {
             unknown_madt_entries++;
             break;
         }
     }
+}
+
+void acpi_parse_madt() {
+    uint8_t* madt_base = acpi_find_sdt(MADT_SDT_SIGNATURE);
+
+    if (!madt_base) {
+        LOG_TAGGED("ACPI/MADT", ANSI_BMAGENTA, "MADT table is not present")
+        return;
+    }
+
+    struct MADTEntryHeader* entry;
+    MADT_FOR_EACH_ENTRY(madt_base, entry) {
+        handle_entry(entry);
+    }
+
+    LOG_TAGGED("ACPI/MADT", ANSI_BMAGENTA, "Found %d known entries in the MADT", madt_entries - unknown_madt_entries);
+    LOG_TAGGED("ACPI/MADT", ANSI_BMAGENTA, "Found %d unknown entries in the MADT", unknown_madt_entries);
+    LOG_TAGGED("ACPI/MADT", ANSI_BMAGENTA, "Found %d HART(s)", detected_harts);
 }

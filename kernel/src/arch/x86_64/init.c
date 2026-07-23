@@ -11,7 +11,9 @@
 #include <arch/x86_64/descriptor_tables/idt.h>
 #include <arch/x86_64/drivers/fred/fred.h>
 #include <arch/x86_64/drivers/pvclock/pvclock.h>
+#include <arch/generic/panic.h>
 #include <drivers/16550uart.h>
+#include <arch/x86_64/acpi/acpi.h>
 
 void arch_bootstrap_init() {
     is_hypervisor = cpuid_check(CPUID_HAS_HYPERVISOR);
@@ -51,6 +53,9 @@ void arch_early_init() {
 }
 
 void arch_post_mm_init() {
+    if (!setup_acpi())
+        panic("ACPI setup failed");
+
     setup_lapic();
 
     if (is_hypervisor)

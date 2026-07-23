@@ -2,15 +2,15 @@
 #include <stddef.h>
 
 #if defined(__x86_64__) || defined(__i386__)
-void* memcpy(void* dst, const void* src, size_t n) {
-    void* tmp = dst;
-    asm volatile( "rep movsb" : "+D"(dst), "+S"(src), "+c"(n) : : "memory" );
+void* memcpy(void* restrict dest, const void* restrict src, size_t n) {
+    void* tmp = dest;
+    asm volatile( "rep movsb" : "+D"(dest), "+S"(src), "+c"(n) : : "memory" );
     return tmp;
 }
 
-void* memset(void* dst, int c, size_t n) {
-    void* tmp = dst;
-    asm volatile("rep stosb" : "+D"(dst), "+c"(n) : "a"(c) : "memory");
+void* memset(void* dest, int c, size_t n) {
+    void* tmp = dest;
+    asm volatile("rep stosb" : "+D"(dest), "+c"(n) : "a"(c) : "memory");
     return tmp;
 }
 #else
@@ -58,6 +58,36 @@ int memcmp(const void *s1, const void *s2, size_t n) {
     return 0;
 }
 
+void* memchr(const void *ptr, int value, size_t num) {
+    const unsigned char *p = ptr;
+    unsigned char c = (unsigned char)value;
+
+    while (num--) {
+        if (*p == c)
+            return (void *)p;
+        p++;
+    }
+
+    return NULL;
+}
+
+size_t strlen(const char *str) {
+    const char *s = str;
+    while (*s) {
+        s++;
+    }
+    return s - str;
+}
+
+size_t strnlen(const char *str, size_t maxlen) {
+    const char *s = str;
+    while (maxlen && *s) {
+        s++;
+        maxlen--;
+    }
+    return s - str;
+}
+
 int strcmp(const char *s1, const char *s2) {
     while (*s1 && (*s1 == *s2)) {
         s1++;
@@ -66,7 +96,6 @@ int strcmp(const char *s1, const char *s2) {
 
     return *s1 - *s2;
 }
-
 
 int strncmp(const char *s1, const char *s2, size_t n) {
     size_t i = 0;
@@ -83,5 +112,24 @@ char* strcpy(char *dest, const char *src) {
     char *tmp = dest;
     while((*dest++ = *src++) != '\0');
     return tmp;
+}
+
+char* strchr(const char *s, int c) {
+    while (true) {
+        if (*s == (char)c)
+            return (char*)s;
+        if (*s++ == '\0')
+            return NULL;
+    }
+}
+
+char* strrchr(const char *s, int c) {
+    const char *p = NULL;
+    while (true) {
+        if (*s == (char)c)
+            p = s;
+        if (*s++ == '\0')
+            return (char*)p;
+    }
 }
 

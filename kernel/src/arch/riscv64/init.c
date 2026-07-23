@@ -1,6 +1,9 @@
 #include <arch/riscv64/cpu/cpulocal.h>
 #include <arch/riscv64/cpu/interrupts.h>
+#include <arch/riscv64/fdt/fdt.h>
+#include <arch/riscv64/acpi/acpi.h>
 #include <arch/intrin/cpulocal.h>
+#include <arch/generic/panic.h>
 #include <utils/limine.h>
 #include <stdio.h>
 
@@ -20,7 +23,10 @@ void arch_early_init() {
 }
 
 void arch_post_mm_init() {
-
+    if (!setup_acpi()) {
+        if (!setup_fdt())
+            panic("Failed to setup ACPI or FDT");
+    }
 }
 
 void arch_init_aps() {

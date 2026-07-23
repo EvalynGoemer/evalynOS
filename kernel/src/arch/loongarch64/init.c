@@ -6,8 +6,10 @@
 #include <acpi/tables/spcr.h>
 #include <drivers/16550uart.h>
 #include <arch/intrin/cpulocal.h>
+#include <arch/generic/panic.h>
 #include <utils/limine.h>
 #include <stdio.h>
+#include <arch/loongarch64/acpi/acpi.h>
 
 void arch_bootstrap_init() {
     setup_dmw();
@@ -33,7 +35,8 @@ void arch_early_init() {
 }
 
 void arch_post_mm_init() {
-
+    if (!setup_acpi())
+        panic("ACPI setup failed");
 }
 
 void arch_init_aps() {

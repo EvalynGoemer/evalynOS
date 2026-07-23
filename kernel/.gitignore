@@ -3,6 +3,8 @@ deps/cc-runtime
 deps/flanterm
 deps/freestnd-c-hdrs
 deps/limine-protocol
+deps/libfdt/*
+!deps/libfdt/libfdt_env.h
 
 # compiled artifacts
 bin-*

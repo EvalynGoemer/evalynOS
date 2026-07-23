@@ -62,11 +62,11 @@ ifeq ($(ARCH),loongarch64)
     -mllvm='--target-abi=lp64s'
 endif
 ifeq ($(ARCH),riscv64)
-    override CFLAGS +=          \
-    -march=rv64imac_zihintpause \
-    -mabi=lp64                  \
+    override CFLAGS +=                  \
+    -march=rv64imac_zbb_zba_zihintpause \
+    -mabi=lp64                          \
     -mcmodel=medany
-    override LDFLAGS +=         \
+    override LDFLAGS +=                 \
     -m elf64lriscv
 endif
 
@@ -108,9 +108,14 @@ endif
 
 override SRCFILES := $(shell find -L src -type f -not -path 'src/arch/*' 2>/dev/null | LC_ALL=C sort)
 override SRCFILES += $(shell find -L deps/cc-runtime/src -type f 2>/dev/null | LC_ALL=C sort)
-override SRCFILES += $(shell find -L deps/flanterm/src  -type f 2>/dev/null | LC_ALL=C sort)
+override SRCFILES += $(shell find -L deps/flanterm/src -type f 2>/dev/null | LC_ALL=C sort)
 override SRCFILES += $(shell find -L src/arch/generic -type f 2>/dev/null | LC_ALL=C sort)
 override SRCFILES += $(shell find -L src/arch/$(ARCH) -type f 2>/dev/null | LC_ALL=C sort)
+
+ifneq ($(ARCH),x86_64)
+override SRCFILES += $(shell find -L deps/libfdt -type f 2>/dev/null | LC_ALL=C sort)
+override CPPFLAGS += -I deps/libfdt/
+endif
 
 override CFILES := $(filter %.c,$(SRCFILES))
 override ASFILES := $(filter %.S,$(SRCFILES))

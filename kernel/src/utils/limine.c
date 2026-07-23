@@ -66,5 +66,21 @@ volatile struct limine_rsdp_request rsdp_request = {
     .revision = 0,
 };
 
+#if !defined(__x86_64__)
+[[gnu::used, gnu::section(".limine_requests")]]
+volatile struct limine_dtb_request dtb_request = {
+    .id = LIMINE_DTB_REQUEST_ID,
+    .revision = 0
+};
+#endif
+
+#if defined(__riscv)
+[[gnu::used, gnu::section(".limine_requests")]]
+volatile struct limine_riscv_bsp_hartid_request riscv_bsp_hartid_request = {
+    .id = LIMINE_RISCV_BSP_HARTID_REQUEST_ID,
+    .revision = 0
+};
+#endif
+
 [[gnu::used, gnu::section(".limine_requests_end")]]
 volatile uint64_t limine_requests_end_marker[] = LIMINE_REQUESTS_END_MARKER;

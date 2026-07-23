@@ -12,7 +12,7 @@ const uint16_t fadt_version_sizes[MAX_FADT_REVISION + 1] = { 0, 116, 132, 244, 2
 _Static_assert(fadt_version_sizes[MAX_FADT_REVISION] <= sizeof(struct FADT), "FADT struct too small for max revision size");
 struct FADT clean_fadt = {0};
 
-void acpi_parse_fadt() {
+void acpi_verify_fadt() {
     struct FADT* firmware_fadt = (struct FADT*)acpi_find_sdt("FACP");
     if (!firmware_fadt) {
         LOG_TAGGED("ACPI/FADT", ANSI_BMAGENTA, "FADT table is not present");

@@ -3,7 +3,7 @@
 #include <acpi/tables/sdt.h>
 #include <stdint.h>
 
-extern void acpi_parse_fadt();
+extern void acpi_verify_fadt();
 
 struct [[gnu::packed]] FADT {
     struct SDTHeader header;

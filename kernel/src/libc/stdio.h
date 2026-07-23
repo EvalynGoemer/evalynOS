@@ -8,6 +8,8 @@ extern int printf(const char* fmt, ...);
 extern int snprintf(char *buf, size_t size, const char *fmt, ...);
 extern irqlock_t stdio_spinlock;
 
+#define ANSI_CLEAR       "\x1b[2J"
+#define ANSI_HOME        "\x1b[H"
 #define ANSI_RESET       "\x1b[0m"
 
 #define ANSI_BLACK       "\x1b[30m"
