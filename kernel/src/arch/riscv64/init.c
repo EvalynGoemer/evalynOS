@@ -2,6 +2,7 @@
 #include <arch/riscv64/cpu/interrupts.h>
 #include <arch/riscv64/fdt/fdt.h>
 #include <arch/riscv64/acpi/acpi.h>
+#include <arch/riscv64/timer/timer.h>
 #include <arch/intrin/cpulocal.h>
 #include <arch/generic/panic.h>
 #include <utils/limine.h>
@@ -27,6 +28,7 @@ void arch_post_mm_init() {
         if (!setup_fdt())
             panic("Failed to setup ACPI or FDT");
     }
+    setup_timer();
 }
 
 void arch_init_aps() {

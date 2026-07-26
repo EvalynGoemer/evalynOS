@@ -6,12 +6,14 @@
 #define CSR_SIP       0x144
 #define CSR_STVEC     0x105
 #define CSR_SSCRATCH  0x140
+#define CSR_STIMECMP  0x14D
 #define CSR_SEPC      0x141
 #define CSR_SCAUSE    0x142
 #define CSR_STVAL     0x143
 #define CSR_SATP      0x180
 #define CSR_TIME      0xC01
 
+#define SIE_STIE      (1ull << 5)
 #define SSTATUS_SIE   (1ull << 1)
 #define SSTATUS_SPP   (1ull << 8)
 

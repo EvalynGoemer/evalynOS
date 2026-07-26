@@ -20,23 +20,20 @@
 #include <utils/dstruct/llist.h>
 #include <utils/locks/irqlock.h>
 
-#ifdef __riscv
-#include <arch/riscv64/timer/timer.h>
-#endif
-
 static void test_thread(int n) {
     while (1) {
         printf("test thread %d running\n", n);
         #ifdef __x86_64__
         uint64_t start = __builtin_ia32_rdtsc();
         while ((__builtin_ia32_rdtsc() - start) < 3000000000ULL);
+        schedule();
         #elif __riscv
-        timer_spin_wait_ms(1000);
+        wfi();
         #elif __loongarch64
         uint64_t start = ({ uint64_t v; asm volatile("rdtime.d %0, $zero" : "=r"(v)); v; });
         while (({ uint64_t v; asm volatile("rdtime.d %0, $zero" : "=r"(v)); v; }) - start < 60000000ULL);
-        #endif
         schedule();
+        #endif
     }
 }
 
@@ -93,13 +90,14 @@ void kmain() {
         asm volatile ("int $0xfa");
         asm volatile ("int $0xfa");
         asm volatile ("int $0xfa");
+        schedule();
         #elif __riscv
         asm volatile ("ebreak");
         asm volatile ("ebreak");
         asm volatile ("ebreak");
         asm volatile ("ebreak");
         asm volatile ("ebreak");
-        timer_spin_wait_ms(1000);
+        wfi();
         #elif __loongarch64
         uint64_t start = ({ uint64_t v; asm volatile("rdtime.d %0, $zero" : "=r"(v)); v; });
         while (({ uint64_t v; asm volatile("rdtime.d %0, $zero" : "=r"(v)); v; }) - start < 60000000ULL);
@@ -108,8 +106,8 @@ void kmain() {
         asm volatile ("break 0");
         asm volatile ("break 0");
         asm volatile ("break 0");
-        #endif
         schedule();
+        #endif
     }
 
     hcf();

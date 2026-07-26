@@ -85,8 +85,6 @@ interrupt_handler_asm:
     # ensure cpulocal is valid
     csrr tp, sscratch
 
-    # enable interrupts
-    csrsi sstatus, 2
     call dispatch_interrupt
     # disable interrupts
     csrci sstatus, 2

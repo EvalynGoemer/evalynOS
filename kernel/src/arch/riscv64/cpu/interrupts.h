@@ -16,3 +16,6 @@ extern void setup_interrupts();
 extern void interrupt_handler_asm();
 
 extern const char* exception_names[];
+
+#define EXCEPTION_CAUSE_EBREAK 3
+#define INTERRUPT_CAUSE_TIMER  5

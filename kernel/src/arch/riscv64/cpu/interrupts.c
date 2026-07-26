@@ -1,9 +1,11 @@
+#include "sched/scheduler.h"
 #include <stdint.h>
 #include <stdio.h>
 #include <utils/lib.h>
 #include <arch/generic/panic.h>
 #include <arch/riscv64/intrin/csr.h>
 #include <arch/riscv64/cpu/interrupts.h>
+#include <arch/riscv64/timer/timer.h>
 
 const char *exception_names[] = {
     "Instruction address misaligned (0x00)",
@@ -37,29 +39,44 @@ static const char* exception_name(uint64_t cause) {
 }
 
 void dispatch_interrupt(interrupt_frame_t* frame) {
-    switch (frame->scause) {
-        case 3: {
-            LOG("got ebreak exception");
-            // TODO; use a safe read here
-            uint16_t insn16 = *(volatile uint16_t *)frame->sepc;
-            bool is_rvc = (frame->sepc % 2 == 0) && ((insn16 & 0x3) != 0x3);
-            if (is_rvc && insn16 == 0x9002) {
-                frame->sepc += 2;
+    bool is_interrupt = (frame->scause >> 63) & 1;
+    uint64_t cause = frame->scause & ~(1ull << 63);
+
+    // dont enable interrupts right away if is from the timer
+    if (!(is_interrupt && cause == INTERRUPT_CAUSE_TIMER))
+        enable_interrupts();
+
+    if (!is_interrupt) {
+        switch (cause) {
+            case EXCEPTION_CAUSE_EBREAK: {
+                LOG("got ebreak exception");
+                // TODO; use a safe read here
+                uint16_t insn16 = *(volatile uint16_t *)frame->sepc;
+                bool is_rvc = (frame->sepc % 2 == 0) && ((insn16 & 0x3) != 0x3);
+                if (is_rvc && insn16 == 0x9002) {
+                    frame->sepc += 2;
+                    break;
+                }
+                frame->sepc += 4;
                 break;
             }
-            frame->sepc += 4;
+            default: {
+                panic_interrupt(exception_name(cause), frame);
+            }
+        }
+        return;
+    }
+
+    switch (cause) {
+        case INTERRUPT_CAUSE_TIMER: {
+            timer_set_timeout_ms(1);
+            enable_interrupts();
+            schedule();
             break;
         }
         default: {
-            bool is_interrupt = (frame->scause >> 63) & 1;
-            frame->scause &= ~(1ull << 63);
-            if (!is_interrupt) {
-                panic_interrupt(exception_name(frame->scause), frame);
-            }
-            else {
-                LOG_TAGGED("FATAL", ANSI_RED, "Got Unhandled IRQ 0x%llx", frame->scause);
-                panic_interrupt("Unhandled IRQ", frame);
-            }
+            LOG_TAGGED("FATAL", ANSI_RED, "Got Unhandled IRQ 0x%llx", cause);
+            panic_interrupt("Unhandled IRQ", frame);
             break;
         }
     }
