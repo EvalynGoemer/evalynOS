@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <mem/spalloc.h>
 #include <utils/dstruct/llist.h>
-#include <utils/dstruct/bstree.h>
+#include <utils/dstruct/rbtree.h>
 #include <utils/locks/ticketlock.h>
 
 typedef struct vmem_segment {
@@ -18,7 +18,7 @@ typedef struct vmem_segment {
     llist_node_t segment_list_node;
     union {
         llist_node_t freelist_node;
-        bstree_node_t segment_tree_node;
+        rbtree_node_t segment_tree_node;
     };
 } vmem_segment_t;
 
@@ -28,7 +28,7 @@ typedef struct vmem_allocator {
     uint32_t quantum;
     llist_t freelists[64];
     llist_t segments_list;
-    bstree_t segments_tree;
+    rbtree_t segments_tree;
 
     spalloc_allocator_t segment_allocator;
     ticketlock_t lock;

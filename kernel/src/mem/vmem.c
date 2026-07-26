@@ -12,7 +12,7 @@
 #include <utils/defer.h>
 #include <utils/limine.h>
 #include <utils/dstruct/llist.h>
-#include <utils/dstruct/bstree.h>
+#include <utils/dstruct/rbtree.h>
 #include <utils/locks/ticketlock.h>
 
 #include <mem/pmm.h>
@@ -65,7 +65,7 @@ void vmem_init() {
     LOG_TAGGED_OK("MEMORY", ANSI_BGREEN, "Kernel VMEM Allocator Init")
 }
 
-static uint64_t vmem_segment_get_value(bstree_node_t* node) {
+static uint64_t vmem_segment_get_value(rbtree_node_t* node) {
     vmem_segment_t* n = CONTAINER_OF(node, vmem_segment_t, segment_tree_node);
     return n->base;
 }
@@ -75,8 +75,7 @@ void vmem_allocator_init(vmem_allocator_t* alloc, uint64_t base, uint64_t size, 
     alloc->size = size;
     alloc->quantum = quantum;
 
-    alloc->segments_tree = BSTREE_INIT;
-    alloc->segments_tree.type = BST_TYPE_RB;
+    alloc->segments_tree = RBTREE_INIT;
     alloc->segments_tree.value_of_node = vmem_segment_get_value;
 
     alloc->segments_list = LLIST_INIT;
@@ -200,21 +199,21 @@ uint64_t vmem_alloc(vmem_allocator_t* alloc, uint64_t size, uint64_t addr) {
         llist_node_prepend(&alloc->segments_list, &ret.seg->segment_list_node, &new_seg->segment_list_node);
         llist_push(&alloc->freelists[log2ull(ret.seg->size)], &ret.seg->freelist_node);
 
-        bstree_insert(&alloc->segments_tree, &new_seg->segment_tree_node);
+        rbtree_insert(&alloc->segments_tree, &new_seg->segment_tree_node);
 
         return new_seg->base;
     }
 
     // no more splitting needed
     ret.seg->allocated = true;
-    ret.seg->segment_tree_node = BSTREE_NODE_INIT;
-    bstree_insert(&alloc->segments_tree, &ret.seg->segment_tree_node);
+    ret.seg->segment_tree_node = RBTREE_NODE_INIT;
+    rbtree_insert(&alloc->segments_tree, &ret.seg->segment_tree_node);
 
     return ret.seg->base;
 }
 
 static vmem_segment_t* vmem_find_segment_nolock(vmem_allocator_t* alloc, uint64_t addr) {
-    bstree_node_t* bnode = bstree_search(&alloc->segments_tree, addr, BST_SEARCH_TYPE_NEAREST_LTE);
+    rbtree_node_t* bnode = rbtree_search(&alloc->segments_tree, addr, RB_SEARCH_TYPE_NEAREST_LTE);
     if (!bnode)
         return nullptr;
 
@@ -249,7 +248,7 @@ void vmem_free(vmem_allocator_t* alloc, uint64_t addr, uint64_t size) {
             continue;
         }
 
-        bstree_remove(&alloc->segments_tree, &seg->segment_tree_node);
+        rbtree_remove(&alloc->segments_tree, &seg->segment_tree_node);
 
         // left split
         if (seg->base < cur_addr) {
@@ -263,7 +262,7 @@ void vmem_free(vmem_allocator_t* alloc, uint64_t addr, uint64_t size) {
             seg->size -= left_seg->size;
 
             llist_node_prepend(&alloc->segments_list, &seg->segment_list_node, &left_seg->segment_list_node);
-            bstree_insert(&alloc->segments_tree, &left_seg->segment_tree_node);
+            rbtree_insert(&alloc->segments_tree, &left_seg->segment_tree_node);
         }
 
         // right split
@@ -277,7 +276,7 @@ void vmem_free(vmem_allocator_t* alloc, uint64_t addr, uint64_t size) {
             seg->size = end_addr - seg->base;
 
             llist_node_append(&alloc->segments_list, &seg->segment_list_node, &right_seg->segment_list_node);
-            bstree_insert(&alloc->segments_tree, &right_seg->segment_tree_node);
+            rbtree_insert(&alloc->segments_tree, &right_seg->segment_tree_node);
         }
 
         cur_addr = MIN(seg_end, end_addr);

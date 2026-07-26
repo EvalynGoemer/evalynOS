@@ -6,7 +6,7 @@
 #include <mem/spalloc.h>
 #include <utils/lib.h>
 
-bstree_t detected_apics   = BSTREE_INIT;
+rbtree_t detected_apics   = RBTREE_INIT;
 llist_t  detected_ioapics = LLIST_INIT;
 llist_t  irq_overrides    = LLIST_INIT;
 
@@ -16,7 +16,7 @@ static uint32_t unknown_madt_entries = 0;
 
 uint32_t detected_cpus;
 
-static uint64_t detected_apic_get_value(bstree_node_t* node) {
+static uint64_t detected_apic_get_value(rbtree_node_t* node) {
     detected_apic_t* x = CONTAINER_OF(node, detected_apic_t, node);
     return x->apic_id;
 }
@@ -26,7 +26,7 @@ static void madt_register_lapic(uint32_t apic_id, uint32_t acpi_id, uint32_t fla
     if (!(flags & 0x1))
         return;
 
-    bstree_node_t* lnode = bstree_search(&detected_apics, apic_id, BST_SEARCH_TYPE_EXACT);
+    rbtree_node_t* lnode = rbtree_search(&detected_apics, apic_id, RB_SEARCH_TYPE_EXACT);
     if (lnode) {
         LOG_TAGGED_WARN("ACPI/MADT", ANSI_BMAGENTA, "Firmware Bug: Duplicate Entry for LAPIC 0x%08x", apic_id);
         detected_apic_t* node = CONTAINER_OF(lnode, detected_apic_t, node);
@@ -39,7 +39,7 @@ static void madt_register_lapic(uint32_t apic_id, uint32_t acpi_id, uint32_t fla
     node->apic_id = apic_id;
     node->acpi_id = acpi_id;
     node->flags   = flags;
-    bstree_insert(&detected_apics, &node->node);
+    rbtree_insert(&detected_apics, &node->node);
     detected_cpus++;
 }
 
@@ -92,7 +92,7 @@ static void handle_entry(struct MADTEntryHeader* entry) {
 
 void acpi_parse_madt() {
     spalloc_init(&alloc, 64, 8);
-    detected_apics = (bstree_t){detected_apic_get_value, BST_TYPE_RB, 0};
+    detected_apics = (rbtree_t){0, detected_apic_get_value};
 
     uint8_t* madt_base = acpi_find_sdt(MADT_SDT_SIGNATURE);
 

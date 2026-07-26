@@ -1,148 +1,389 @@
-#include <utils/dstruct/bstree.h>
+#include <stdint.h>
+#include "rbtree.h"
 
-void rbtree_insert_fixup(bstree_t* tree, bstree_node_t* node, bstree_node_t* parent, bstree_direction_t dir) {
-    node->augment.rbcolor = RB_RED;
-    node->parent = parent;
+#define RB_RED   0
+#define RB_BLACK 1
+
+#define rb_get_parent(node) ((rbtree_node_t *)(((node->parent) & ~(uintptr_t)1)))
+#define rb_set_parent(node, nparent) ((node->parent) = ((node->parent) & 1) | (uintptr_t)(nparent))
+#define rb_get_color(node) ((node->parent) & (uintptr_t)1 ? RB_BLACK : RB_RED)
+#define rb_set_color(node, color) ((node->parent) = ((uintptr_t)(node->parent) & ~(uintptr_t)1) | ((color) == RB_BLACK))
+
+static inline rbtree_direction_t rbtree_direction(const rbtree_node_t* node) {
+    return node == rb_get_parent(node)->right ? RB_RIGHT : RB_LEFT;
+}
+
+rbtree_node_t* rbtree_minimum(rbtree_node_t* node) {
+    if (!node) return nullptr;
+    while (node->left != nullptr)
+        node = node->left;
+    return node;
+}
+
+rbtree_node_t* rbtree_maximum(rbtree_node_t* node) {
+    if (!node) return nullptr;
+    while (node->right != nullptr)
+        node = node->right;
+    return node;
+}
+
+rbtree_node_t* rbtree_successor(rbtree_node_t* node) {
+    if (node->right != nullptr)
+        return rbtree_minimum(node->right);
+    rbtree_node_t* parent = rb_get_parent(node);
+    while (parent != nullptr && node == parent->right) {
+        node = parent;
+        parent = rb_get_parent(parent);
+    }
+    return parent;
+}
+
+rbtree_node_t* rbtree_predecessor(rbtree_node_t* node) {
+    if (node->left != nullptr)
+        return rbtree_maximum(node->left);
+    rbtree_node_t* parent = rb_get_parent(node);
+    while (parent != nullptr && node == parent->left) {
+        node = parent;
+        parent = rb_get_parent(parent);
+    }
+    return parent;
+}
+
+static rbtree_node_t* rbtree_rotate_subtree(rbtree_t* tree, rbtree_node_t* sub, rbtree_direction_t dir) {
+    rbtree_node_t* sub_parent = rb_get_parent(sub);
+    rbtree_node_t* new_root = sub->children[1 - dir];
+    rbtree_node_t* new_child = new_root->children[dir];
+
+    sub->children[1 - dir] = new_child;
+
+    if (new_child)
+        rb_set_parent(new_child, sub);
+
+    new_root->children[dir] = sub;
+    rb_set_parent(new_root, sub_parent);
+    rb_set_parent(sub, new_root);
+
+    if (sub_parent)
+        sub_parent->children[sub == sub_parent->right] = new_root;
+    else
+        tree->root = new_root;
+
+    return new_root;
+}
+
+static rbtree_node_t* rbtree_search_exact(rbtree_t* tree, uint64_t query) {
+    rbtree_node_t* node = tree->root;
+    while (node != nullptr) {
+        uint64_t val = tree->value_of_node(node);
+        if (query < val)
+            node = node->left;
+        else if (query > val)
+            node = node->right;
+        else
+            return node;
+    }
+    return nullptr;
+}
+
+static rbtree_node_t* rbtree_search_nearest(rbtree_t* tree, uint64_t query) {
+    rbtree_node_t* node = tree->root;
+    rbtree_node_t* nearest = nullptr;
+    uint64_t best = UINT64_MAX;
+    while (node != nullptr) {
+        uint64_t val = tree->value_of_node(node);
+        uint64_t dist = val > query ? val - query : query - val;
+        if (dist < best) {
+            best = dist;
+            nearest = node;
+        }
+        if (query < val)
+            node = node->left;
+        else if (query > val)
+            node = node->right;
+        else
+            return node;
+    }
+    return nearest;
+}
+
+static rbtree_node_t* rbtree_search_lesser(rbtree_t* tree, uint64_t query, bool find_equal) {
+    rbtree_node_t* node = tree->root;
+    rbtree_node_t* candidate = nullptr;
+    while (node != nullptr) {
+        uint64_t val = tree->value_of_node(node);
+        if (val < query) {
+            candidate = node;
+            node = node->right;
+        } else if (val > query) {
+            node = node->left;
+        } else {
+            if (find_equal) return node;
+            candidate = node->left ? rbtree_maximum(node->left) : candidate;
+            return candidate;
+        }
+    }
+    return candidate;
+}
+
+static rbtree_node_t* rbtree_search_greater(rbtree_t* tree, uint64_t query, bool find_equal) {
+    rbtree_node_t* node = tree->root;
+    rbtree_node_t* candidate = nullptr;
+    while (node != nullptr) {
+        uint64_t val = tree->value_of_node(node);
+        if (val > query) {
+            candidate = node;
+            node = node->left;
+        } else if (val < query) {
+            node = node->right;
+        } else {
+            if (find_equal) return node;
+            candidate = node->right ? rbtree_minimum(node->right) : candidate;
+            return candidate;
+        }
+    }
+    return candidate;
+}
+
+rbtree_node_t* rbtree_search(rbtree_t* tree, uint64_t query, rbtree_search_type_t type) {
+    switch (type) {
+        case RB_SEARCH_TYPE_EXACT:       return rbtree_search_exact(tree, query);
+        case RB_SEARCH_TYPE_NEAREST:     return rbtree_search_nearest(tree, query);
+        case RB_SEARCH_TYPE_NEAREST_LT:  return rbtree_search_lesser(tree, query, false);
+        case RB_SEARCH_TYPE_NEAREST_LTE: return rbtree_search_lesser(tree, query, true);
+        case RB_SEARCH_TYPE_NEAREST_GT:  return rbtree_search_greater(tree, query, false);
+        case RB_SEARCH_TYPE_NEAREST_GTE: return rbtree_search_greater(tree, query, true);
+        default: __builtin_unreachable();
+    }
+}
+
+static void rbtree_insert_fixup(rbtree_t* tree, rbtree_node_t* node, rbtree_node_t* parent) {
+    rb_set_color(node, RB_RED);
 
     if (!parent) {
         tree->root = node;
-        node->augment.rbcolor = RB_BLACK;
+        rb_set_color(node, RB_BLACK);
         return;
     }
 
-    parent->children[dir] = node;
-
     do {
         // case 1
-        if (parent->augment.rbcolor == RB_BLACK) {
+        if (rb_get_color(parent) == RB_BLACK) {
             return;
         }
 
-        bstree_node_t* grandparent = parent->parent;
+        rbtree_node_t* grandparent = rb_get_parent(parent);
 
         // case 4
         if (!grandparent) {
-            parent->augment.rbcolor = RB_BLACK;
+            rb_set_color(parent, RB_BLACK);
             return;
         }
 
-        dir = bstree_direction(parent);
-        bstree_node_t* uncle = grandparent->children[1 - dir];
-        if (!uncle || uncle->augment.rbcolor == RB_BLACK) {
+        rbtree_direction_t dir = rbtree_direction(parent);
+        rbtree_node_t* uncle = grandparent->children[1 - dir];
+        if (!uncle || rb_get_color(uncle) == RB_BLACK) {
             // case 5
             if (node == parent->children[1 - dir]) {
-                bstree_rotate_subtree(tree, parent, dir);
+                rbtree_rotate_subtree(tree, parent, dir);
                 node = parent;
                 parent = grandparent->children[dir];
             }
 
             // case 6
-            bstree_rotate_subtree(tree, grandparent, 1 - dir);
-            parent->augment.rbcolor = RB_BLACK;
-            grandparent->augment.rbcolor = RB_RED;
+            rbtree_rotate_subtree(tree, grandparent, 1 - dir);
+            rb_set_color(parent, RB_BLACK);
+            rb_set_color(grandparent, RB_RED);
             return;
         }
 
         // case 2
-        parent->augment.rbcolor = RB_BLACK;
-        uncle->augment.rbcolor = RB_BLACK;
-        grandparent->augment.rbcolor = RB_RED;
+        rb_set_color(parent, RB_BLACK);
+        rb_set_color(uncle, RB_BLACK);
+        rb_set_color(grandparent, RB_RED);
         node = grandparent;
 
-    } while ((parent = node->parent));
+    } while ((parent = rb_get_parent(node)));
 
     // case 3
-    tree->root->augment.rbcolor = RB_BLACK;
+    rb_set_color(tree->root, RB_BLACK);
     return;
 }
 
-static void __rbtree_remove_fixup(bstree_t* tree, bstree_node_t* node, bstree_direction_t dir) {
-    bstree_node_t* parent = node->parent;
+rbtree_node_t* rbtree_insert(rbtree_t* tree, rbtree_node_t* node) {
+    node->left = nullptr;
+    node->right = nullptr;
+    node->parent = 0;
+
+    rbtree_node_t* parent = nullptr;
+    rbtree_node_t* cur = tree->root;
+    rbtree_direction_t dir = RB_LEFT;
+
+    uint64_t key = tree->value_of_node(node);
+
+    while (cur) {
+        parent = cur;
+        uint64_t cur_val = tree->value_of_node(cur);
+
+        if (key < cur_val) {
+            dir = RB_LEFT;
+            cur = cur->left;
+        } else {
+            dir = RB_RIGHT;
+            cur = cur->right;
+        }
+    }
 
     if (!parent) {
-        node->augment.rbcolor = RB_BLACK;
+        tree->root = node;
+    } else {
+        rb_set_parent(node, parent);
+        parent->children[dir] = node;
+    }
+
+    rbtree_insert_fixup(tree, node, parent);
+
+    return node;
+}
+
+static void rbtree_remove_fixup(rbtree_t* tree, rbtree_node_t* node, rbtree_direction_t dir) {
+    rbtree_node_t* parent = rb_get_parent(node);
+
+    if (!parent) {
+        rb_set_color(node, RB_BLACK);
         return;
     }
 
-    bstree_node_t* sibling;
-    bstree_node_t* close_nephew;
-    bstree_node_t* distant_nephew;
+    rbtree_node_t* sibling;
+    rbtree_node_t* close_nephew;
+    rbtree_node_t* distant_nephew;
 
     do {
         sibling = parent->children[1 - dir];
         distant_nephew = sibling->children[1 - dir];
         close_nephew = sibling->children[dir];
-        if (sibling->augment.rbcolor == RB_RED) {
+        if (rb_get_color(sibling) == RB_RED) {
             // case 3
-            bstree_rotate_subtree(tree, parent, dir);
-            parent->augment.rbcolor = RB_RED;
-            sibling->augment.rbcolor = RB_BLACK;
+            rbtree_rotate_subtree(tree, parent, dir);
+            rb_set_color(parent, RB_RED);
+            rb_set_color(sibling, RB_BLACK);
             sibling = close_nephew;
 
             distant_nephew = sibling->children[1 - dir];
-            if (distant_nephew && distant_nephew->augment.rbcolor == RB_RED) {
+            if (distant_nephew && rb_get_color(distant_nephew) == RB_RED) {
                 goto case_6;
             }
             close_nephew = sibling->children[dir];
-            if (close_nephew && close_nephew->augment.rbcolor == RB_RED) {
+            if (close_nephew && rb_get_color(close_nephew) == RB_RED) {
                 goto case_5;
             }
 
             // case 4
-            sibling->augment.rbcolor = RB_RED;
-            parent->augment.rbcolor = RB_BLACK;
+            rb_set_color(sibling, RB_RED);
+            rb_set_color(parent, RB_BLACK);
             return;
         }
 
-        if (distant_nephew && distant_nephew->augment.rbcolor == RB_RED)
+        if (distant_nephew && rb_get_color(distant_nephew) == RB_RED)
             goto case_6;
 
-        if (close_nephew && close_nephew->augment.rbcolor == RB_RED)
+        if (close_nephew && rb_get_color(close_nephew) == RB_RED)
             goto case_5;
 
         // case 4
-        if (parent->augment.rbcolor == RB_RED) {
-            sibling->augment.rbcolor = RB_RED;
-            parent->augment.rbcolor = RB_BLACK;
+        if (rb_get_color(parent) == RB_RED) {
+            rb_set_color(sibling, RB_RED);
+            rb_set_color(parent, RB_BLACK);
             return;
         }
 
         // case 2
-        sibling->augment.rbcolor = RB_RED;
+        rb_set_color(sibling, RB_RED);
         node = parent;
-        if (!node->parent) break;
-        dir = bstree_direction(node);
+        if (!rb_get_parent(node)) break;
+        dir = rbtree_direction(node);
 
-    } while ((parent = node->parent));
+    } while ((parent = rb_get_parent(node)));
 
     // case 1
     return;
 
 case_5:
-
-    bstree_rotate_subtree(tree, sibling, 1 - dir);
-    sibling->augment.rbcolor = RB_RED;
-    close_nephew->augment.rbcolor = RB_BLACK;
+    rbtree_rotate_subtree(tree, sibling, 1 - dir);
+    rb_set_color(sibling, RB_RED);
+    rb_set_color(close_nephew, RB_BLACK);
     distant_nephew = sibling;
     sibling = close_nephew;
 
 case_6:
-
-    bstree_rotate_subtree(tree, parent, dir);
-    sibling->augment.rbcolor = parent->augment.rbcolor;
-    parent->augment.rbcolor = RB_BLACK;
-    distant_nephew->augment.rbcolor = RB_BLACK;
+    rbtree_rotate_subtree(tree, parent, dir);
+    rb_set_color(sibling, rb_get_color(parent));
+    rb_set_color(parent, RB_BLACK);
+    rb_set_color(distant_nephew, RB_BLACK);
     return;
 }
 
-void rbtree_remove_fixup(bstree_t* tree, bstree_node_t* node, bstree_node_t* parent, bstree_node_t* replacement, bstree_direction_t dir) {
-    if (node->augment.rbcolor == RB_BLACK) {
-        if (replacement && replacement->augment.rbcolor == RB_RED) {
-            replacement->augment.rbcolor = RB_BLACK;
+rbtree_node_t* rbtree_remove(rbtree_t* tree, rbtree_node_t* node) {
+    rbtree_node_t* parent = rb_get_parent(node);
+    rbtree_node_t* replacement = nullptr;
+    rbtree_direction_t dir = RB_LEFT;
+
+    if (node->left && node->right) {
+        rbtree_node_t* succ = rbtree_minimum(node->right);
+        rbtree_node_t* succ_parent = rb_get_parent(succ);
+        rbtree_node_t* succ_right  = succ->right;
+
+        succ->left = node->left;
+        rb_set_parent(succ->left, succ);
+
+        rbtree_node_t* node_parent = rb_get_parent(node);
+        rb_set_parent(succ, node_parent);
+        if (!node_parent)
+            tree->root = succ;
+        else
+            node_parent->children[node == node_parent->right] = succ;
+
+        if (succ_parent == node) {
+            succ->right = node;
+            rb_set_parent(node, succ);
+        } else {
+            succ->right = node->right;
+            rb_set_parent(succ->right, succ);
+            succ_parent->left = node;
+            rb_set_parent(node, succ_parent);
+        }
+
+        node->left  = nullptr;
+        node->right = succ_right;
+        if (node->right) rb_set_parent(node->right, node);
+
+        int tmp = rb_get_color(node);
+        rb_set_color(node, rb_get_color(succ));
+        rb_set_color(succ, tmp);
+
+        parent = rb_get_parent(node);
+    }
+
+    replacement = node->left ? node->left : node->right;
+
+    if (replacement)
+        rb_set_parent(replacement, parent);
+
+    if (!parent) {
+        tree->root = replacement;
+    } else {
+        dir = rbtree_direction(node);
+        parent->children[dir] = replacement;
+    }
+
+    if (rb_get_color(node) == RB_BLACK) {
+        if (replacement && rb_get_color(replacement) == RB_RED) {
+            rb_set_color(replacement, RB_BLACK);
         } else if (replacement) {
-            __rbtree_remove_fixup(tree, replacement, dir);
+            rbtree_remove_fixup(tree, replacement, dir);
         } else if (parent) {
-            __rbtree_remove_fixup(tree, node, dir);
+            rbtree_remove_fixup(tree, node, dir);
         }
     }
+
+    return replacement;
 }

@@ -2,7 +2,7 @@
 #include <stdint.h>
 #include <acpi/tables/madt.h>
 #include <utils/dstruct/llist.h>
-#include <utils/dstruct/bstree.h>
+#include <utils/dstruct/rbtree.h>
 
 struct [[gnu::packed]] MADT_apic {
     struct MADTEntryHeader header;
@@ -41,7 +41,7 @@ typedef struct detected_apic {
     uint32_t apic_id;
     uint32_t acpi_id;
     uint32_t flags;
-    bstree_node_t node;
+    rbtree_node_t node;
 } detected_apic_t;
 
 typedef struct detected_ioapic {
@@ -59,7 +59,7 @@ typedef struct acpi_irq_override {
     llist_node_t node;
 } acpi_irq_override_t;
 
-extern bstree_t detected_apics;
+extern rbtree_t detected_apics;
 extern llist_t  detected_ioapics;
 extern llist_t  irq_overrides;
 

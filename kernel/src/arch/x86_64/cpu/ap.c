@@ -132,7 +132,7 @@ void arch_init_aps() {
     uint32_t bsp_apic_id = arch_get_local_coreid();
 
     LOG_TAGGED("AP/INIT", ANSI_BYELLOW, "Sending INIT IPIs to %d APs", detected_cpus - 1)
-    BSTREE_FOR_EACH(detected_apics, node) {
+    RBTREE_FOR_EACH(detected_apics, node) {
         detected_apic_t* apic = CONTAINER_OF(node, detected_apic_t, node);
         if (apic->apic_id != bsp_apic_id)
             x86_send_init(apic->apic_id);
@@ -144,7 +144,7 @@ void arch_init_aps() {
     while ((__builtin_ia32_rdtsc() - start) < 1000000000ULL);
 
     LOG_TAGGED("AP/INIT", ANSI_BYELLOW, "Sending SIPI IPIs to %d APs", detected_cpus - 1)
-    BSTREE_FOR_EACH(detected_apics, node) {
+    RBTREE_FOR_EACH(detected_apics, node) {
         detected_apic_t* apic = CONTAINER_OF(node, detected_apic_t, node);
         if (apic->apic_id != bsp_apic_id)
             x86_send_sipi(apic->apic_id, trampoline_page / PAGE_SIZE);
