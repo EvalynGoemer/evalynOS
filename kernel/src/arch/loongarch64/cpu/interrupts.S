@@ -99,10 +99,6 @@ interrupt_handler_asm:
     # ensure cpulocal is valid
     csrrd $r21, save0
 
-    # enable interrupts
-    li.d  $t0, (1 << 2)
-    li.d  $t1, (1 << 2)
-    csrxchg $t0, $t1, crmd
     bl dispatch_interrupt
     # disable interrupts
     move  $t0, $zero

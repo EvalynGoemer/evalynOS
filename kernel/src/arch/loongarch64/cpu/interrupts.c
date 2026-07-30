@@ -1,4 +1,6 @@
 #include <arch/loongarch64/cpu/interrupts.h>
+#include <arch/loongarch64/timer/timer.h>
+#include <sched/scheduler.h>
 #include <arch/generic/panic.h>
 #include <stdint.h>
 #include <arch/loongarch64/intrin/csr.h>
@@ -37,6 +39,11 @@ void dispatch_interrupt(interrupt_frame_t* frame) {
     uint8_t  ecode   = (frame->estat >> 16) & 0x3F;
     uint16_t irq_num =  frame->estat        & 0x1FFF;
 
+    if (ecode == 0 && !(irq_num & 0x800))
+        enable_interrupts();
+
+    bool handled = false;
+
     switch (ecode) {
         case 0xC: {
             LOG("got break 0 exception");
@@ -44,8 +51,17 @@ void dispatch_interrupt(interrupt_frame_t* frame) {
             break;
         }
         case 0x0: {
-            LOG_TAGGED("FATAL", ANSI_RED, "Got Unhandled IRQ 0x%x", irq_num);
-            panic_interrupt("Unhandled IRQ", frame);
+            if (irq_num & 0x800) {
+                timer_set_timeout_ms(5);
+                enable_interrupts();
+                schedule();
+                handled = true;
+            }
+
+            if (!handled) {
+                LOG_TAGGED("FATAL", ANSI_RED, "Got Unhandled IRQ 0x%x", irq_num);
+                panic_interrupt("Unhandled IRQ", frame);
+            }
             break;
         }
         default: {

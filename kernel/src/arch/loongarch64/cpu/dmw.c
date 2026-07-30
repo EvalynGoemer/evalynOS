@@ -5,60 +5,65 @@
 #include <arch/loongarch64/intrin/csr.h>
 #include <arch/loongarch64/cpu/dmw.h>
 
-static inline void* rebase_ptr(void *ptr, uint64_t old_hhdm, uint64_t new_hhdm) {
+static inline void* rebase_ptr(void *ptr, uint64_t delta) {
     if (!ptr)
         return NULL;
-
-    uintptr_t addr = (uintptr_t)ptr;
-    return (void *)(addr + (new_hhdm - old_hhdm));
+    return (void*)((uintptr_t)ptr + delta);
 }
 
-static void rebase_limine_requests() {
+void rebase_limine_requests() {
     uint64_t old_hhdm = hhdm_request.response->offset;
+    uint64_t cached_delta = HHDM_CACHED_OFFSET - old_hhdm;
+    uint64_t weak_delta = HHDM_WEAK_UNCACHED_OFFSET - old_hhdm;
 
-    framebuffer_request.response = rebase_ptr((void *)framebuffer_request.response, old_hhdm, HHDM_CACHED_OFFSET);
-    if (framebuffer_request.response) {
-        framebuffer_request.response->framebuffers = rebase_ptr(framebuffer_request.response->framebuffers, old_hhdm, HHDM_CACHED_OFFSET);
-        for (uint64_t i = 0; i < framebuffer_request.response->framebuffer_count; i++) {
-            framebuffer_request.response->framebuffers[i] = rebase_ptr(framebuffer_request.response->framebuffers[i], old_hhdm, HHDM_CACHED_OFFSET);
-            struct limine_framebuffer *fb = framebuffer_request.response->framebuffers[i];
-            fb->address = rebase_ptr(fb->address, old_hhdm, HHDM_WEAK_UNCACHED_OFFSET);
-            fb->edid = rebase_ptr(fb->edid, old_hhdm, HHDM_CACHED_OFFSET);
+    struct limine_framebuffer_response *fbresp = framebuffer_request.response = rebase_ptr((void *)framebuffer_request.response, cached_delta);
+    if (fbresp) {
+        struct limine_framebuffer** buffers = fbresp->framebuffers = rebase_ptr(fbresp->framebuffers, cached_delta);
+        uint64_t count = fbresp->framebuffer_count;
+
+        for (uint64_t i = 0; i < count; i++) {
+            struct limine_framebuffer* fb = buffers[i] = rebase_ptr(buffers[i], cached_delta);
+            fb->address = rebase_ptr(fb->address, weak_delta);
+            fb->edid = rebase_ptr(fb->edid, cached_delta);
             if (fb->modes) {
-                fb->modes = rebase_ptr(fb->modes, old_hhdm, HHDM_CACHED_OFFSET);
-                for (uint64_t j = 0; j < fb->mode_count; j++) {
-                    fb->modes[j] = rebase_ptr(fb->modes[j], old_hhdm, HHDM_CACHED_OFFSET);
-                }
+                struct limine_video_mode** modes = fb->modes = rebase_ptr(fb->modes, cached_delta);
+                uint64_t mode_count = fb->mode_count;
+                for (uint64_t j = 0; j < mode_count; j++)
+                    modes[j] = rebase_ptr(modes[j], cached_delta);
             }
         }
     }
 
-    memmap_request.response = rebase_ptr((void *)memmap_request.response, old_hhdm, HHDM_CACHED_OFFSET);
+    memmap_request.response = rebase_ptr((void*)memmap_request.response, cached_delta);
     if (memmap_request.response) {
-        memmap_request.response->entries = rebase_ptr(memmap_request.response->entries, old_hhdm, HHDM_CACHED_OFFSET);
+        memmap_request.response->entries = rebase_ptr(memmap_request.response->entries, cached_delta);
         for (uint64_t i = 0; i < memmap_request.response->entry_count; i++)
-            memmap_request.response->entries[i] = rebase_ptr(memmap_request.response->entries[i], old_hhdm, HHDM_CACHED_OFFSET);
+            memmap_request.response->entries[i] = rebase_ptr(memmap_request.response->entries[i], cached_delta);
     }
 
-    executable_file_request.response = rebase_ptr((void *)executable_file_request.response, old_hhdm, HHDM_CACHED_OFFSET);
+    executable_file_request.response = rebase_ptr((void*)executable_file_request.response, cached_delta);
     if (executable_file_request.response && executable_file_request.response->executable_file) {
-        executable_file_request.response->executable_file = rebase_ptr(executable_file_request.response->executable_file, old_hhdm, HHDM_CACHED_OFFSET);
+        executable_file_request.response->executable_file = rebase_ptr(executable_file_request.response->executable_file, cached_delta);
         struct limine_file *file = executable_file_request.response->executable_file;
-        file->address = rebase_ptr(file->address, old_hhdm, HHDM_CACHED_OFFSET);
-        file->path = rebase_ptr(file->path, old_hhdm, HHDM_CACHED_OFFSET);
-        file->string = rebase_ptr(file->string, old_hhdm, HHDM_CACHED_OFFSET);
+        file->address = rebase_ptr(file->address, cached_delta);
+        file->path = rebase_ptr(file->path, cached_delta);
+        file->string = rebase_ptr(file->string, cached_delta);
     }
 
-    rsdp_request.response = rebase_ptr((void *)rsdp_request.response, old_hhdm, HHDM_CACHED_OFFSET);
+    rsdp_request.response = rebase_ptr((void*)rsdp_request.response, cached_delta);
     if (rsdp_request.response)
-        rsdp_request.response->address = rebase_ptr(rsdp_request.response->address, old_hhdm, HHDM_CACHED_OFFSET);
+        rsdp_request.response->address = rebase_ptr(rsdp_request.response->address, cached_delta);
 
-    hhdm_request.response = rebase_ptr((void *)hhdm_request.response, old_hhdm, HHDM_CACHED_OFFSET);
+    dtb_request.response = rebase_ptr((void*)dtb_request.response, cached_delta);
+    if (dtb_request.response)
+        dtb_request.response->dtb_ptr = rebase_ptr(dtb_request.response->dtb_ptr, cached_delta);
+
+    hhdm_request.response = rebase_ptr((void*)hhdm_request.response, cached_delta);
     if (hhdm_request.response)
         hhdm_request.response->offset = HHDM_CACHED_OFFSET;
 
-    paging_mode_request.response = rebase_ptr((void *)paging_mode_request.response, old_hhdm, HHDM_CACHED_OFFSET);
-    executable_address_request.response = rebase_ptr((void *)executable_address_request.response, old_hhdm, HHDM_CACHED_OFFSET);
+    paging_mode_request.response = rebase_ptr((void*)paging_mode_request.response, cached_delta);
+    executable_address_request.response = rebase_ptr((void*)executable_address_request.response, cached_delta);
 }
 
 void setup_dmw() {
@@ -82,6 +87,4 @@ void setup_dmw() {
 
     asm ("dbar 0" ::: "memory");
     asm ("ibar 0" ::: "memory");
-
-    rebase_limine_requests();
 }

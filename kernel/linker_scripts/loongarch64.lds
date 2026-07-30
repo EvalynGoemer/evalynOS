@@ -1,6 +1,6 @@
 OUTPUT_FORMAT(elf64-loongarch)
 
-ENTRY(kmain)
+ENTRY(kentry)
 
 PHDRS
 {

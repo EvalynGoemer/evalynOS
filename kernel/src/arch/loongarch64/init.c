@@ -1,3 +1,4 @@
+#include <arch/loongarch64/timer/timer.h>
 #include <arch/loongarch64/cpu/cpulocal.h>
 #include <arch/loongarch64/cpu/interrupts.h>
 #include <acpi/tables/sdt.h>
@@ -12,7 +13,6 @@
 #include <arch/loongarch64/acpi/acpi.h>
 
 void arch_bootstrap_init() {
-    setup_dmw();
     setup_tlb_refill_handler();
     setup_cpulocal_bsp();
 }
@@ -37,6 +37,8 @@ void arch_early_init() {
 void arch_post_mm_init() {
     if (!setup_acpi())
         panic("ACPI setup failed");
+
+    setup_timer();
 }
 
 void arch_init_aps() {

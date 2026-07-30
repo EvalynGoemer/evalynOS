@@ -1,7 +1,12 @@
 #pragma once
 
 #include <stdint.h>
+#include <stddef.h>
 #include <limine.h>
+
+// static asserts for things used by asm
+_Static_assert(offsetof(struct limine_hhdm_request, response) == 40);
+_Static_assert(offsetof(struct limine_hhdm_response, offset) == 8);
 
 extern volatile uint64_t limine_requests_start_marker[];
 
@@ -23,4 +28,3 @@ extern volatile struct limine_riscv_bsp_hartid_request riscv_bsp_hartid_request;
 #endif
 
 extern volatile uint64_t limine_requests_end_marker[];
-

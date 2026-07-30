@@ -30,9 +30,7 @@ static void test_thread(int n) {
         #elif __riscv
         wfi();
         #elif __loongarch64
-        uint64_t start = ({ uint64_t v; asm volatile("rdtime.d %0, $zero" : "=r"(v)); v; });
-        while (({ uint64_t v; asm volatile("rdtime.d %0, $zero" : "=r"(v)); v; }) - start < 60000000ULL);
-        schedule();
+        wfi();
         #endif
     }
 }
@@ -99,14 +97,12 @@ void kmain() {
         asm volatile ("ebreak");
         wfi();
         #elif __loongarch64
-        uint64_t start = ({ uint64_t v; asm volatile("rdtime.d %0, $zero" : "=r"(v)); v; });
-        while (({ uint64_t v; asm volatile("rdtime.d %0, $zero" : "=r"(v)); v; }) - start < 60000000ULL);
         asm volatile ("break 0");
         asm volatile ("break 0");
         asm volatile ("break 0");
         asm volatile ("break 0");
         asm volatile ("break 0");
-        schedule();
+        wfi();
         #endif
     }
 
