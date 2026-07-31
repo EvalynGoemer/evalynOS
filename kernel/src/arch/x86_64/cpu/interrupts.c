@@ -1,6 +1,11 @@
+#include "arch/x86_64/intrin/interrupts.h"
 #include <arch/generic/panic.h>
 #include <arch/x86_64/cpu/interrupts.h>
 #include <arch/x86_64/drivers/fred/fred.h>
+#include <arch/x86_64/apic/lapic.h>
+#include <arch/x86_64/timer/timer.h>
+#include <sched/scheduler.h>
+#include <arch/intrin/interrupts.h>
 #include <stdint.h>
 #include <stdio.h>
 
@@ -15,7 +20,6 @@ void dispatch_interrupt(interrupt_frame_t* frame) {
 
     /* FRED Logic */
     vector = (frame->cpu_frame.ss >> 32) & 0xFF;
-    LOG("GOT VECTOR 0x%02lx VIA FRED!!!", vector);
     if (frame->vector == FRED_FAKE_VECTOR_CPL3) {
         uint8_t type = (frame->cpu_frame.ss >> 48) & 0xF;
         if (type == FRED_EVENT_TYPE_SYSCALL) {
@@ -35,6 +39,16 @@ void dispatch_interrupt(interrupt_frame_t* frame) {
             break;
         case INTERRUPT_MACHINE_CHECK_EXCEPTION:
             handle_exception_mce(frame);
+            break;
+        case LAPIC_TIMER_VECTOR:
+            // make sure to call this every timer irq to ensure
+            // rollover is handled when the HPET or ACPI PMT is in use
+            timer_get_ns();
+
+            timer_set_timeout_ms(1);
+            arch_send_eoi();
+            enable_interrupts();
+            schedule();
             break;
         default: {
             if (vector <= 0x1F) {

@@ -25,7 +25,6 @@ bool setup_hyperv_pvclock() {
 }
 
 uint64_t hyperv_pvclock_get_ns() {
-    // TODO: disable preemption / thread migration while reading via cpu local
     hyperv_pvclock_t* pvclock = CPU_LOCAL_READ8(local_pvclock);
 
     uint32_t sequence_start, sequence_end;

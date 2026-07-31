@@ -20,7 +20,6 @@ bool setup_kvm_pvclock() {
 }
 
 uint64_t kvm_pvclock_get_ns() {
-    // TODO: disable preemption / thread migration while reading via cpu local
     kvm_pvclock_t* pvclock = CPU_LOCAL_READ8(local_pvclock);
 
     uint32_t version;

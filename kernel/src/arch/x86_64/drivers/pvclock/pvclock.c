@@ -1,11 +1,10 @@
 #include <stdint.h>
-#include <stdio.h>
 #include <arch/x86_64/cpu/cpuid.h>
 #include <arch/x86_64/drivers/pvclock/pvclock.h>
 #include <arch/x86_64/drivers/pvclock/kvm_pvclock.h>
 #include <arch/x86_64/drivers/pvclock/hyperv_pvclock.h>
 
-bool setup_pvclock(uint32_t core_id) {
+bool setup_pvclock() {
     if (!is_hypervisor)
         return false;
 
@@ -16,12 +15,9 @@ bool setup_pvclock(uint32_t core_id) {
         default: status = false; break;
     }
 
-    if (!status) {
-        LOG_TAGGED("TIME", ANSI_BBLUE, "Hypervisor does not expose supported paravirtualized clock");
+    if (!status)
         return false;
-    }
 
-    LOG_TAGGED("TIME", ANSI_BBLUE, "Setup PV clock for core %d; Current time %ldns", core_id, pvclock_get_ns());
     return true;
 }
 

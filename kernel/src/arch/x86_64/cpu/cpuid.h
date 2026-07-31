@@ -69,6 +69,7 @@ enum HypervisorType {
 
 #define CPUID_1GB_PAGES         26  /* EDX */
 #define CPUID_NX                20  /* EDX */
+#define CPUID_APIC              9   /* EDX */
 #define CPUID_x2APIC            21  /* ECX */
 #define CPUID_ADJUST_TSC        1   /* EBX */
 #define CPUID_INVARIANT_TSC     8   /* EDX */
@@ -82,6 +83,7 @@ enum HypervisorType {
 
 #define CPUID_HAS_1GB_PAGES     ((cpuid_request_t){ CPUID_GET_EXT_FEATURES, CPUID_NO_SUBLEAF, CPUID_EDX, CPUID_1GB_PAGES     })
 #define CPUID_HAS_NX            ((cpuid_request_t){ CPUID_GET_EXT_FEATURES, CPUID_NO_SUBLEAF, CPUID_EDX, CPUID_NX            })
+#define CPUID_HAS_APIC          ((cpuid_request_t){ CPUID_GET_FEATURES,     CPUID_NO_SUBLEAF, CPUID_EDX, CPUID_APIC          })
 #define CPUID_HAS_x2APIC        ((cpuid_request_t){ CPUID_GET_FEATURES,     CPUID_NO_SUBLEAF, CPUID_ECX, CPUID_x2APIC        })
 #define CPUID_HAS_LAPIC_TSC     ((cpuid_request_t){ CPUID_GET_FEATURES,     CPUID_NO_SUBLEAF, CPUID_ECX, CPUID_LAPIC_TSC     })
 #define CPUID_HAS_ADJUST_TSC    ((cpuid_request_t){ CPUID_GET_CAPABILITIES, CPUID_NO_SUBLEAF, CPUID_EBX, CPUID_ADJUST_TSC    })

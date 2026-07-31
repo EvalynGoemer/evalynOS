@@ -1,4 +1,7 @@
+#include "arch/generic/panic.h"
 #include <arch/intrin/spin.h>
+#include <arch/intrin/interrupts.h>
+#include <arch/x86_64/timer/timer.h>
 #include <arch/generic/paging/paging.h>
 #include <arch/x86_64/cpu/cpuid.h>
 #include <mem/pmm.h>
@@ -7,22 +10,17 @@
 #include <arch/intrin/mmio.h>
 #include <arch/x86_64/cpu/msr.h>
 #include <arch/x86_64/apic/lapic.h>
+#include <math.h>
 #include <assert.h>
 #include <stdint.h>
+#include <stdio.h>
 
 static uint64_t lapic_pbase = 0;
 static uint64_t lapic_vbase = 0;
 bool x2apic = false;
 
-#define APIC_REGISTER_ID     0x020
-#define APIC_REGISTER_EOI    0x0B0
-#define APIC_REGISTER_SVR    0x0F0
-#define APIC_REGISTER_TIMER  0x320
-#define APIC_REGISTER_DIVIDE 0x3E0
-#define APIC_REGISTER_ICOUNT 0x380
-#define APIC_REGISTER_CCOUNT 0x390
-#define APIC_REGISTER_ICRL   0x300 // always use this in x2apic mode
-#define APIC_REGISTER_ICRH   0x310
+static uint64_t tick_shift = 0;
+static uint64_t tick_mult  = 0;
 
 static void write_lapic_register(uint32_t reg, uint32_t data) {
     if (x2apic) {
@@ -45,7 +43,19 @@ static uint32_t read_lapic_register(uint32_t reg) {
     return mmio_read_offset_32(lapic_vbase, reg);
 }
 
+void timer_set_timeout_ms(int ms) {
+    uint64_t ticks = ((__uint128_t)ms * tick_mult) >> tick_shift;
+    write_lapic_register(APIC_REGISTER_ICOUNT, ticks);
+}
+
+void arch_send_eoi() {
+    write_lapic_register(APIC_REGISTER_EOI, 0);
+}
+
 void setup_lapic() {
+    if (!cpuid_check(CPUID_HAS_APIC))
+        panic("CPU does not have the APIC enabled");
+
     x2apic = cpuid_check(CPUID_HAS_x2APIC);
 
     if (x2apic) {
@@ -84,7 +94,30 @@ void setup_lapic() {
     apic_svr |= 0x1FF; // enable lapic & enable spurious vector on vector 0xFF
     write_lapic_register(APIC_REGISTER_SVR, apic_svr);
 
-    // TODO: setup lapic timer; needs other time drivers to be finished for calibration
+    LOG_TAGGED("LAPIC", ANSI_BCYAN, "Local APIC Setup");
+
+    // setup the lapic timer
+
+    write_lapic_register(APIC_REGISTER_TIMER, LAPIC_TIMER_VECTOR | LAPIC_TIMER_MODE_MASKED);
+    write_lapic_register(APIC_REGISTER_DIVIDE, LAPIC_TIMER_DIVIDE_1);
+    uint64_t total = 0;
+    for (int i = 0; i < 3; i++) {
+        write_lapic_register(APIC_REGISTER_ICOUNT, 0xFFFFFFFF);
+        timer_spin_wait_ms(10);
+        uint32_t remaining = read_lapic_register(APIC_REGISTER_CCOUNT);
+        total += (uint64_t)(0xFFFFFFFF - remaining) * 100;
+    }
+    uint64_t frequency = total / 3;
+
+    tick_shift = find_reciprocal_shift(frequency, 1000);
+    tick_mult  = ((__uint128_t)frequency << tick_shift) / 1000;
+
+    write_lapic_register(APIC_REGISTER_TIMER, LAPIC_TIMER_VECTOR | LAPIC_TIMER_MODE_ONESHOT);
+
+    LOG_TAGGED("LAPIC", ANSI_BCYAN, "Local APIC Timer Setup");
+
+    timer_set_timeout_ms(1);
+    enable_interrupts();
 }
 
 uint32_t arch_get_local_coreid() {

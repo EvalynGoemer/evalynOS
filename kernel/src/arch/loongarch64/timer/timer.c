@@ -2,6 +2,7 @@
 #include "utils/lib.h"
 #include <stdint.h>
 #include <stdio.h>
+#include <math.h>
 #include <arch/loongarch64/intrin/csr.h>
 #include <arch/loongarch64/cpu/cpucfg.h>
 #include <arch/generic/panic.h>
@@ -16,21 +17,6 @@ static inline uint64_t rdtime() {
     uint64_t t;
     asm volatile ("rdtime.d %0, $zero" : "=r"(t));
     return t;
-}
-
-static uint32_t find_reciprocal_shift(uint64_t numerator, uint64_t denominator) {
-    __uint128_t lim = denominator * (__uint128_t)UINT64_MAX;
-
-    uint32_t lo = 0, hi = 127;
-    while (lo < hi) {
-        uint32_t mid = (lo + hi + 1) >> 1;
-        if (((__uint128_t)numerator << mid) <= lim)
-            lo = mid;
-        else
-            hi = mid - 1;
-    }
-
-    return lo;
 }
 
 void setup_timer() {
@@ -53,10 +39,12 @@ void setup_timer() {
         LOG_TAGGED("TIME", ANSI_BBLUE, "Timer Frequency: ((%dhz * %d) / %d) = %lld Hz", freq, mul, div, timer_frequency);
     }
 
+    // ticks -> ns
     freq_shift = find_reciprocal_shift(1000000000ull, timer_frequency);
-    tick_shift = find_reciprocal_shift(timer_frequency, 1000000000ull);
     freq_mult  = ((__uint128_t)1000000000ull << freq_shift) / timer_frequency;
-    tick_mult  = ((__uint128_t)timer_frequency << tick_shift) / 1000000000ull;
+    // ms -> ticks
+    tick_shift = find_reciprocal_shift(timer_frequency, 1000);
+    tick_mult  = ((__uint128_t)timer_frequency << tick_shift) / 1000ull;
 
     csrxchg(CSR_ECFG, CSR_ECFG_TIMER_EN, CSR_ECFG_TIMER_EN);
     timer_set_timeout_ms(5);
@@ -65,14 +53,8 @@ void setup_timer() {
     LOG_TAGGED("TIME", ANSI_BBLUE, "Timer interrupt setup");
 }
 
-static uint64_t timer_get_ticks_from_ns(uint64_t ns) {
-    if (!tick_mult && !tick_shift)
-        return 0;
-    return ((__uint128_t)ns * tick_mult) >> tick_shift;
-}
-
-void timer_set_timeout_ms(uint64_t ms) {
-    uint64_t time = timer_get_ticks_from_ns(ms * 1000000);
+void timer_set_timeout_ms(int ms) {
+    uint64_t time = ((__uint128_t)ms * tick_mult) >> tick_shift;
     // time must be a multiple of 4 due to the config bits
     time = ALIGN_UP(time, 4);
     // TCFG[0] == 1 enables the timer
@@ -83,8 +65,13 @@ void timer_set_timeout_ms(uint64_t ms) {
 }
 
 uint64_t timer_get_ns() {
-    if (!freq_mult && !freq_shift)
-        return 0;
     uint64_t ticks = rdtime();
     return ((__uint128_t)ticks * freq_mult) >> freq_shift;
+}
+
+void timer_spin_wait_ms(int ms) {
+    uint64_t start = rdtime();
+    uint64_t ticks = ((__uint128_t)ms * tick_mult) >> tick_shift;
+    while ((rdtime() - start) < ticks)
+        spin();
 }

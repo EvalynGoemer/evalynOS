@@ -21,9 +21,18 @@
 #define LAPIC_ICR_DMODE_SIPI (0b110 << 8)
 #define LAPIC_ICR_DMODE_INIT (0b101 << 8)
 
+#define LAPIC_TIMER_VECTOR             0x20
+#define LAPIC_TIMER_MODE_TSC_DEADLINE  0x40000
+#define LAPIC_TIMER_MODE_PERIODIC      0x20000
+#define LAPIC_TIMER_MODE_MASKED        0x10000
+#define LAPIC_TIMER_MODE_ONESHOT       0x00000
+#define LAPIC_TIMER_DIVIDE_1           0b1011
+
 extern void setup_lapic();
+extern void timer_set_timeout_ms(int ms);
 
 extern uint32_t arch_get_local_coreid();
+extern void arch_send_eoi();
 extern void arch_send_ipi(uint32_t target_coreid, uint16_t vector);
 extern void x86_send_sipi(uint32_t target_coreid, uint8_t starting_page);
 extern void x86_send_init(uint32_t target_coreid);

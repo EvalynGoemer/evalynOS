@@ -23,15 +23,7 @@
 static void test_thread(int n) {
     while (1) {
         printf("test thread %d running\n", n);
-        #ifdef __x86_64__
-        uint64_t start = __builtin_ia32_rdtsc();
-        while ((__builtin_ia32_rdtsc() - start) < 3000000000ULL);
-        schedule();
-        #elif __riscv
         wfi();
-        #elif __loongarch64
-        wfi();
-        #endif
     }
 }
 
@@ -81,13 +73,12 @@ void kmain() {
     while (1) {
         printf("idle/bsp thread running\n");
         #ifdef __x86_64__
-        uint64_t start = __builtin_ia32_rdtsc();
-        while ((__builtin_ia32_rdtsc() - start) < 3000000000ULL);
         asm volatile ("int $0xfa");
         asm volatile ("int $0xfa");
         asm volatile ("int $0xfa");
         asm volatile ("int $0xfa");
         asm volatile ("int $0xfa");
+        wfi();
         schedule();
         #elif __riscv
         asm volatile ("ebreak");

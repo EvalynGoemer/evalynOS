@@ -15,7 +15,7 @@
 #include <mem/spalloc.h>
 #include <mem/pmm.h>
 #include <mem/vmem.h>
-#include <arch/x86_64/drivers/pvclock/pvclock.h>
+#include <arch/x86_64/timer/timer.h>
 #include <arch/intrin/cpulocal.h>
 
 static uint64_t get_nth_lomem_page(uint64_t n) {
@@ -139,9 +139,7 @@ void arch_init_aps() {
     }
 
     LOG_TAGGED("AP/INIT", ANSI_BYELLOW, "Waiting to send SIPIs")
-    // TODO: use a proper timer and wait ~10ms
-    uint64_t start = __builtin_ia32_rdtsc();
-    while ((__builtin_ia32_rdtsc() - start) < 1000000000ULL);
+    timer_spin_wait_ms(10);
 
     LOG_TAGGED("AP/INIT", ANSI_BYELLOW, "Sending SIPI IPIs to %d APs", detected_cpus - 1)
     RBTREE_FOR_EACH(detected_apics, node) {
@@ -157,8 +155,7 @@ void x86_ap_entry(uint32_t core_id) {
     per_ap_data_t* per_data = global_ap_data->per_ap_data_ptrs[core_id];
     SET_CPU_LOCAL(per_data->cpulocal_base);
 
-    if (is_hypervisor)
-        setup_pvclock(core_id);
+    setup_timers(core_id);
 
     hcf();
 }
