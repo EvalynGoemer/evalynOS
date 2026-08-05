@@ -19,9 +19,8 @@
 #include <mem/vmem.h>
 #include <mem/spalloc.h>
 
-#include <arch/generic/panic.h>
 #include <arch/generic/paging/paging.h>
-#include <loader/elf_structs.h>
+#include <loader/elf_introspection.h>
 
 vmem_allocator_t kernel_vmem_allocator = {0};
 
@@ -34,31 +33,11 @@ void vmem_init() {
     assert(alloced == hhdm_request.response->offset);
 
     // remove kernel binary from vmem
-    struct limine_executable_address_response *kaddr = executable_address_request.response;
-    struct limine_executable_file_response *kexec = executable_file_request.response;
-    struct elf_header_64 *header = (struct elf_header_64 *)kexec->executable_file->address;
-    struct elf_program_header_64 *prog_headers = (struct elf_program_header_64 *)((uint8_t *)kexec->executable_file->address + header->program_header_table);
-
-    uint64_t elf_base = (uint64_t)-1;
-    uint64_t vstart = (uint64_t)-1;
-    uint64_t vend = 0;
-
-    for (uint16_t i = 0; i < header->program_header_entries; i++) {
-        struct elf_program_header_64 *ph = &prog_headers[i];
-        if (ph->type != ELF_PROG_PT_LOAD_TYPE) continue;
-        if (ph->virt_addr < elf_base)
-            elf_base = ph->virt_addr;
-        uint64_t vbase = ph->virt_addr + kaddr->virtual_base - elf_base;
-        uint64_t vend_local = vbase + ph->mem_size;
-        if (vbase < vstart)
-            vstart = vbase;
-        if (vend_local > vend)
-            vend = vend_local;
-    }
-
-    if (elf_base == (uint64_t)-1 || vstart == (uint64_t)-1)
-        panic("Unable to get kernel virtual range from elf");
-
+    struct limine_executable_address_response* kaddr = executable_address_request.response;
+    uint64_t elf_base = elf_introspect_base();
+    uint64_t elf_top = elf_introspect_top();
+    uint64_t vstart = kaddr->virtual_base;
+    uint64_t vend = kaddr->virtual_base + (elf_top - elf_base);
     alloced = vmem_alloc(&kernel_vmem_allocator, vend - vstart, vstart);
     assert(alloced == vstart);
 

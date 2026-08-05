@@ -91,6 +91,9 @@ bool cpuid_check(cpuid_request_t req) {
     if (req.leaf == CPUID_GET_CAPABILITIES && req.subleaf > cpuid(CPUID_GET_CAPABILITIES, CPUID_NO_SUBLEAF).eax)
         return false;
 
+    if (req.leaf == CPUID_GET_FEATURES_EXT && req.subleaf > cpuid(CPUID_GET_FEATURES_EXT, CPUID_NO_SUBLEAF).eax)
+        return false;
+
     cpuid_regs_t regs = cpuid(req.leaf, req.subleaf);
 
     uint32_t val;
