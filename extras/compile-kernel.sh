@@ -23,4 +23,4 @@ fi
 echo "${CURRENT_ARGS}" > "${ARGS_FILE}"
 
 make -j$(nproc) ARCH="${ARCH}" KASLR="${KASLR}"
-cp ${KERNEL_DIR}/bin-${ARCH}/kernel.elf ${ISO_DIR}
+cp ${KERNEL_DIR}/bin-${ARCH}/kernel.elf ${ISO_DIR}/kernel-${ARCH//_/-}.elf

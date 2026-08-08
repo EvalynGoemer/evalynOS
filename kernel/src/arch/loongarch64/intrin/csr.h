@@ -10,6 +10,9 @@
 
 #define CSR_EENTRY 0x0C
 
+#define CSR_PGDL 0x19
+#define CSR_PGDH 0x1A
+
 #define CSR_SAVE0 0x30
 
 #define CSR_TCFG  0x41

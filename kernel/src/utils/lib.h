@@ -14,9 +14,13 @@
 #define FROM_HHDM(x)   ((uintptr_t)(x) - hhdm_request.response->offset)
 #define TO_HHDM_PTR(x) ((void*)TO_HHDM(x))
 
-#define LIKELY(x)   __builtin_expect(!!(x), 1)
-#define UNLIKELY(x) __builtin_expect(!!(x), 0)
-#define UNUSED(x)   ((void)(x))
+#define LIKELY(x)     __builtin_expect(!!(x), 1)
+#define UNLIKELY(x)   __builtin_expect(!!(x), 0)
+#define UNREACHABLE() __builtin_unreachable()
+#define UNUSED(x)    ((void)(x))
+
+#define ALWAYS_INLINE [[gnu::always_inline]]
+#define MAYBE_UNUSED [[gnu::unused]]
 
 #define STRINGIFY_IMPL(x) #x
 #define STRINGIFY(x) STRINGIFY_IMPL(x)

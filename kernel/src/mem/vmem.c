@@ -27,10 +27,14 @@ vmem_allocator_t kernel_vmem_allocator = {0};
 void vmem_init() {
     vmem_allocator_init(&kernel_vmem_allocator, VADDR_HIGHER_HALF_BASE, (UINT64_MAX - VADDR_HIGHER_HALF_BASE) + 1, PAGE_SIZE);
 
+    uint64_t alloced;
+
+#ifndef ARCH_UNPAGED_HHDM
     // remove HHDM from vmem
     struct limine_memmap_entry* last_entry = memmap_request.response->entries[memmap_request.response->entry_count - 1];
-    uint64_t alloced = vmem_alloc(&kernel_vmem_allocator, last_entry->base + last_entry->length, hhdm_request.response->offset);
+    alloced = vmem_alloc(&kernel_vmem_allocator, last_entry->base + last_entry->length, hhdm_request.response->offset);
     assert(alloced == hhdm_request.response->offset);
+#endif
 
     // remove kernel binary from vmem
     struct limine_executable_address_response* kaddr = executable_address_request.response;

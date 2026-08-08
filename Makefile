@@ -23,7 +23,9 @@ initramfs:
 
 .PHONY: mkiso
 mkiso:
-	./extras/compile-kernel.sh
+	ARCH=x86_64 ./extras/compile-kernel.sh
+	ARCH=riscv64 ./extras/compile-kernel.sh
+	ARCH=loongarch64 ./extras/compile-kernel.sh
 	./extras/generate-iso.sh
 
 .PHONY: run

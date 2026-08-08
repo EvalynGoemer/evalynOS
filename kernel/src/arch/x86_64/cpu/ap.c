@@ -11,7 +11,6 @@
 #include <arch/x86_64/cpu/cpuid.h>
 #include <arch/x86_64/acpi/madt.h>
 #include <arch/generic/paging/paging.h>
-#include <arch/x86_64/paging/paging.h>
 #include <mem/spalloc.h>
 #include <mem/pmm.h>
 #include <mem/vmem.h>
@@ -44,7 +43,7 @@ static uint64_t setup_trampoline() {
     uint64_t ap_page_table = get_nth_lomem_page(0);
     assert(ap_page_table != 0);
     memcpy(TO_HHDM_PTR(ap_page_table), TO_HHDM_PTR(kernel_page_table), PAGE_SIZE);
-    paging_map_page(ap_page_table, 0, 0, PAGE_KRWX, PAGE_SIZE_LARGE);
+    paging_map_page(ap_page_table, 0, 0, PAGE_KRWX, PAGE_LARGE);
 
     // find the second lowmem page for the trampoline its self
     uint64_t trampoline_page = get_nth_lomem_page(1);
@@ -61,8 +60,8 @@ static uint64_t setup_trampoline() {
     // patch in the required data
     ap_trampoline_data.cr3  = ap_page_table;
     ap_trampoline_data.data_ptr = global_ap_data;
-    if (is_5_level_paging) ap_trampoline_data.config |= AP_TRAMPOLINE_CONF_LA57;
-    if (cpuid_check(CPUID_HAS_NX)) ap_trampoline_data.config |= AP_TRAMPOLINE_CONF_NX;
+    if (mmu_config & MMU_CONFIG_L5) ap_trampoline_data.config |= AP_TRAMPOLINE_CONF_LA57;
+    if (mmu_config & MMU_CONFIG_NX) ap_trampoline_data.config |= AP_TRAMPOLINE_CONF_NX;
 
     // copy the trampoline to the second lomem page and return the phys address of it
     memcpy(TO_HHDM_PTR(trampoline_page), ap_trampoline, PAGE_SIZE);
@@ -80,7 +79,7 @@ static void setup_global_ap_data() {
 
     for (uint64_t i = 0; i < global_data_pages; i++) {
         uint64_t paddr = pmm_alloc_page();
-        paging_map_page(kernel_page_table, global_data_vaddr + i * PAGE_SIZE, paddr, PAGE_KRW, PAGE_SIZE_NORM);
+        paging_map_page(kernel_page_table, global_data_vaddr + i * PAGE_SIZE, paddr, PAGE_KRW, PAGE_NORM);
     }
 
     global_ap_data = (global_ap_data_t*)global_data_vaddr;
@@ -109,7 +108,7 @@ static void setup_global_ap_data() {
             uint64_t cpulocal_vaddr = vmem_alloc(&kernel_vmem_allocator, cpulocal_size, 0);
             for (uint64_t p = 0; p < cpulocal_pages; p++) {
                 uint64_t paddr = pmm_alloc_page();
-                paging_map_page(kernel_page_table, cpulocal_vaddr + p * PAGE_SIZE, paddr, PAGE_KRW, PAGE_SIZE_NORM);
+                paging_map_page(kernel_page_table, cpulocal_vaddr + p * PAGE_SIZE, paddr, PAGE_KRW, PAGE_NORM);
             }
             memcpy((void*)cpulocal_vaddr, (void*)__cpu_local_start, cpulocal_size);
             // setup the cpulocal self pointer

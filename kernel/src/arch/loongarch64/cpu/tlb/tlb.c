@@ -2,7 +2,7 @@
 #include <utils/limine.h>
 #include <assert.h>
 #include <arch/loongarch64/intrin/csr.h>
-#include <arch/loongarch64/paging/tlb.h>
+#include <arch/loongarch64/cpu/tlb/tlb.h>
 
 void setup_tlb_refill_handler() {
     uint64_t handler_vaddr = (uint64_t)tlb_refill_handler;

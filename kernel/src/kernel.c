@@ -47,10 +47,8 @@ void kmain() {
     memmap_print();
     freelist_pmm_init();
 
-    #ifdef __x86_64__
     paging_init();
     vmem_init();
-    #endif
 
     arch_post_mm_init();
     arch_init_aps();
