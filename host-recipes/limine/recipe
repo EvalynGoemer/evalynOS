@@ -1,0 +1,25 @@
+#!/bin/sh
+
+name=limine
+version=12.5.2
+revision=1
+tarball_url="https://github.com/Limine-Bootloader/Limine/releases/download/v${version}/limine-${version}.tar.gz"
+tarball_blake2b="c6ed1c1f5d14aae35f029e34e23c61bfd62c8d019a380b1b610235e3240837fd19fe4252c5fcdc9c61874b0c7fb5eb4e58c6a7fbf5da30e43f6c9a20e21710b3"
+imagedeps="clang llvm lld mtools nasm"
+
+configure() {
+    mkdir -p build
+    cd build
+    CFLAGS_FOR_TARGET="-O2 -pipe" "${source_dir}"/configure --enable-all --prefix="${prefix}"
+}
+
+build() {
+    cd build
+    make -j"$(nproc)"
+}
+
+package() {
+    cd build
+    DESTDIR="${dest_dir}" make install
+    find "${dest_dir}/usr/local/bin" -maxdepth 1 -type f -exec strip {} + || true
+}

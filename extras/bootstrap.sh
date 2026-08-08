@@ -2,6 +2,8 @@
 
 set -e
 
+DOWNLOAD=0; [[ "$1" == "--download" ]] && DOWNLOAD=1
+
 cd "$(dirname -- "$0")"
 
 EXTRAS_DIR="$(realpath .)"
@@ -33,20 +35,32 @@ clone_repo_commit() {
 clone_repo_commit                                      \
     https://github.com/Mintsuki/Jinx.git               \
     "$JINX_DIR"                                        \
-    6940f35b6031df4aa7d06c94d968e674ad93019e
+    6ed3ee6ece09b3b2558e5434e7f3991cd12cbd27
 
 cd "$JINX_DIR"
 ./jinx init ..
-./jinx host-build limine
-./jinx host-build ovmf2-bin
+
+host_pkgs=(limine llvm nasm ovmf2-bin qemu xorriso)
+
+cmd=build; [[ ${DOWNLOAD} == 1 ]] && cmd=download
+echo "${cmd}ing host packages"
+for pkg in "${host_pkgs[@]}"; do
+    ./jinx "$cmd" "host:$pkg"
+done
+
+for pkg in "${host_pkgs[@]}"; do
+    mkdir -p "$JINX_DIR/host-pkgs/$pkg"
+    xbps="$(ls "$JINX_DIR/host-pkgs/${pkg}"-*.x86_64.xbps 2>/dev/null | sort -V | tail -n1)"
+    tar -xf "$xbps" -C "$JINX_DIR/host-pkgs/$pkg"
+done
 
 cd "$KERNEL_DIR"
 echo "getting kernel deps"
 ./get-deps
-echo "compiling kernel"
-make -j$(nproc)
 
 cd "$EXTRAS_DIR"
+echo "compiling kernel"
+./compile-kernel.sh
 echo "generating initramfs"
 ./generate-initramfs.sh
 echo "generating iso"

@@ -1,8 +1,0 @@
-#!/bin/sh
-
-name=limine
-version=12.4.0
-allow_network=yes
-
-tarball_url="https://github.com/Limine-Bootloader/Limine/releases/download/v${version}/limine-${version}.tar.xz"
-tarball_blake2b="3ae95a0d38135da6244f946a3383268633f61f90eed39b49128284da084e3fb1c9cd821c483ed4bd4539224b0479f981e3c2159bb7e84b72ec1da6aae15885ae"

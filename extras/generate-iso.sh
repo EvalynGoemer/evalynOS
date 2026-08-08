@@ -21,7 +21,7 @@ cp ${JINX_DIR}/host-pkgs/ovmf2-bin/ovmf-vars-loongarch64.fd .
 cp ${JINX_DIR}/host-pkgs/ovmf2-bin/ovmf-code-riscv64.fd .
 cp ${JINX_DIR}/host-pkgs/ovmf2-bin/ovmf-vars-riscv64.fd .
 
-xorriso                                   \
+"${JINX_DIR}/host-pkgs/xorriso/usr/local/bin/xorriso" \
     -as mkisofs -V "EvalynOS" -R -r -J    \
     --modification-date=2026010100000000  \
     --set_all_file_dates 2026010100000000 \

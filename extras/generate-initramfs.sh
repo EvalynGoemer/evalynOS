@@ -13,8 +13,8 @@ PACKAGES=(
 )
 
 cd ${JINX_DIR}
-./jinx build     "${PACKAGES[@]}"
-./jinx reinstall "$SRC_DIR" "${PACKAGES[@]}"
+./jinx build      "${PACKAGES[@]}"
+./jinx install -f "$SRC_DIR" "${PACKAGES[@]}"
 
 tar --sort=name \
     --mtime='UTC 2026-01-01' \

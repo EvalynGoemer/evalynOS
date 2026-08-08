@@ -1,0 +1,22 @@
+diff --git a/target/i386/monitor.c b/target/i386/monitor.c
+index 4464286..fded8c2 100644
+--- a/target/i386/monitor.c
++++ b/target/i386/monitor.c
+@@ -479,7 +479,7 @@ static void mem_info_la57(Monitor *mon, CPUArchState *env, AddressSpace *as)
+             for (l2 = 0; l2 < 512; l2++) {
+                 pdpe = address_space_ldq_le(as, pdp_addr + l2 * 8, attrs, NULL);
+                 end = (l0 << 48) + (l1 << 39) + (l2 << 30);
+-                if (pdpe & PG_PRESENT_MASK) {
++                if (!(pdpe & PG_PRESENT_MASK)) {
+                     prot = 0;
+                     mem_print(mon, env, &start, &last_prot, end, prot);
+                     continue;
+@@ -498,7 +498,7 @@ static void mem_info_la57(Monitor *mon, CPUArchState *env, AddressSpace *as)
+                     pde = address_space_ldq_le(as, pd_addr + l3 * 8,
+                                                attrs, NULL);
+                     end = (l0 << 48) + (l1 << 39) + (l2 << 30) + (l3 << 21);
+-                    if (pde & PG_PRESENT_MASK) {
++                    if (!(pde & PG_PRESENT_MASK)) {
+                         prot = 0;
+                         mem_print(mon, env, &start, &last_prot, end, prot);
+                         continue;

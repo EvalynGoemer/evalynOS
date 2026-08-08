@@ -2,6 +2,7 @@
 .jinx-cache
 jinx
 sources
+host-sources
 
 # QEMU Files
 ovmf-code*

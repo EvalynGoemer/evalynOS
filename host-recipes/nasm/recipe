@@ -1,0 +1,24 @@
+#!/bin/sh
+
+name=nasm
+version=3.02
+revision=1
+tarball_url="https://www.nasm.us/pub/nasm/releasebuilds/${version}/nasm-${version}.tar.xz"
+tarball_blake2b="616a807e7ab126a1223618a457266b6f00ee3f212cbb11027125ce3ecf3beebaa935cd96e3f9640cc46d99659ad19c9d6506bf5e5a062718b203cc62f8a217fe"
+
+configure() {
+    mkdir -p build
+    cd build
+    "${source_dir}"/configure --prefix="${prefix}"
+}
+
+build() {
+    cd build
+    make -j"$(nproc)"
+}
+
+package() {
+    cd build
+    DESTDIR="${dest_dir}" make install
+    find "${dest_dir}/usr/local/bin" -maxdepth 1 -type f -exec strip {} + || true
+}

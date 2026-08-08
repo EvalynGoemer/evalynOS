@@ -2,6 +2,7 @@
 default:
 	@echo "Available Targets:"
 	@echo "  - bootstrap              // Compiles required things to build packages"
+	@echo "  - bootstrap-bin          // Downloads required things to build packages"
 	@echo "  - initramfs              // Compiles packages for the initramfs if needed and generates"
 	@echo "  - run                    // Compiles the kernel and runs in qemu w/ KVM"
 	@echo "  - run-tcg                // Compiles the kernel and runs in qemu w/ TCG"
@@ -13,9 +14,16 @@ default:
 	@echo "  - run-debug-riscv64      // Compiles the kernel for riscv64 and runs in qemu w/ TCG & Debugger"
 	@echo "  - mkiso                  // Makes an ISO that can be ran (Also rebuilds kernel)"
 
+JINX_HOST_PKGS := ./jinx/host-pkgs
+QEMU := $(JINX_HOST_PKGS)/qemu/usr/local/bin
+
 .PHONY: bootstrap
 bootstrap:
 	./extras/bootstrap.sh
+
+.PHONY: bootstrap-bin
+bootstrap-bin:
+	./extras/bootstrap.sh --download
 
 .PHONY: initramfs
 initramfs:
@@ -32,7 +40,7 @@ mkiso:
 run:
 	./extras/compile-kernel.sh
 	./extras/generate-iso.sh
-	qemu-system-x86_64 \
+	$(QEMU)/qemu-system-x86_64 \
 		-machine q35,accel=kvm,smm=on -s -smp 4 \
 		-cpu host,+x2apic,+invtsc,+pdpe1gb \
 		-m 512M \
@@ -47,7 +55,7 @@ run:
 run-tcg:
 	./extras/compile-kernel.sh
 	./extras/generate-iso.sh
-	qemu-system-x86_64 \
+	$(QEMU)/qemu-system-x86_64 \
 		-machine q35 -smp 2 \
 		-cpu max,+pdpe1gb,la57=on \
 		-M accel=tcg,smm=on -d int -no-reboot -no-shutdown -D qemu_log.txt \
@@ -64,7 +72,7 @@ run-tcg:
 run-debug:
 	KASLR="false" ./extras/compile-kernel.sh
 	./extras/generate-iso.sh
-	qemu-system-x86_64 \
+	$(QEMU)/qemu-system-x86_64 \
 		-machine q35 \
 		-s -S \
 		-M accel=tcg,smm=on -d int -no-reboot -no-shutdown -D qemu_log.txt \
@@ -81,7 +89,7 @@ run-debug:
 run-tcg-loongarch64:
 	ARCH=loongarch64 ./extras/compile-kernel.sh
 	./extras/generate-iso.sh
-	qemu-system-loongarch64 \
+	$(QEMU)/qemu-system-loongarch64 \
 		-M virt -smp 2 \
 		-cpu la464 \
 		-device ramfb \
@@ -98,7 +106,7 @@ run-tcg-loongarch64:
 run-debug-loongarch64:
 	KASLR="false" ARCH=loongarch64 ./extras/compile-kernel.sh
 	./extras/generate-iso.sh
-	qemu-system-loongarch64 \
+	$(QEMU)/qemu-system-loongarch64 \
 		-M virt \
 		-cpu la464 \
 		-device ramfb \
@@ -116,7 +124,7 @@ run-debug-loongarch64:
 run-tcg-riscv64:
 	ARCH=riscv64 ./extras/compile-kernel.sh
 	./extras/generate-iso.sh
-	qemu-system-riscv64 \
+	$(QEMU)/qemu-system-riscv64 \
 		-M virt,acpi=off -smp 2 \
 		-cpu rv64 \
 		-device ramfb \
@@ -133,7 +141,7 @@ run-tcg-riscv64:
 run-tcg-riscv64-acpi:
 	ARCH=riscv64 ./extras/compile-kernel.sh
 	./extras/generate-iso.sh
-	qemu-system-riscv64 \
+	$(QEMU)/qemu-system-riscv64 \
 		-M virt,acpi=on -smp 2 \
 		-cpu rv64 \
 		-device ramfb \
@@ -150,7 +158,7 @@ run-tcg-riscv64-acpi:
 run-debug-riscv64:
 	KASLR="false" ARCH=riscv64 ./extras/compile-kernel.sh
 	./extras/generate-iso.sh
-	qemu-system-riscv64 \
+	$(QEMU)/qemu-system-riscv64 \
 		-M virt,acpi=off \
 		-cpu rv64 \
 		-device ramfb \

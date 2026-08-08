@@ -23,6 +23,7 @@ CFLAGS += --target=$(TARGET)
 
 CC := clang
 LD := ld.lld
+NASM := nasm
 
 override CFLAGS +=        \
     -fdefer-ts            \
@@ -154,5 +155,5 @@ obj-$(ARCH)/%.S.o: %.S GNUmakefile
 ifeq ($(ARCH),x86_64)
 obj-$(ARCH)/%.asm.o: %.asm GNUmakefile
 	mkdir -p "$(dir $@)"
-	nasm $(NASMFLAGS) $< -o $@
+	$(NASM) $(NASMFLAGS) $< -o $@
 endif

@@ -1,0 +1,24 @@
+#!/bin/sh
+
+name=ovmf2-bin
+version=0.0git
+revision=1
+tarball_url="https://github.com/osdev0/edk2-ovmf-stable-bins/releases/download/20260526T165842Z/edk2-ovmf-bins.tar.xz"
+tarball_blake2b="c4d6fad935452f4e447073fe74498613c0f0fa53b08dfcba8a4dbca66b72a939cfa6c5247d5d36e197269b6cfa926569599115ce212c825e5aafd1ba2b43f432"
+
+build() {
+    :
+}
+
+package() {
+    cp "${source_dir}"/ovmf-code-ia32.fd ${dest_dir}
+    cp "${source_dir}"/ovmf-vars-ia32.fd ${dest_dir}
+    cp "${source_dir}"/ovmf-code-x86_64.fd ${dest_dir}
+    cp "${source_dir}"/ovmf-vars-x86_64.fd ${dest_dir}
+    cp "${source_dir}"/ovmf-code-riscv64.fd ${dest_dir}
+    cp "${source_dir}"/ovmf-vars-riscv64.fd ${dest_dir}
+    cp "${source_dir}"/ovmf-code-aarch64.fd ${dest_dir}
+    cp "${source_dir}"/ovmf-vars-aarch64.fd ${dest_dir}
+    cp "${source_dir}"/ovmf-code-loongarch64.fd ${dest_dir}
+    cp "${source_dir}"/ovmf-vars-loongarch64.fd ${dest_dir}
+}

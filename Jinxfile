@@ -1,10 +1,14 @@
 #!/bin/sh
 
-JINX_MAJOR_VER=0.8
+JINX_MAJOR_VER=0.10
 JINX_ARCH=x86_64
 JINX_DEBIAN_SNAPSHOT="20260320T113529Z"
 
-JINX_BASE_PACKAGES="build-essential clang clang-tools llvm llvm-19-tools lld nasm meson ninja-build libgmp-dev libmpfr-dev libmpc-dev wget mtools autoconf automake"
+JINX_BASE_PACKAGES="build-essential"
+
+XBPS_REPO_BASE="https://build.evalyngoemer.com/artifacts/evalynos-xbps"
+JINX_REPO_URL="${XBPS_REPO_BASE}/target-x86_64"
+JINX_HOST_REPO_URL="${XBPS_REPO_BASE}/host-x86_64"
 
 TARGET_CFLAGS="-O2"
 TARGET_CXXFLAGS="-O2"
