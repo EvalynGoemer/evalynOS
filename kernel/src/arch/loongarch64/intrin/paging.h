@@ -35,7 +35,7 @@
 #define LOONGARCH_PTE_MAT_WEAK_UNCACHED   (2ull << 4)
 #define LOONGARCH_PTE_MAT_STRONG_UNCACHED (0ull << 4)
 
-#define ARCH_INTERMEDIATE_MMU_FLAGS(perms) 0
+#define ARCH_INTERMEDIATE_MMU_FLAGS(attr) 0
 #define ARCH_PTE_PRESENT(pte) ((pte) != 0)
 #define ARCH_ENCODE_PTE(paddr, flags) (((paddr) & ARCH_PTE_MASK) | (flags))
 #define ARCH_DECODE_PTE(pte) ((pte) & ARCH_PTE_MASK)
@@ -45,14 +45,14 @@ static inline uint32_t arch_get_mmu_config() {
     return config;
 }
 
-static inline uint64_t prot_to_mmu_flags(uint64_t perm) {
+static inline uint64_t prot_to_mmu_flags(uint64_t attr) {
     uint64_t flags = LOONGARCH_PTE_V | LOONGARCH_PTE_P;
-    flags |= (perm & PAGE_W)  ? LOONGARCH_PTE_W | LOONGARCH_PTE_D : 0;
-    flags |= (perm & PAGE_X)  ? 0 : LOONGARCH_PTE_NX;
-    flags |= (perm & PAGE_U)  ? LOONGARCH_PTE_PLV3 : LOONGARCH_PTE_PLV0;
-    flags |= (perm & PAGE_UC) ? LOONGARCH_PTE_MAT_STRONG_UNCACHED : 0;
-    flags |= (perm & PAGE_WC) ? LOONGARCH_PTE_MAT_WEAK_UNCACHED : 0;
-    flags |= (!(perm & (PAGE_UC | PAGE_WC))) ? LOONGARCH_PTE_MAT_CACHED : 0;
+    flags |= (attr & PAGE_W)  ? LOONGARCH_PTE_W | LOONGARCH_PTE_D : 0;
+    flags |= (attr & PAGE_X)  ? 0 : LOONGARCH_PTE_NX;
+    flags |= (attr & PAGE_U)  ? LOONGARCH_PTE_PLV3 : LOONGARCH_PTE_PLV0;
+    flags |= (attr & PAGE_UC) ? LOONGARCH_PTE_MAT_STRONG_UNCACHED : 0;
+    flags |= (attr & PAGE_WC) ? LOONGARCH_PTE_MAT_WEAK_UNCACHED : 0;
+    flags |= (!(attr & (PAGE_UC | PAGE_WC))) ? LOONGARCH_PTE_MAT_CACHED : 0;
     return flags;
 }
 
@@ -81,7 +81,7 @@ static inline void arch_load_page_table(uint64_t page_table) {
 }
 
 ALWAYS_INLINE static inline uint64_t vaddr_split_bit() {
-    return (mmu_config & MMU_CONFIG_LVLS_MASK) * 9 + 12 - 1;
+    return MMU_CONFIG_TOP_LEVEL(mmu_config) * 9 + 12 - 1;
 }
 
 ALWAYS_INLINE static inline void arch_tlb_flush(uint64_t vaddr) {

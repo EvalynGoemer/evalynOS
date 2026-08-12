@@ -34,7 +34,7 @@
 #define X86_64_PTE_UC (X86_64_PTE_PWT | X86_64_PTE_PCD)
 #define X86_64_PTE_WC (X86_64_PTE_PWT | X86_64_PTE_PAT)
 
-#define ARCH_INTERMEDIATE_MMU_FLAGS(perms) (X86_64_PTE_PRESENT | X86_64_PTE_WRITABLE | ((perms) & PAGE_U ? X86_64_PTE_USER : 0))
+#define ARCH_INTERMEDIATE_MMU_FLAGS(attr) (X86_64_PTE_PRESENT | X86_64_PTE_WRITABLE | ((attr) & PAGE_U ? X86_64_PTE_USER : 0))
 #define ARCH_PTE_PRESENT(pte) ((pte) & X86_64_PTE_PRESENT)
 #define ARCH_ENCODE_PTE(paddr, flags) (((paddr) & ARCH_PTE_MASK) | (flags))
 #define ARCH_DECODE_PTE(pte) ((pte) & ARCH_PTE_MASK)
@@ -55,13 +55,13 @@ static inline uint32_t arch_get_mmu_config() {
     return config;
 }
 
-static inline uint64_t prot_to_mmu_flags(uint64_t perm) {
+static inline uint64_t prot_to_mmu_flags(uint64_t attr) {
     uint64_t flags = X86_64_PTE_PRESENT;
-    flags |= (perm & PAGE_W)  ? X86_64_PTE_WRITABLE : 0;
-    flags |= (perm & PAGE_U)  ? X86_64_PTE_USER     : 0;
-    flags |= (perm & PAGE_UC) ? X86_64_PTE_UC       : 0;
-    flags |= (perm & PAGE_WC) ? X86_64_PTE_WC       : 0;
-    if (mmu_config & MMU_CONFIG_NX) flags |= (perm & PAGE_X)  ? 0 : X86_64_PTE_NX;
+    flags |= (attr & PAGE_W)  ? X86_64_PTE_WRITABLE : 0;
+    flags |= (attr & PAGE_U)  ? X86_64_PTE_USER     : 0;
+    flags |= (attr & PAGE_UC) ? X86_64_PTE_UC       : 0;
+    flags |= (attr & PAGE_WC) ? X86_64_PTE_WC       : 0;
+    if (mmu_config & MMU_CONFIG_NX) flags |= (attr & PAGE_X)  ? 0 : X86_64_PTE_NX;
     return flags;
 }
 
@@ -89,7 +89,7 @@ static inline uint64_t mmu_flags_to_prot(uint64_t pte, int level) {
 }
 
 ALWAYS_INLINE static inline uint64_t vaddr_split_bit() {
-    return (mmu_config & MMU_CONFIG_LVLS_MASK) * 9 + 12 - 1;
+    return MMU_CONFIG_TOP_LEVEL(mmu_config) * 9 + 12 - 1;
 }
 
 ALWAYS_INLINE static inline void arch_load_page_table(uint64_t page_table) {

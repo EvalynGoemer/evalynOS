@@ -27,7 +27,7 @@
 #define RISCV_PTE_A (1ull << 6)
 #define RISCV_PTE_D (1ull << 7)
 
-#define ARCH_INTERMEDIATE_MMU_FLAGS(perms) RISCV_PTE_V
+#define ARCH_INTERMEDIATE_MMU_FLAGS(attr) RISCV_PTE_V
 #define ARCH_PTE_PRESENT(pte) ((pte) & RISCV_PTE_V)
 #define ARCH_ENCODE_PTE(paddr, flags) (((paddr) >> 2) | (flags))
 #define ARCH_DECODE_PTE(pte) (((pte) & ARCH_PTE_MASK) << 2)
@@ -43,11 +43,11 @@ static inline uint32_t arch_get_mmu_config() {
     return config;
 }
 
-static inline uint64_t prot_to_mmu_flags(uint64_t perm) {
+static inline uint64_t prot_to_mmu_flags(uint64_t attr) {
     uint64_t flags = RISCV_PTE_A | RISCV_PTE_D | RISCV_PTE_V | RISCV_PTE_R;
-    flags |= (perm & PAGE_W) ? (RISCV_PTE_W | RISCV_PTE_R) : 0;
-    flags |= (perm & PAGE_X) ? RISCV_PTE_X : 0;
-    flags |= (perm & PAGE_U) ? RISCV_PTE_U : 0;
+    flags |= (attr & PAGE_W) ? (RISCV_PTE_W | RISCV_PTE_R) : 0;
+    flags |= (attr & PAGE_X) ? RISCV_PTE_X : 0;
+    flags |= (attr & PAGE_U) ? RISCV_PTE_U : 0;
     return flags;
 }
 
@@ -68,7 +68,7 @@ static inline uint64_t mmu_flags_to_prot(uint64_t pte, MAYBE_UNUSED int level) {
 
 static inline void arch_load_page_table(uint64_t page_table) {
     uint64_t mode;
-    switch (mmu_config & MMU_CONFIG_LVLS_MASK) {
+    switch (MMU_CONFIG_TOP_LEVEL(mmu_config)) {
         case 3: mode = RISCV_SATP_SV39; break;
         case 4: mode = RISCV_SATP_SV48; break;
         case 5: mode = RISCV_SATP_SV57; break;
@@ -82,7 +82,7 @@ static inline void arch_load_page_table(uint64_t page_table) {
 #define arch_large_page_fixup(flags) (flags)
 
 ALWAYS_INLINE static inline uint64_t vaddr_split_bit() {
-    return (mmu_config & MMU_CONFIG_LVLS_MASK) * 9 + 12 - 1;
+    return MMU_CONFIG_TOP_LEVEL(mmu_config) * 9 + 12 - 1;
 }
 
 ALWAYS_INLINE static inline void arch_tlb_flush(uint64_t vaddr) {

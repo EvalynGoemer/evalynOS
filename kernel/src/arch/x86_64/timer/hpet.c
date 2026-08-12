@@ -28,7 +28,7 @@ bool setup_hpet() {
 
     uint64_t paddr = table->address.address;
     hpet_vbase = vmem_alloc(&kernel_vmem_allocator, PAGE_SIZE, 0);
-    paging_map_page(kernel_page_table, hpet_vbase, paddr, PAGE_KRW_UC, PAGE_NORM);
+    paging_map_page(kernel_page_table, hpet_vbase, paddr, PAGE_KRW_UC);
 
     mmio_write_offset_64(hpet_vbase, HPET_CONFIG, HPET_CONFIG_CNF);
     assert(hpet_get_frequency() != 0);

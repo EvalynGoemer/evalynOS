@@ -43,7 +43,7 @@ static uint64_t setup_trampoline() {
     uint64_t ap_page_table = get_nth_lomem_page(0);
     assert(ap_page_table != 0);
     memcpy(TO_HHDM_PTR(ap_page_table), TO_HHDM_PTR(kernel_page_table), PAGE_SIZE);
-    paging_map_page(ap_page_table, 0, 0, PAGE_KRWX, PAGE_LARGE);
+    paging_map_page(ap_page_table, 0, 0, PAGE_KRWX | PAGE_LARGE);
 
     // find the second lowmem page for the trampoline its self
     uint64_t trampoline_page = get_nth_lomem_page(1);
@@ -79,7 +79,7 @@ static void setup_global_ap_data() {
 
     for (uint64_t i = 0; i < global_data_pages; i++) {
         uint64_t paddr = pmm_alloc_page();
-        paging_map_page(kernel_page_table, global_data_vaddr + i * PAGE_SIZE, paddr, PAGE_KRW, PAGE_NORM);
+        paging_map_page(kernel_page_table, global_data_vaddr + i * PAGE_SIZE, paddr, PAGE_KRW);
     }
 
     global_ap_data = (global_ap_data_t*)global_data_vaddr;
@@ -108,7 +108,7 @@ static void setup_global_ap_data() {
             uint64_t cpulocal_vaddr = vmem_alloc(&kernel_vmem_allocator, cpulocal_size, 0);
             for (uint64_t p = 0; p < cpulocal_pages; p++) {
                 uint64_t paddr = pmm_alloc_page();
-                paging_map_page(kernel_page_table, cpulocal_vaddr + p * PAGE_SIZE, paddr, PAGE_KRW, PAGE_NORM);
+                paging_map_page(kernel_page_table, cpulocal_vaddr + p * PAGE_SIZE, paddr, PAGE_KRW);
             }
             memcpy((void*)cpulocal_vaddr, (void*)__cpu_local_start, cpulocal_size);
             // setup the cpulocal self pointer

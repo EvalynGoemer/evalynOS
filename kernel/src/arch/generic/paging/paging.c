@@ -9,6 +9,7 @@
 #include <mem/pmm.h>
 #include <utils/limine.h>
 #include <utils/lib.h>
+#include <assert.h>
 
 uint64_t kernel_page_table;
 
@@ -18,23 +19,23 @@ uint64_t VADDR_HIGHER_HALF_BASE = 0;
 uint32_t mmu_config = 0;
 
 /* Internal Helpers */
-static inline uint64_t get_next_level_and_allocate(uint64_t pte_phys, MAYBE_UNUSED int perms) {
+static inline uint64_t get_next_level_and_allocate(uint64_t pte_phys, MAYBE_UNUSED int attr) {
     uint64_t* vpte = TO_HHDM_PTR(pte_phys);
     uint64_t entry = *vpte;
 
     if (!ARCH_PTE_PRESENT(entry)) {
         uint64_t new_table = pmm_alloc_page();
-        entry = ARCH_ENCODE_PTE(new_table, ARCH_INTERMEDIATE_MMU_FLAGS(perms));
+        entry = ARCH_ENCODE_PTE(new_table, ARCH_INTERMEDIATE_MMU_FLAGS(attr));
         *vpte = entry;
     }
 
     return ARCH_DECODE_PTE(entry);
 }
 
-static inline void write_leaf(uint64_t pte_phys, uint64_t paddr, uint64_t vaddr, int perms, int page_size) {
+static inline void write_leaf(uint64_t pte_phys, uint64_t paddr, uint64_t vaddr, int attr) {
     uint64_t *pte_virt = TO_HHDM_PTR(pte_phys);
-    uint64_t flags = prot_to_mmu_flags(perms);
-    if (page_size != PAGE_NORM) flags = arch_large_page_fixup(flags);
+    uint64_t flags = prot_to_mmu_flags(attr);
+    if (PAGE_LEAF_LEVEL(attr) != 1) flags = arch_large_page_fixup(flags);
     *pte_virt = ARCH_ENCODE_PTE(paddr, flags);
     arch_tlb_flush(vaddr);
 }
@@ -46,7 +47,7 @@ void paging_init() {
     VADDR_LOWER_HALF_TOP = paging_get_vaddr_lower_half_top();
     VADDR_HIGHER_HALF_BASE = paging_get_vaddr_higher_half_base();
 
-    switch (mmu_config & MMU_CONFIG_LVLS_MASK) {
+    switch (MMU_CONFIG_TOP_LEVEL(mmu_config)) {
         case 5: LOG_TAGGED("MEMORY", ANSI_BGREEN, "System is using 5 Level Paging") break;
         case 4: LOG_TAGGED("MEMORY", ANSI_BGREEN, "System is using 4 Level Paging") break;
         case 3: LOG_TAGGED("MEMORY", ANSI_BGREEN, "System is using 3 Level Paging") break;
@@ -90,18 +91,18 @@ void paging_init() {
         uint64_t addr = base;
         while (addr < end) {
             if ((mmu_config & MMU_CONFIG_L3_LEAF) && addr + PAGE_SIZE_GIANT <= end && IS_ALIGNED(addr, PAGE_SIZE_GIANT)) {
-                paging_map_page(kernel_page_table, TO_HHDM(addr), addr, flags, PAGE_GIANT);
+                paging_map_page(kernel_page_table, TO_HHDM(addr), addr, flags | PAGE_GIANT);
                 addr += PAGE_SIZE_GIANT;
                 continue;
             }
 
             if ((mmu_config & MMU_CONFIG_L2_LEAF) && addr + PAGE_SIZE_LARGE <= end && IS_ALIGNED(addr, PAGE_SIZE_LARGE)) {
-                paging_map_page(kernel_page_table, TO_HHDM(addr), addr, flags, PAGE_LARGE);
+                paging_map_page(kernel_page_table, TO_HHDM(addr), addr, flags | PAGE_LARGE);
                 addr += PAGE_SIZE_LARGE;
                 continue;
             }
 
-            paging_map_page(kernel_page_table, TO_HHDM(addr), addr, flags, PAGE_NORM);
+            paging_map_page(kernel_page_table, TO_HHDM(addr), addr, flags);
             addr += PAGE_SIZE;
         }
     }
@@ -132,7 +133,7 @@ void paging_init() {
         for (uint64_t p = 0; p < pages; p++) {
             uint64_t vaddr = vbase + (p * PAGE_SIZE);
             uint64_t paddr = pbase + (p * PAGE_SIZE);
-            paging_map_page(kernel_page_table, vaddr, paddr, flags, PAGE_NORM);
+            paging_map_page(kernel_page_table, vaddr, paddr, flags);
         }
     }
 
@@ -141,52 +142,38 @@ void paging_init() {
     LOG_TAGGED_OK("MEMORY", ANSI_BGREEN, "Paging Init")
 }
 
-static inline void check_align(uint64_t vaddr, uint64_t paddr, uint64_t align, const char *msg) {
-    if (!IS_ALIGNED(vaddr, align) || !IS_ALIGNED(paddr, align))
-        panic(msg);
+static inline uint64_t paging_get_pte(uint64_t table, uint64_t vaddr, int level) {
+    uint64_t index;
+    switch (level) {
+        case 5: index = GET_PML5i(vaddr); break;
+        case 4: index = GET_PML4i(vaddr); break;
+        case 3: index = GET_PML3i(vaddr); break;
+        case 2: index = GET_PML2i(vaddr); break;
+        case 1: index = GET_PML1i(vaddr); break;
+        default: UNREACHABLE();
+    }
+    return table + index * sizeof(uint64_t);
 }
 
-// callers must lock page tables if required
-// callers must not attempt to map a large page ontop of a smaller page and vice versa
-void paging_map_page (uint64_t page_table, uint64_t vaddr, uint64_t paddr, int perms, int page_size) {
-    switch (page_size) {
-        case PAGE_NORM: check_align(vaddr, paddr, PAGE_SIZE, "tried to map a normal page with poor alignment"); break;
-        case PAGE_LARGE: check_align(vaddr, paddr, PAGE_SIZE_LARGE, "tried to map a large page with poor alignment"); break;
-        case PAGE_GIANT: check_align(vaddr, paddr, PAGE_SIZE_GIANT, "tried to map a giant page with poor alignment"); break;
-    }
+static inline void assert_alignment(uint64_t vaddr, uint64_t paddr, int leaf_level) {
+    static const uint64_t psz[] = { PAGE_SIZE, PAGE_SIZE_LARGE, PAGE_SIZE_GIANT };
+    assert(leaf_level >= 1 && leaf_level <= 3);
+    assert(vaddr % psz[leaf_level - 1] == 0);
+    assert(paddr % psz[leaf_level - 1] == 0);
+}
 
+void paging_map_page(uint64_t page_table, uint64_t vaddr, uint64_t paddr, int attr) {
+    int top_level = MMU_CONFIG_TOP_LEVEL(mmu_config);
+    int leaf_level = PAGE_LEAF_LEVEL(attr);
     uint64_t current_table = page_table;
-    uint64_t current_pte_phys;
 
-    if (mmu_config & MMU_CONFIG_L5) {
-        uint16_t pml5i = GET_PML5i(vaddr);
-        current_pte_phys = current_table + (pml5i * sizeof(uint64_t));
-        current_table = get_next_level_and_allocate(current_pte_phys, PAGE_URWX);
+    assert_alignment(vaddr, paddr, leaf_level);
+
+    for (int level = top_level; level > leaf_level; level--) {
+        uint64_t pte_phys = paging_get_pte(current_table, vaddr, level);
+        current_table = get_next_level_and_allocate(pte_phys, PAGE_URWX);
     }
 
-    if (mmu_config & MMU_CONFIG_L4) {
-        uint16_t pml4i = GET_PML4i(vaddr);
-        current_pte_phys = current_table + (pml4i * sizeof(uint64_t));
-        current_table = get_next_level_and_allocate(current_pte_phys, PAGE_URWX);
-    }
-
-    uint16_t pml3i = GET_PML3i(vaddr);
-    current_pte_phys = current_table + (pml3i * sizeof(uint64_t));
-    if (page_size == PAGE_GIANT) {
-        write_leaf(current_pte_phys, paddr, vaddr, perms, PAGE_GIANT);
-        return;
-    }
-    current_table = get_next_level_and_allocate(current_pte_phys, PAGE_URWX);
-
-    uint16_t pml2i = GET_PML2i(vaddr);
-    current_pte_phys = current_table + (pml2i * sizeof(uint64_t));
-    if (page_size == PAGE_LARGE) {
-        write_leaf(current_pte_phys, paddr, vaddr, perms, PAGE_LARGE);
-        return;
-    }
-    current_table = get_next_level_and_allocate(current_pte_phys, PAGE_URWX);
-
-    uint16_t pml1i = GET_PML1i(vaddr);
-    current_pte_phys = current_table + (pml1i * sizeof(uint64_t));
-    write_leaf(current_pte_phys, paddr, vaddr, perms, PAGE_NORM);
+    uint64_t leaf_pte = paging_get_pte(current_table, vaddr, leaf_level);
+    write_leaf(leaf_pte, paddr, vaddr, attr);
 }

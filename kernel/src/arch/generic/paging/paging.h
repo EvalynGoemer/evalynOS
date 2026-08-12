@@ -2,7 +2,7 @@
 #include <stdint.h>
 
 extern uint32_t mmu_config;
-#define MMU_CONFIG_LVLS_MASK (0x7)
+#define MMU_CONFIG_TOP_LEVEL(config) ((config) & 0x7)
 #define MMU_CONFIG_L3        (1 << 3)
 #define MMU_CONFIG_L4        (1 << 4)
 #define MMU_CONFIG_L5        (1 << 5)
@@ -14,16 +14,17 @@ extern uint32_t mmu_config;
 #define MMU_CONFIG_4LVL_PAGING ((0b011 << 3) | 4)
 #define MMU_CONFIG_5LVL_PAGING ((0b111 << 3) | 5)
 
-#define PAGE_NORM  1
-#define PAGE_LARGE 2
-#define PAGE_GIANT 3
+#define PAGE_LEAF_LEVEL(attr) (((attr) & 3) + 1)
+#define PAGE_NORM  0
+#define PAGE_LARGE 1
+#define PAGE_GIANT 2
 
-#define PAGE_R   (1 << 0)
-#define PAGE_W   (1 << 1)
-#define PAGE_X   (1 << 2)
-#define PAGE_U   (1 << 3)
-#define PAGE_UC  (1 << 4)
-#define PAGE_WC  (1 << 5)
+#define PAGE_R   (1 << 2)
+#define PAGE_W   (1 << 3)
+#define PAGE_X   (1 << 4)
+#define PAGE_U   (1 << 5)
+#define PAGE_UC  (1 << 6)
+#define PAGE_WC  (1 << 7)
 
 #define PAGE_KRO    (PAGE_R)
 #define PAGE_KRW    (PAGE_R | PAGE_W)
@@ -41,7 +42,7 @@ extern uint32_t mmu_config;
 
 extern uint64_t kernel_page_table;
 extern void paging_init();
-extern void paging_map_page (uint64_t page_table, uint64_t vaddr, uint64_t paddr, int perms,int page_size);
+extern void paging_map_page (uint64_t page_table, uint64_t vaddr, uint64_t paddr, int attr);
 
 extern uint64_t VADDR_LOWER_HALF_TOP;
 extern uint64_t VADDR_HIGHER_HALF_BASE;

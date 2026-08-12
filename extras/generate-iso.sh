@@ -26,14 +26,14 @@ cp ${JINX_DIR}/host-pkgs/ovmf2-bin/ovmf-vars-riscv64.fd .
     --modification-date=2026010100000000  \
     --set_all_file_dates 2026010100000000 \
     -hfsplus -apm-block-size 2048         \
-    --efi-boot limine-uefi-cd.bin         \
-    -efi-boot-part                        \
-    --efi-boot-image                      \
-    --protective-msdos-label              \
     -b limine-bios-cd.bin                 \
     -no-emul-boot                         \
     -boot-load-size 4                     \
     -boot-info-table                      \
+    --efi-boot limine-uefi-cd.bin         \
+    -efi-boot-part                        \
+    --efi-boot-image                      \
+    --protective-msdos-label              \
     -o evalynOS.iso                       \
     ${ISO_DIR}
 

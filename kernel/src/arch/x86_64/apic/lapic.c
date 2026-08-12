@@ -81,7 +81,7 @@ void setup_lapic() {
 
     if(!x2apic && lapic_vbase == 0) {
         lapic_vbase = vmem_alloc(&kernel_vmem_allocator, PAGE_SIZE, 0);
-        paging_map_page(kernel_page_table, lapic_vbase, lapic_pbase, PAGE_KRW_UC, PAGE_NORM);
+        paging_map_page(kernel_page_table, lapic_vbase, lapic_pbase, PAGE_KRW_UC);
     }
 
     // ensure the lapic pbase is the same on all APs
