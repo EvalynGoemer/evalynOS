@@ -11,6 +11,7 @@
 #include <mem/pmm.h>
 #include <mem/vmem.h>
 #include <mem/freelist_pmm.h>
+#include <mem/pfndb.h>
 #include <utils/misc/build_id.h>
 #include <utils/lib.h>
 #include <utils/limine.h>
@@ -48,6 +49,7 @@ void kmain() {
     freelist_pmm_init();
 
     paging_init();
+    pfndb_init();
     vmem_init();
 
     arch_post_mm_init();

@@ -34,8 +34,8 @@
          (px) = RBTREE_PREDECESSOR_OR_NULL(px))
 
 typedef enum rbtree_direction_t {
-    RB_LEFT,
-    RB_RIGHT,
+    RB_LEFT  = 0,
+    RB_RIGHT = 1,
 } rbtree_direction_t;
 
 typedef enum {

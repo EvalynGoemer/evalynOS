@@ -1,7 +1,20 @@
+#include <mem/pmm.h>
 #include <stdint.h>
 #include <utils/limine.h>
 #include <utils/lib.h>
 #include <stdio.h>
+
+uint64_t memmap_last_paddr() {
+    uint64_t end = 0;
+    for (uint64_t i = 0; i < memmap_request.response->entry_count; i++) {
+        struct limine_memmap_entry* entry = memmap_request.response->entries[i];
+        if (entry->type == LIMINE_MEMMAP_RESERVED)   continue;
+        if (entry->type == LIMINE_MEMMAP_BAD_MEMORY) continue;
+        uint64_t entry_end = entry->base + entry->length;
+        if (entry_end > end) end = entry_end;
+    }
+    return ALIGN_UP(end, PAGE_SIZE);
+}
 
 void memmap_print() {
     LOG_TAGGED("MEMORY", ANSI_BGREEN, "Got Limine Memory Map")

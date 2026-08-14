@@ -15,7 +15,7 @@ static inline void ticketlock_init(ticketlock_t* lock) {
 
 static inline void ticketlock_lock(ticketlock_t* lock) {
     disable_preemption();
-    uint32_t my = __atomic_fetch_add(&lock->next, 1, __ATOMIC_ACQ_REL);
+    uint32_t my = __atomic_fetch_add(&lock->next, 1, __ATOMIC_RELAXED);
     while (__atomic_load_n(&lock->owner, __ATOMIC_ACQUIRE) != my)
         spin();
 }

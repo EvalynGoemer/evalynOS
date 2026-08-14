@@ -18,6 +18,8 @@
 #include <mem/pmm.h>
 #include <mem/vmem.h>
 #include <mem/spalloc.h>
+#include <mem/memmap.h>
+#include <mem/pfndb.h>
 
 #include <arch/generic/paging/paging.h>
 #include <loader/elf_introspection.h>
@@ -31,10 +33,13 @@ void vmem_init() {
 
 #ifndef ARCH_UNPAGED_HHDM
     // remove HHDM from vmem
-    struct limine_memmap_entry* last_entry = memmap_request.response->entries[memmap_request.response->entry_count - 1];
-    alloced = vmem_alloc(&kernel_vmem_allocator, last_entry->base + last_entry->length, hhdm_request.response->offset);
+    alloced = vmem_alloc(&kernel_vmem_allocator, memmap_last_paddr(), hhdm_request.response->offset);
     assert(alloced == hhdm_request.response->offset);
 #endif
+
+    // remove pfndb from vmem
+    alloced = vmem_alloc(&kernel_vmem_allocator, pfndb_size, (uintptr_t)pfndb);
+    assert(alloced == (uintptr_t)pfndb);
 
     // remove kernel binary from vmem
     struct limine_executable_address_response* kaddr = executable_address_request.response;

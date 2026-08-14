@@ -8,9 +8,12 @@
 
 #define ARCH_PTE_MASK 0x000ffffffffff000
 
-#define PAGE_SIZE       4096
-#define PAGE_SIZE_LARGE (2ULL * 1024 * 1024)
-#define PAGE_SIZE_GIANT (1ULL * 1024 * 1024 * 1024)
+#define PAGE_SIZE_SHIFT       12
+#define PAGE_SIZE_LARGE_SHIFT 21
+#define PAGE_SIZE_GIANT_SHIFT 30
+#define PAGE_SIZE       (1ull << PAGE_SIZE_SHIFT)
+#define PAGE_SIZE_LARGE (1ull << PAGE_SIZE_LARGE_SHIFT)
+#define PAGE_SIZE_GIANT (1ull << PAGE_SIZE_GIANT_SHIFT)
 
 #define GET_PML5i(vaddr) (((vaddr) >> 48) & 0x1ff)
 #define GET_PML4i(vaddr) (((vaddr) >> 39) & 0x1ff)

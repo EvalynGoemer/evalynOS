@@ -51,10 +51,10 @@ rbtree_node_t* rbtree_predecessor(rbtree_node_t* node) {
 
 static rbtree_node_t* rbtree_rotate_subtree(rbtree_t* tree, rbtree_node_t* sub, rbtree_direction_t dir) {
     rbtree_node_t* sub_parent = rb_get_parent(sub);
-    rbtree_node_t* new_root = sub->children[1 - dir];
+    rbtree_node_t* new_root = sub->children[!dir];
     rbtree_node_t* new_child = new_root->children[dir];
 
-    sub->children[1 - dir] = new_child;
+    sub->children[!dir] = new_child;
 
     if (new_child)
         rb_set_parent(new_child, sub);
@@ -167,30 +167,28 @@ static void rbtree_insert_fixup(rbtree_t* tree, rbtree_node_t* node, rbtree_node
 
     do {
         // case 1
-        if (rb_get_color(parent) == RB_BLACK) {
+        if (rb_get_color(parent) == RB_BLACK)
             return;
-        }
-
-        rbtree_node_t* grandparent = rb_get_parent(parent);
 
         // case 4
+        rbtree_node_t* grandparent = rb_get_parent(parent);
         if (!grandparent) {
             rb_set_color(parent, RB_BLACK);
             return;
         }
 
         rbtree_direction_t dir = rbtree_direction(parent);
-        rbtree_node_t* uncle = grandparent->children[1 - dir];
+        rbtree_node_t* uncle = grandparent->children[!dir];
+
         if (!uncle || rb_get_color(uncle) == RB_BLACK) {
             // case 5
-            if (node == parent->children[1 - dir]) {
+            if (node == parent->children[!dir]) {
                 rbtree_rotate_subtree(tree, parent, dir);
-                node = parent;
                 parent = grandparent->children[dir];
             }
 
             // case 6
-            rbtree_rotate_subtree(tree, grandparent, 1 - dir);
+            rbtree_rotate_subtree(tree, grandparent, !dir);
             rb_set_color(parent, RB_BLACK);
             rb_set_color(grandparent, RB_RED);
             return;
@@ -201,12 +199,11 @@ static void rbtree_insert_fixup(rbtree_t* tree, rbtree_node_t* node, rbtree_node
         rb_set_color(uncle, RB_BLACK);
         rb_set_color(grandparent, RB_RED);
         node = grandparent;
-
-    } while ((parent = rb_get_parent(node)));
+        parent = rb_get_parent(node);
+    } while (parent);
 
     // case 3
     rb_set_color(tree->root, RB_BLACK);
-    return;
 }
 
 rbtree_node_t* rbtree_insert(rbtree_t* tree, rbtree_node_t* node) {
@@ -248,78 +245,56 @@ rbtree_node_t* rbtree_insert(rbtree_t* tree, rbtree_node_t* node) {
 static void rbtree_remove_fixup(rbtree_t* tree, rbtree_node_t* node, rbtree_direction_t dir) {
     rbtree_node_t* parent = rb_get_parent(node);
 
+    // case 1
     if (!parent) {
         rb_set_color(node, RB_BLACK);
         return;
     }
 
-    rbtree_node_t* sibling;
-    rbtree_node_t* close_nephew;
-    rbtree_node_t* distant_nephew;
-
     do {
-        sibling = parent->children[1 - dir];
-        distant_nephew = sibling->children[1 - dir];
-        close_nephew = sibling->children[dir];
+        rbtree_node_t* sibling = parent->children[!dir];
+
+        // case 3
         if (rb_get_color(sibling) == RB_RED) {
-            // case 3
-            rbtree_rotate_subtree(tree, parent, dir);
             rb_set_color(parent, RB_RED);
             rb_set_color(sibling, RB_BLACK);
-            sibling = close_nephew;
+            sibling = sibling->children[dir];
+            rbtree_rotate_subtree(tree, parent, dir);
+        }
 
-            distant_nephew = sibling->children[1 - dir];
-            if (distant_nephew && rb_get_color(distant_nephew) == RB_RED) {
-                goto case_6;
-            }
-            close_nephew = sibling->children[dir];
-            if (close_nephew && rb_get_color(close_nephew) == RB_RED) {
-                goto case_5;
-            }
+        rbtree_node_t* distant_nephew = sibling->children[!dir];
+        rbtree_node_t* close_nephew = sibling->children[dir];
 
-            // case 4
-            rb_set_color(sibling, RB_RED);
+        // case 6
+        if (distant_nephew && rb_get_color(distant_nephew) == RB_RED) {
+            rbtree_rotate_subtree(tree, parent, dir);
+            rb_set_color(sibling, rb_get_color(parent));
+            rb_set_color(distant_nephew, RB_BLACK);
             rb_set_color(parent, RB_BLACK);
             return;
         }
 
-        if (distant_nephew && rb_get_color(distant_nephew) == RB_RED)
-            goto case_6;
-
-        if (close_nephew && rb_get_color(close_nephew) == RB_RED)
-            goto case_5;
+        // case 5
+        if (close_nephew && rb_get_color(close_nephew) == RB_RED) {
+            rbtree_rotate_subtree(tree, sibling, !dir);
+            rbtree_rotate_subtree(tree, parent, dir);
+            rb_set_color(close_nephew, rb_get_color(parent));
+            rb_set_color(parent, RB_BLACK);
+            return;
+        }
 
         // case 4
+        rb_set_color(sibling, RB_RED);
         if (rb_get_color(parent) == RB_RED) {
-            rb_set_color(sibling, RB_RED);
             rb_set_color(parent, RB_BLACK);
             return;
         }
 
         // case 2
-        rb_set_color(sibling, RB_RED);
         node = parent;
-        if (!rb_get_parent(node)) break;
-        dir = rbtree_direction(node);
-
-    } while ((parent = rb_get_parent(node)));
-
-    // case 1
-    return;
-
-case_5:
-    rbtree_rotate_subtree(tree, sibling, 1 - dir);
-    rb_set_color(sibling, RB_RED);
-    rb_set_color(close_nephew, RB_BLACK);
-    distant_nephew = sibling;
-    sibling = close_nephew;
-
-case_6:
-    rbtree_rotate_subtree(tree, parent, dir);
-    rb_set_color(sibling, rb_get_color(parent));
-    rb_set_color(parent, RB_BLACK);
-    rb_set_color(distant_nephew, RB_BLACK);
-    return;
+        parent = rb_get_parent(parent);
+        dir = parent != nullptr && parent->children[RB_RIGHT] == node;
+    } while (parent);
 }
 
 rbtree_node_t* rbtree_remove(rbtree_t* tree, rbtree_node_t* node) {

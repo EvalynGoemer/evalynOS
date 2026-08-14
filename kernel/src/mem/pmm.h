@@ -1,7 +1,6 @@
 #pragma once
 #include <stdint.h>
-
-#define PAGE_SIZE 4096
+#include <arch/generic/paging/paging.h>
 
 typedef uint64_t (*pmm_alloc_page_t)(void);
 typedef void (*pmm_free_page_t)(uint64_t);
