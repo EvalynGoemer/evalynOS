@@ -1,5 +1,5 @@
 #include <mem/pfndb.h>
-#include <mem/pmm.h>
+#include <mem/balloc.h>
 #include <utils/lib.h>
 #include <arch/generic/paging/paging.h>
 #include <assert.h>
@@ -52,8 +52,8 @@ void pfndb_init() {
         for (uint64_t vaddr = meta_first; vaddr <= meta_last; vaddr += PAGE_SIZE) {
             if (entry->length == 0) continue;
             if (vaddr < last_mapped) continue;
-            uint64_t paddr = pmm_alloc_page();
-            paging_map_page(kernel_page_table, vaddr, paddr, PAGE_KRW);
+            uint64_t paddr = balloc_alloc_page();
+            paging_early_map_page(kernel_page_table, vaddr, paddr, PAGE_KRW);
             memset((void*)vaddr, 0, PAGE_SIZE);
             last_mapped = vaddr + PAGE_SIZE;
         }

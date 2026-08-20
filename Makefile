@@ -14,8 +14,7 @@ default:
 	@echo "  - run-debug-riscv64      // Compiles the kernel for riscv64 and runs in qemu w/ TCG & Debugger"
 	@echo "  - mkiso                  // Makes an ISO that can be ran (Also rebuilds kernel)"
 
-JINX_HOST_PKGS := ./jinx/host-pkgs
-QEMU := $(JINX_HOST_PKGS)/qemu/usr/local/bin
+QEMU := ./extras/container-run.sh host:qemu /usr/local/bin
 
 .PHONY: bootstrap
 bootstrap:

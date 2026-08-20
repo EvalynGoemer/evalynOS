@@ -10,7 +10,7 @@
 #include <mem/memmap.h>
 #include <mem/pmm.h>
 #include <mem/vmem.h>
-#include <mem/freelist_pmm.h>
+#include <mem/buddy.h>
 #include <mem/pfndb.h>
 #include <utils/misc/build_id.h>
 #include <utils/lib.h>
@@ -46,10 +46,10 @@ void kmain() {
     early_sched_init();
 
     memmap_print();
-    freelist_pmm_init();
 
     paging_init();
     pfndb_init();
+    buddy_init();
     vmem_init();
 
     arch_post_mm_init();

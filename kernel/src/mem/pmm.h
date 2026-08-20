@@ -1,9 +1,15 @@
 #pragma once
-#include <stdint.h>
 #include <arch/generic/paging/paging.h>
+#include <mem/buddy.h>
+#include <stdint.h>
+#include <string.h>
 
-typedef uint64_t (*pmm_alloc_page_t)(void);
-typedef void (*pmm_free_page_t)(uint64_t);
+static inline uint64_t pmm_alloc_page() {
+    uint64_t paddr = buddy_allocate(MIN_ORDER, ALLOC_FLAG_NOFAIL);
+    memset((void*)TO_HHDM(paddr), 0, PAGE_SIZE);
+    return paddr;
+}
 
-extern pmm_alloc_page_t pmm_alloc_page;
-extern pmm_free_page_t pmm_free_page;
+static inline void pmm_free_page(uint64_t paddr) {
+    buddy_free(paddr, MIN_ORDER);
+}

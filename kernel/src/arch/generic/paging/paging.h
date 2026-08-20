@@ -42,6 +42,8 @@ extern uint32_t mmu_config;
 
 extern uint64_t kernel_page_table;
 extern void paging_init();
+
+extern void paging_early_map_page(uint64_t page_table, uint64_t vaddr, uint64_t paddr, int attr);
 extern void paging_map_page (uint64_t page_table, uint64_t vaddr, uint64_t paddr, int attr);
 
 extern uint64_t VADDR_LOWER_HALF_TOP;

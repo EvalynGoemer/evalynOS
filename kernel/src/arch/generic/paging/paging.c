@@ -7,6 +7,7 @@
 #include <loader/elf_structs.h>
 #include <loader/elf_introspection.h>
 #include <mem/pmm.h>
+#include <mem/balloc.h>
 #include <utils/limine.h>
 #include <utils/lib.h>
 #include <assert.h>
@@ -25,6 +26,19 @@ static inline uint64_t get_next_level_and_allocate(uint64_t pte_phys, MAYBE_UNUS
 
     if (!ARCH_PTE_PRESENT(entry)) {
         uint64_t new_table = pmm_alloc_page();
+        entry = ARCH_ENCODE_PTE(new_table, ARCH_INTERMEDIATE_MMU_FLAGS(attr));
+        *vpte = entry;
+    }
+
+    return ARCH_DECODE_PTE(entry);
+}
+
+static inline uint64_t get_next_level_and_bump_allocate(uint64_t pte_phys, MAYBE_UNUSED int attr) {
+    uint64_t* vpte = TO_HHDM_PTR(pte_phys);
+    uint64_t entry = *vpte;
+
+    if (!ARCH_PTE_PRESENT(entry)) {
+        uint64_t new_table = balloc_alloc_page();
         entry = ARCH_ENCODE_PTE(new_table, ARCH_INTERMEDIATE_MMU_FLAGS(attr));
         *vpte = entry;
     }
@@ -64,13 +78,13 @@ void paging_init() {
     if (mmu_config & MMU_CONFIG_L3_LEAF)
         LOG_TAGGED("MEMORY", ANSI_BGREEN, "System supports giant pages")
 
-    kernel_page_table = pmm_alloc_page();
+    kernel_page_table = balloc_alloc_page();
 
 #ifndef ARCH_SEPARATE_PAGING_ROOTS
     // pre allocate page tables for upper half so cloning tables is simpler
     for (int i = 256; i < 512; i++) {
         uint64_t pte_phys = kernel_page_table + (i * sizeof(uint64_t));
-        get_next_level_and_allocate(pte_phys, PAGE_KRWX);
+        get_next_level_and_bump_allocate(pte_phys, PAGE_KRWX);
     }
 #endif
 
@@ -91,18 +105,18 @@ void paging_init() {
         uint64_t addr = base;
         while (addr < end) {
             if ((mmu_config & MMU_CONFIG_L3_LEAF) && addr + PAGE_SIZE_GIANT <= end && IS_ALIGNED(addr, PAGE_SIZE_GIANT)) {
-                paging_map_page(kernel_page_table, TO_HHDM(addr), addr, flags | PAGE_GIANT);
+                paging_early_map_page(kernel_page_table, TO_HHDM(addr), addr, flags | PAGE_GIANT);
                 addr += PAGE_SIZE_GIANT;
                 continue;
             }
 
             if ((mmu_config & MMU_CONFIG_L2_LEAF) && addr + PAGE_SIZE_LARGE <= end && IS_ALIGNED(addr, PAGE_SIZE_LARGE)) {
-                paging_map_page(kernel_page_table, TO_HHDM(addr), addr, flags | PAGE_LARGE);
+                paging_early_map_page(kernel_page_table, TO_HHDM(addr), addr, flags | PAGE_LARGE);
                 addr += PAGE_SIZE_LARGE;
                 continue;
             }
 
-            paging_map_page(kernel_page_table, TO_HHDM(addr), addr, flags);
+            paging_early_map_page(kernel_page_table, TO_HHDM(addr), addr, flags);
             addr += PAGE_SIZE;
         }
     }
@@ -133,7 +147,7 @@ void paging_init() {
         for (uint64_t p = 0; p < pages; p++) {
             uint64_t vaddr = vbase + (p * PAGE_SIZE);
             uint64_t paddr = pbase + (p * PAGE_SIZE);
-            paging_map_page(kernel_page_table, vaddr, paddr, flags);
+            paging_early_map_page(kernel_page_table, vaddr, paddr, flags);
         }
     }
 
@@ -160,6 +174,22 @@ static inline void assert_alignment(uint64_t vaddr, uint64_t paddr, int leaf_lev
     assert(leaf_level >= 1 && leaf_level <= 3);
     assert(vaddr % psz[leaf_level - 1] == 0);
     assert(paddr % psz[leaf_level - 1] == 0);
+}
+
+void paging_early_map_page(uint64_t page_table, uint64_t vaddr, uint64_t paddr, int attr) {
+    int top_level = MMU_CONFIG_TOP_LEVEL(mmu_config);
+    int leaf_level = PAGE_LEAF_LEVEL(attr);
+    uint64_t current_table = page_table;
+
+    assert_alignment(vaddr, paddr, leaf_level);
+
+    for (int level = top_level; level > leaf_level; level--) {
+        uint64_t pte_phys = paging_get_pte(current_table, vaddr, level);
+        current_table = get_next_level_and_bump_allocate(pte_phys, PAGE_URWX);
+    }
+
+    uint64_t leaf_pte = paging_get_pte(current_table, vaddr, leaf_level);
+    write_leaf(leaf_pte, paddr, vaddr, attr);
 }
 
 void paging_map_page(uint64_t page_table, uint64_t vaddr, uint64_t paddr, int attr) {

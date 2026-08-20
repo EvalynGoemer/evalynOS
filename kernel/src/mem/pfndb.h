@@ -19,7 +19,6 @@ typedef struct page {
     uint8_t    order;
     uint16_t   flags;
     uint32_t   ref_count;
-    page_t*    next;
 } page_t;
 
 extern page_t*  pfndb;
