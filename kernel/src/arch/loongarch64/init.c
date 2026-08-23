@@ -3,7 +3,6 @@
 #include <arch/loongarch64/cpu/interrupts.h>
 #include <acpi/tables/sdt.h>
 #include <arch/loongarch64/cpu/dmw.h>
-#include <arch/loongarch64/cpu/tlb/tlb.h>
 #include <acpi/tables/spcr.h>
 #include <drivers/16550uart.h>
 #include <arch/intrin/cpulocal.h>
@@ -13,7 +12,6 @@
 #include <arch/loongarch64/acpi/acpi.h>
 
 void arch_bootstrap_init() {
-    setup_tlb_refill_handler();
     setup_cpulocal_bsp();
 }
 

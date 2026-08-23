@@ -68,6 +68,13 @@ void paging_init() {
         default: UNREACHABLE();
     }
 
+    switch (PAGE_SIZE) {
+        case 4096:  LOG_TAGGED("MEMORY", ANSI_BGREEN, "System is using 4kb pages") break;
+        case 16384: LOG_TAGGED("MEMORY", ANSI_BGREEN, "System is using 16kb pages") break;
+        case 65536: LOG_TAGGED("MEMORY", ANSI_BGREEN, "System is using 64kb pages") break;
+        default: UNREACHABLE();
+    }
+
     if (mmu_config & MMU_CONFIG_NX)
         LOG_TAGGED("MEMORY", ANSI_BGREEN, "System supports non executable pages")
     else
@@ -152,6 +159,11 @@ void paging_init() {
     }
 
     LOG_TAGGED("MEMORY", ANSI_BGREEN, "Swapping to new page tables")
+
+#ifdef ARCH_MMU_NEEDS_INIT
+    arch_init_mmu();
+#endif
+
     arch_load_page_table(kernel_page_table);
     LOG_TAGGED_OK("MEMORY", ANSI_BGREEN, "Paging Init")
 }

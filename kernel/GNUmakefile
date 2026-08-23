@@ -1,5 +1,6 @@
 ARCH   ?= x86_64
 KASLR  ?= true
+LA64_PAGESIZE ?= 16KB
 
 CFLAGS := -O2 -flto -g -fno-omit-frame-pointer
 CPPFLAGS :=
@@ -45,7 +46,8 @@ ifeq ($(ARCH),x86_64)
     -mno-red-zone         \
     -mabi=sysv
     override LDFLAGS +=   \
-    -m elf_x86_64
+    -m elf_x86_64         \
+    -z max-page-size=0x1000
     override NASMFLAGS := \
     -w-reloc-abs-qword    \
     -g -F dwarf           \
@@ -61,6 +63,16 @@ ifeq ($(ARCH),loongarch64)
     override LDFLAGS +=   \
     -m elf64loongarch     \
     -mllvm='--target-abi=lp64s'
+    override CPPFLAGS +=  \
+    -DCONFIG_LA64_PAGESIZE_$(LA64_PAGESIZE)
+
+    ifeq ($(LA64_PAGESIZE),64KB)
+        override LDFLAGS += -z max-page-size=0x10000
+    else ifeq ($(LA64_PAGESIZE),16KB)
+        override LDFLAGS += -z max-page-size=0x4000
+    else ifeq ($(LA64_PAGESIZE),4KB)
+        override LDFLAGS += -z max-page-size=0x1000
+    endif
 endif
 ifeq ($(ARCH),riscv64)
     override CFLAGS +=                  \
@@ -68,7 +80,8 @@ ifeq ($(ARCH),riscv64)
     -mabi=lp64                          \
     -mcmodel=medany
     override LDFLAGS +=                 \
-    -m elf64lriscv
+    -m elf64lriscv                      \
+    -z max-page-size=0x1000
 endif
 
 override CPPFLAGS := \
@@ -88,7 +101,6 @@ override CPPFLAGS := \
 override LDFLAGS +=               \
     -nostdlib                     \
     -static                       \
-    -z max-page-size=0x1000       \
     --gc-sections                 \
     -T linker_scripts/$(ARCH).lds \
     --build-id=md5                \
