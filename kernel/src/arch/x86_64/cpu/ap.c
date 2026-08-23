@@ -53,7 +53,7 @@ static uint64_t setup_trampoline() {
     uint64_t trampoline_virt = (uint64_t)ap_trampoline;
     #define RELOC(dst, sym) (dst) = trampoline_page + ((uint64_t)(sym) - trampoline_virt)
     RELOC(ap_trampoline_data.gdtr_base, ap_trampoline_gdt);
-    RELOC(ap_trampoline_data.fjmp32_addr,    ap_trampoline32);
+    RELOC(ap_trampoline_data.fjmp32_addr,  ap_trampoline32);
     RELOC(ap_trampoline_data.fjmp64_addr,  ap_trampoline64);
     #undef RELOC
 
@@ -86,8 +86,7 @@ static void setup_global_ap_data() {
     global_ap_data->internal_core_id_counter = 1;
     global_ap_data->total_cores = detected_cpus;
 
-    bool status = spalloc_init(&per_ap_data_allocator, sizeof(per_ap_data_t), _Alignof(per_ap_data_t));
-    assert(status == true);
+    spalloc_init(&per_ap_data_allocator, sizeof(per_ap_data_t), alignof(per_ap_data_t));
 
     uint64_t cpulocal_size = (uint64_t)__cpu_local_end - (uint64_t)__cpu_local_start;
     uint64_t cpulocal_pages = cpulocal_size / PAGE_SIZE;

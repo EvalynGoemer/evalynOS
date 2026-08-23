@@ -71,8 +71,7 @@ void vmem_allocator_init(vmem_allocator_t* alloc, uint64_t base, uint64_t size, 
         alloc->freelists[i] = LLIST_INIT;
     }
 
-    bool status = spalloc_init(&alloc->segment_allocator, sizeof(vmem_segment_t), alignof(vmem_segment_t));
-    assert(status == true);
+    spalloc_init(&alloc->segment_allocator, sizeof(vmem_segment_t), alignof(vmem_segment_t));
 
     vmem_add_segment(alloc, base, size);
 }

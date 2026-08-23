@@ -1,144 +1,87 @@
-#include <mem/pmm.h>
-#include <utils/dstruct/llist.h>
-#include <utils/limine.h>
-#include <utils/locks/ticketlock.h>
-#include <utils/lib.h>
-#include <mem/spalloc.h>
-#include <stdint.h>
-#include <utils/defer.h>
 #include <assert.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <math.h>
+#include <utils/defer.h>
+#include <utils/lib.h>
+#include <utils/locks/ticketlock.h>
+#include <utils/dstruct/llist.h>
+#include <mem/buddy.h>
+#include <arch/generic/paging/paging.h>
+#include <mem/spalloc.h>
 
-#define COUNT_TRAILING_ZEROS(n) __builtin_ctzll((n))
+#define SPALLOC_MAGIC 0x2d59fe75
+#define SPALLOC_PAGE_OF(ptr) ((spalloc_page_header_t*)ALIGN_DOWN((ptr), PAGE_SIZE))
 
-#define SPALLOC_OBJ_STRIDE(size, align) ALIGN_UP((size), (align))
+void spalloc_init(spalloc_allocator_t* alloc, size_t obj_size, size_t obj_align) {
+    assert(alloc != nullptr);
+    assert(obj_size >= 8);
+    assert(obj_size  <= (PAGE_SIZE / 4));
+    assert(obj_align <= (PAGE_SIZE / 4));
+    assert(isPow2ull(obj_align));
 
-#define SPALLOC_PAGE_HDR_SIZE(align) ALIGN_UP(sizeof(spalloc_page_header_t), (align))
+    int stride = ALIGN_UP(obj_size, obj_align);
+    assert(stride % 8 == 0);
 
-#define SPALLOC_PAGE_OF(ptr) ((spalloc_page_header_t *)ALIGN_DOWN((uintptr_t)(ptr), PAGE_SIZE))
-
-[[gnu::always_inline]]
-static inline uint32_t spalloc_obj_count(uint32_t size, uint32_t align) {
-    uint32_t n = (PAGE_SIZE - SPALLOC_PAGE_HDR_SIZE(align)) / SPALLOC_OBJ_STRIDE(size, align);
-    return MIN(128, n);
-}
-
-[[gnu::always_inline]]
-static inline uint64_t spalloc_init_bmap_word(uint32_t size, uint32_t align, uint32_t word) {
-    uint32_t c = spalloc_obj_count(size, align);
-    uint32_t lo = word * 64u;
-    if (c <= lo) {
-        return ~0ull;
-    } else if (c >= lo + 64u) {
-        return 0ull;
-    } else {
-        return ~((1ull << (c - lo)) - 1ull);
-    }
-}
-
-[[gnu::always_inline]]
-static inline void *spalloc_obj_ptr(void* hdr, uint32_t bit, uint32_t size, uint32_t align) {
-    uintptr_t base = (uintptr_t)hdr + SPALLOC_PAGE_HDR_SIZE(align);
-    return (void*)(base + (uint64_t)bit * SPALLOC_OBJ_STRIDE(size, align));
-}
-
-[[gnu::always_inline]]
-static inline uint32_t spalloc_obj_bit(void* hdr, void* ptr, uint32_t size, uint32_t align) {
-    uintptr_t base = (uintptr_t)hdr + SPALLOC_PAGE_HDR_SIZE(align);
-    return (uint32_t)(((uintptr_t)ptr - base) / SPALLOC_OBJ_STRIDE(size, align));
-}
-
-[[gnu::always_inline]]
-static inline bool hdr_isempty(spalloc_allocator_t *alloc, spalloc_page_header_t* hdr) {
-    if (hdr->bmap[0] == alloc->word0_initial_state && hdr->bmap[1] == alloc->word1_initial_state)
-        return true;
-    return false;
-}
-
-[[gnu::always_inline]]
-static inline bool hdr_notfull(spalloc_page_header_t* hdr) {
-    if (~hdr->bmap[0] != 0ull || ~hdr->bmap[1] != 0ull)
-        return true;
-    return false;
-}
-
-bool spalloc_init(spalloc_allocator_t *alloc, int obj_size, int obj_align) {
-    if (alloc == nullptr)                                                 return false;
-    if (obj_size <= 0)                                                    return false;
-    if (obj_align <= 0)                                                   return false;
-    if ((obj_align & (obj_align - 1)) != 0)                               return false;
-    if ((size_t)obj_size >= PAGE_SIZE - sizeof(spalloc_page_header_t))    return false;
-    if ((size_t)obj_align >= PAGE_SIZE - sizeof(spalloc_page_header_t))   return false;
-    if (spalloc_obj_count(obj_size, obj_align) < 1u)                      return false;
-
-    alloc->obj_size      = obj_size;
-    alloc->obj_alignment = obj_align;
-    alloc->partial_list   = LLIST_INIT;
-    alloc->word0_initial_state = spalloc_init_bmap_word(alloc->obj_size, alloc->obj_alignment, 0);
-    alloc->word1_initial_state = spalloc_init_bmap_word(alloc->obj_size, alloc->obj_alignment, 1);
+    alloc->obj_stride = stride;
+    alloc->obj_offset = ALIGN_UP(sizeof(spalloc_page_header_t), obj_align);
+    alloc->objs_per_page = (PAGE_SIZE - alloc->obj_offset) / alloc->obj_stride;
+    alloc->partial_list = LLIST_INIT;
     ticketlock_init(&alloc->lock);
-
-    return true;
 }
 
 [[gnu::malloc]]
-void *spalloc_malloc(spalloc_allocator_t *alloc) {
+void* spalloc_malloc(spalloc_allocator_t* alloc) {
     ticketlock_lock(&alloc->lock);
     defer ticketlock_unlock(&alloc->lock);
 
-    llist_node_t *node = llist_pop(&alloc->partial_list);
-    spalloc_page_header_t *hdr;
-    if (node == NULL) {
-        uintptr_t phys = pmm_alloc_page();
-        hdr = TO_HHDM_PTR(phys);
-        hdr->bmap[0] = alloc->word0_initial_state;
-        hdr->bmap[1] = alloc->word1_initial_state;
+    llist_node_t* node = llist_pop(&alloc->partial_list);
+
+    spalloc_page_header_t* hdr;
+    if (node != nullptr) {
+        hdr = SPALLOC_PAGE_OF(node);
+        assert(hdr->magic == SPALLOC_MAGIC);
     } else {
-        hdr = CONTAINER_OF(node, spalloc_page_header_t, llnode);
+        uint64_t paddr = buddy_allocate(MIN_ORDER, ALLOC_FLAG_NOFAIL);
+        hdr = TO_HHDM_PTR(paddr);
+        hdr->magic = SPALLOC_MAGIC;
+        hdr->freecount = alloc->objs_per_page;
+        hdr->free_objs.head = nullptr;
+        uintptr_t vbase = (uintptr_t)hdr + alloc->obj_offset;
+        for (uint32_t i = 0; i < alloc->objs_per_page; i++)
+            stack_push(&hdr->free_objs, (stack_node_t*)(vbase + i * alloc->obj_stride));
     }
 
-    // find the non full word
-    uint32_t word = (~hdr->bmap[0] != 0ull) ? 0 : 1;
+    stack_node_t* obj = stack_pop(&hdr->free_objs);
+    hdr->freecount--;
 
-    // find a free place to allocate from
-    assert(~hdr->bmap[word] != 0);
-    uint32_t pos = COUNT_TRAILING_ZEROS(~hdr->bmap[word]);
+    // page is not full; return to partial list
+    if (hdr->freecount > 0)
+        llist_push(&alloc->partial_list, &hdr->linkage);
 
-    // mark as allocated
-    assert((hdr->bmap[word] & (1ull << pos)) == 0);
-    hdr->bmap[word] |= (1ull << (pos));
-
-    // if its not full push it back
-    if (hdr_notfull(hdr))
-        llist_push(&alloc->partial_list, &hdr->llnode);
-
-    // offset pos based on the word it came from
-    pos += word * 64;
-    return spalloc_obj_ptr(hdr, pos, alloc->obj_size, alloc->obj_alignment);
+    return obj;
 }
 
-void spalloc_free(spalloc_allocator_t *alloc, void *obj) {
+void spalloc_free(spalloc_allocator_t* alloc, void* obj) {
     ticketlock_lock(&alloc->lock);
     defer ticketlock_unlock(&alloc->lock);
 
-    // find the pos of the object
-    spalloc_page_header_t *hdr = SPALLOC_PAGE_OF(obj);
-    uint32_t pos = spalloc_obj_bit(hdr, obj, alloc->obj_size, alloc->obj_alignment);
-    uint32_t word = pos / 64;
-    pos -= word * 64;
+    spalloc_page_header_t* hdr = SPALLOC_PAGE_OF(obj);
+    assert(hdr->magic == SPALLOC_MAGIC);
 
-    bool was_full = !hdr_notfull(hdr);
+    stack_push(&hdr->free_objs, (stack_node_t*)obj);
+    hdr->freecount++;
 
-    // mark as free
-    assert(hdr->bmap[word] & (1ull << pos));
-    hdr->bmap[word] &= ~(1ull << pos);
-
-    // if this page is empty free it and remove from freelist
-    if (hdr_isempty(alloc, hdr)) {
-        if (!was_full) llist_node_delete(&alloc->partial_list, &hdr->llnode);
-        pmm_free_page(FROM_HHDM((uintptr_t)hdr));
+    // page was full; return to partial list
+    if (hdr->freecount == 1) {
+        llist_push(&alloc->partial_list, &hdr->linkage);
         return;
     }
 
-    // if the page was full add it back
-    if (was_full) llist_push(&alloc->partial_list, &hdr->llnode);
+    // page is now empty; return to pmm
+    if (hdr->freecount == alloc->objs_per_page) {
+        llist_node_delete(&alloc->partial_list, &hdr->linkage);
+        buddy_free(FROM_HHDM((uintptr_t)hdr), MIN_ORDER);
+        return;
+    }
 }
