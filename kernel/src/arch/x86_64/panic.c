@@ -3,7 +3,6 @@
 #include <arch/intrin/interrupts.h>
 #include <arch/x86_64/cpu/interrupts.h>
 #include <stdio.h>
-#include <inttypes.h>
 
 [[noreturn]]
 void panic_interrupt(const char* message, interrupt_frame_t* frame) {

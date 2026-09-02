@@ -2,7 +2,6 @@
 #include <arch/intrin/interrupts.h>
 #include <arch/loongarch64/cpu/interrupts.h>
 #include <stdio.h>
-#include <inttypes.h>
 #include <utils/locks/irqlock.h>
 
 [[noreturn]]

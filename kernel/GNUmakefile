@@ -75,12 +75,12 @@ ifeq ($(ARCH),loongarch64)
     endif
 endif
 ifeq ($(ARCH),riscv64)
-    override CFLAGS +=                  \
-    -march=rv64imac_zbb_zba_zihintpause \
-    -mabi=lp64                          \
+    override CFLAGS +=       \
+    -march=rv64imac_zbb_zba  \
+    -mabi=lp64               \
     -mcmodel=medany
-    override LDFLAGS +=                 \
-    -m elf64lriscv                      \
+    override LDFLAGS +=      \
+    -m elf64lriscv           \
     -z max-page-size=0x1000
 endif
 

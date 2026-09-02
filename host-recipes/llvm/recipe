@@ -1,10 +1,10 @@
 #!/bin/sh
 
 name=llvm
-version=22.1.8
+version=23.1.0
 revision=1
 tarball_url="https://github.com/llvm/llvm-project/releases/download/llvmorg-${version}/llvm-project-${version}.src.tar.xz"
-tarball_blake2b="092204f62e0f0364a041c737eb2c25fd073cb5689663d6ccd5a9e4e1743d6d80822360d59b64bff7b4d7872a68a79e899bf2f75f384e55c7d313a79243576f03"
+tarball_blake2b="9253189469c70b1e7e326851635934fab85bf64139f1dcd44721ab261c097c9980276d48eac705b999cde0a024a362191c719646956504364534585dbf57d643"
 imagedeps="clang llvm lld cmake ninja-build python3 zlib1g-dev libzstd-dev"
 
 configure() {
@@ -14,6 +14,7 @@ configure() {
         -DCMAKE_C_COMPILER=clang                              \
         -DCMAKE_CXX_COMPILER=clang++                          \
         -DLLVM_USE_LINKER=lld                                 \
+        -DLLVM_BUILD_STATIC=ON                                \
         -DCMAKE_INSTALL_PREFIX="${prefix}"                    \
         -DLLVM_ENABLE_PROJECTS='clang;lld'                    \
         -DLLVM_TARGETS_TO_BUILD='X86;RISCV;LoongArch'         \
@@ -26,6 +27,14 @@ configure() {
         -DLLVM_INCLUDE_RUNTIMES=OFF                           \
         -DCLANG_ENABLE_OBJC_REWRITER=OFF                      \
         -DCLANG_ENABLE_STATIC_ANALYZER=OFF                    \
+        -DLLVM_ENABLE_BACKTRACES=OFF                          \
+        -DLLVM_ENABLE_CRASH_OVERRIDES=OFF                     \
+        -DLLVM_ENABLE_LIBEDIT=OFF                             \
+        -DLLVM_ENABLE_LIBPFM=OFF                              \
+        -DLLVM_ENABLE_LIBXML2=OFF                             \
+        -DLLVM_ENABLE_UNWIND_TABLES=OFF                       \
+        -DLLVM_ENABLE_Z3_SOLVER=OFF                           \
+        -DLLVM_ENABLE_WARNINGS=OFF                            \
         -DCLANG_TOOL_CLANG_DIFF_BUILD=OFF                     \
         -DCLANG_TOOL_CLANG_FORMAT_BUILD=OFF                   \
         -DCLANG_TOOL_CLANG_FUZZER_BUILD=OFF                   \
@@ -42,20 +51,15 @@ configure() {
         -DCLANG_TOOL_DIAGTOOL_BUILD=OFF                       \
         -DCLANG_TOOL_LIBCLANG_BUILD=OFF                       \
         -DCLANG_TOOL_OFFLOAD_ARCH_BUILD=OFF                   \
-        -DLLVM_ENABLE_BACKTRACES=OFF                          \
-        -DLLVM_ENABLE_CRASH_OVERRIDES=OFF                     \
-        -DLLVM_ENABLE_LIBEDIT=OFF                             \
-        -DLLVM_ENABLE_LIBPFM=OFF                              \
-        -DLLVM_ENABLE_LIBXML2=OFF                             \
-        -DLLVM_ENABLE_UNWIND_TABLES=OFF                       \
-        -DLLVM_ENABLE_Z3_SOLVER=OFF                           \
-        -DLLVM_TOOL_BUGPOINT_BUILD=OFF                        \
-        -DLLVM_TOOL_BUGPOINT_PASSES_BUILD=OFF                 \
+        -DCLANG_TOOL_CLANG_SSAF_ANALYZER_BUILD=OFF            \
+        -DCLANG_TOOL_CLANG_SSAF_FORMAT_BUILD=OFF              \
+        -DCLANG_TOOL_CLANG_SSAF_LINKER_BUILD=OFF              \
         -DLLVM_TOOL_DSYMUTIL_BUILD=OFF                        \
         -DLLVM_TOOL_DXIL_DIS_BUILD=OFF                        \
         -DLLVM_TOOL_GOLD_BUILD=OFF                            \
         -DLLVM_TOOL_LLC_BUILD=OFF                             \
         -DLLVM_TOOL_LLI_BUILD=OFF                             \
+        -DLLVM_TOOL_LLUBI_BUILD=OFF                           \
         -DLLVM_TOOL_LLVM_AR_BUILD=OFF                         \
         -DLLVM_TOOL_LLVM_AS_BUILD=OFF                         \
         -DLLVM_TOOL_LLVM_AS_FUZZER_BUILD=OFF                  \
@@ -84,6 +88,7 @@ configure() {
         -DLLVM_TOOL_LLVM_DWP_BUILD=OFF                        \
         -DLLVM_TOOL_LLVM_EXEGESIS_BUILD=OFF                   \
         -DLLVM_TOOL_LLVM_EXTRACT_BUILD=OFF                    \
+        -DLLVM_TOOL_LLVM_GPU_LOADER_BUILD=OFF                 \
         -DLLVM_TOOL_LLVM_GSYMUTIL_BUILD=OFF                   \
         -DLLVM_TOOL_LLVM_IFS_BUILD=OFF                        \
         -DLLVM_TOOL_LLVM_IR2VEC_BUILD=OFF                     \
@@ -129,6 +134,7 @@ configure() {
         -DLLVM_TOOL_LLVM_XRAY_BUILD=OFF                       \
         -DLLVM_TOOL_LLVM_YAML_NUMERIC_PARSER_FUZZER_BUILD=OFF \
         -DLLVM_TOOL_LLVM_YAML_PARSER_FUZZER_BUILD=OFF         \
+        -DLLVM_TOOL_YAML2OBJ_BUILD=OFF                        \
         -DLLVM_TOOL_LTO_BUILD=OFF                             \
         -DLLVM_TOOL_OBJ2YAML_BUILD=OFF                        \
         -DLLVM_TOOL_OPT_BUILD=OFF                             \
@@ -142,6 +148,7 @@ configure() {
         -DLLVM_TOOL_VFABI_DEMANGLE_FUZZER_BUILD=OFF           \
         -DLLVM_TOOL_XCODE_TOOLCHAIN_BUILD=OFF                 \
         -DLLVM_TOOLCHAIN_TOOLS='clang;clang++;lld;ld.lld;llvm-objcopy;llvm-objdump;llvm-nm;llvm-strip' \
+        -DCLANG_LINKS_TO_CREATE='clang++'                     \
         -DLLD_SYMLINKS_TO_CREATE='ld.lld'
 }
 

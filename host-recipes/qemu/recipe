@@ -1,10 +1,10 @@
 #!/bin/sh
 
 name=qemu
-version=11.0.3
+version=11.1.1
 revision=1
 tarball_url="https://download.qemu.org/qemu-${version}.tar.xz"
-tarball_blake2b="dfee043d8d486cd6c905d814950ca86ad350ab850f122617adf209a02076885ccd6f5bc9be872f014eb2401a0924cf9b5a9e18219995d77b7c489d0e3ef476ed"
+tarball_blake2b="86f3094c0e43af8ccb822c79cb17bd1c15450c261164a7b0e106cec8fe057f5d7159a0bc163d63d013f27963bd698d05c34465fb7a2b906f48b8c49d01d9bc44"
 imagedeps="python3 python3-venv pkg-config ninja-build libglib2.0-dev libpixman-1-dev zlib1g-dev libfdt-dev libpulse-dev libasound2-dev libpipewire-0.3-dev libjack-jackd2-dev libslirp-dev libbpf-dev libxdp-dev libgtk-3-dev libvte-2.91-dev libpng-dev libjpeg62-turbo-dev libepoxy-dev libgbm-dev libegl1-mesa-dev libgl1-mesa-dev libvirglrenderer-dev libspice-server-dev"
 allow_network=yes
 

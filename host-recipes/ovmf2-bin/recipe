@@ -1,10 +1,10 @@
 #!/bin/sh
 
 name=ovmf2-bin
-version=0.0git
+version=20260821T130731Z
 revision=1
-tarball_url="https://github.com/osdev0/edk2-ovmf-stable-bins/releases/download/20260526T165842Z/edk2-ovmf-bins.tar.xz"
-tarball_blake2b="c4d6fad935452f4e447073fe74498613c0f0fa53b08dfcba8a4dbca66b72a939cfa6c5247d5d36e197269b6cfa926569599115ce212c825e5aafd1ba2b43f432"
+tarball_url="https://github.com/osdev0/edk2-ovmf-stable-bins/releases/download/${version}/edk2-ovmf-bins.tar.xz"
+tarball_blake2b="38ec1b202f2c809f6a8ad951a812ecc56df8583c4a209bcfc17fa143cbc256fd6b9976e013ff2a9d2c0ff84518b711b0b4d1e3eba34f98092b644813965eec18"
 
 build() {
     :
