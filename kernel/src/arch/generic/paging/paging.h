@@ -1,5 +1,6 @@
 #pragma once
 #include <stdint.h>
+#include <stddef.h>
 
 extern uint32_t mmu_config;
 #define MMU_CONFIG_TOP_LEVEL(config) ((config) & 0x7)
@@ -23,8 +24,9 @@ extern uint32_t mmu_config;
 #define PAGE_W   (1 << 3)
 #define PAGE_X   (1 << 4)
 #define PAGE_U   (1 << 5)
-#define PAGE_UC  (1 << 6)
-#define PAGE_WC  (1 << 7)
+#define PAGE_G   (1 << 6)
+#define PAGE_UC  (1 << 7)
+#define PAGE_WC  (1 << 8)
 
 #define PAGE_KRO    (PAGE_R)
 #define PAGE_KRW    (PAGE_R | PAGE_W)
@@ -45,6 +47,13 @@ extern void paging_init();
 
 extern void paging_early_map_page(uint64_t page_table, uint64_t vaddr, uint64_t paddr, int attr);
 extern void paging_map_page (uint64_t page_table, uint64_t vaddr, uint64_t paddr, int attr);
+extern void paging_unmap_page(uint64_t page_table, uint64_t vaddr, int attr);
+
+extern void paging_map_range(uint64_t page_table, uint64_t vaddr, uint64_t paddr, size_t length, int attr);
+extern void paging_unmap_range(uint64_t page_table, uint64_t vaddr, size_t length);
+
+extern uint64_t paging_get_paddr(uint64_t page_table, uint64_t vaddr, int* level_out);
+extern uint64_t paging_get_prot(uint64_t page_table, uint64_t vaddr);
 
 extern uint64_t VADDR_LOWER_HALF_TOP;
 extern uint64_t VADDR_HIGHER_HALF_BASE;

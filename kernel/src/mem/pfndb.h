@@ -4,13 +4,14 @@
 
 // PFNDB_PAGE_INVALID represents if a page is either
 // - not a valid physical frame
-// - was used for inital page tables and pfndb and shouldnt be touched
-// - has yet to be toched by an allocator
+// - was used for initial page tables and pfndb and shouldn't be touched
+// - has yet to be touched by an allocator
 
 typedef enum pagetype : uint8_t {
     PFNDB_PAGE_INVALID   = 0,
     PFNDB_PAGE_FREE      = 1,
     PFNDB_PAGE_ALLOCATED = 2,
+    PFNDB_PAGE_PTABLE    = 3,
 } pagetype_t;
 
 typedef struct page page_t;

@@ -7,6 +7,7 @@
 #include <stdint.h>
 
 #define ARCH_PTE_MASK 0x000ffffffffff000
+#define ARCH_LARGE_PTE_MASK 0x000fffffffffe000
 
 #define PAGE_SIZE_SHIFT       12
 #define PAGE_SIZE_LARGE_SHIFT 21
@@ -15,11 +16,8 @@
 #define PAGE_SIZE_LARGE (1ull << PAGE_SIZE_LARGE_SHIFT)
 #define PAGE_SIZE_GIANT (1ull << PAGE_SIZE_GIANT_SHIFT)
 
-#define GET_PML5i(vaddr) (((vaddr) >> 48) & 0x1ff)
-#define GET_PML4i(vaddr) (((vaddr) >> 39) & 0x1ff)
-#define GET_PML3i(vaddr) (((vaddr) >> 30) & 0x1ff)
-#define GET_PML2i(vaddr) (((vaddr) >> 21) & 0x1ff)
-#define GET_PML1i(vaddr) (((vaddr) >> 12) & 0x1ff)
+#define PAGE_INDEX_BITS 9
+#define PAGE_INDEX_MASK 0x1ff
 
 #define X86_64_PTE_PRESENT   (1ull << 0)
 #define X86_64_PTE_WRITABLE  (1ull << 1)
@@ -39,8 +37,10 @@
 
 #define ARCH_INTERMEDIATE_MMU_FLAGS(attr) (X86_64_PTE_PRESENT | X86_64_PTE_WRITABLE | ((attr) & PAGE_U ? X86_64_PTE_USER : 0))
 #define ARCH_PTE_PRESENT(pte) ((pte) & X86_64_PTE_PRESENT)
+#define ARCH_PTE_IS_LEAF(pte, level) ((level) == 1 || ((level) <= 3 && ((pte) & X86_64_PTE_PS)))
 #define ARCH_ENCODE_PTE(paddr, flags) (((paddr) & ARCH_PTE_MASK) | (flags))
 #define ARCH_DECODE_PTE(pte) ((pte) & ARCH_PTE_MASK)
+#define ARCH_DECODE_LARGE_PTE(pte) ((pte) & ARCH_LARGE_PTE_MASK)
 
 static inline uint32_t arch_get_mmu_config() {
     uint32_t config = MMU_CONFIG_L2_LEAF;
@@ -62,6 +62,7 @@ static inline uint64_t prot_to_mmu_flags(uint64_t attr) {
     uint64_t flags = X86_64_PTE_PRESENT;
     flags |= (attr & PAGE_W)  ? X86_64_PTE_WRITABLE : 0;
     flags |= (attr & PAGE_U)  ? X86_64_PTE_USER     : 0;
+    flags |= (attr & PAGE_G)  ? X86_64_PTE_GLOBAL   : 0;
     flags |= (attr & PAGE_UC) ? X86_64_PTE_UC       : 0;
     flags |= (attr & PAGE_WC) ? X86_64_PTE_WC       : 0;
     if (mmu_config & MMU_CONFIG_NX) flags |= (attr & PAGE_X)  ? 0 : X86_64_PTE_NX;
@@ -79,6 +80,7 @@ static inline uint64_t mmu_flags_to_prot(uint64_t pte, int level) {
     perm |= (pte & X86_64_PTE_WRITABLE) ? PAGE_W : 0;
     perm |= (pte & X86_64_PTE_USER)     ? PAGE_U : 0;
     perm |= (pte & X86_64_PTE_NX)       ? 0      : PAGE_X;
+    perm |= (pte & X86_64_PTE_GLOBAL)   ? PAGE_G : 0;
 
     if (level != 1) {
         if (pte & X86_64_PTE_PWT && pte & X86_64_PTE_PCD)      perm |= PAGE_UC;

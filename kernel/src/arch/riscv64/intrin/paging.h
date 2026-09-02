@@ -15,11 +15,8 @@
 #define PAGE_SIZE_LARGE (1ull << PAGE_SIZE_LARGE_SHIFT)
 #define PAGE_SIZE_GIANT (1ull << PAGE_SIZE_GIANT_SHIFT)
 
-#define GET_PML5i(vaddr) (((vaddr) >> 48) & 0x1ff)
-#define GET_PML4i(vaddr) (((vaddr) >> 39) & 0x1ff)
-#define GET_PML3i(vaddr) (((vaddr) >> 30) & 0x1ff)
-#define GET_PML2i(vaddr) (((vaddr) >> 21) & 0x1ff)
-#define GET_PML1i(vaddr) (((vaddr) >> 12) & 0x1ff)
+#define PAGE_INDEX_BITS 9
+#define PAGE_INDEX_MASK 0x1ff
 
 #define RISCV_PTE_V (1ull << 0)
 #define RISCV_PTE_R (1ull << 1)
@@ -32,8 +29,10 @@
 
 #define ARCH_INTERMEDIATE_MMU_FLAGS(attr) RISCV_PTE_V
 #define ARCH_PTE_PRESENT(pte) ((pte) & RISCV_PTE_V)
+#define ARCH_PTE_IS_LEAF(pte, level) ((level) == 1 || ((pte) & (RISCV_PTE_R | RISCV_PTE_W | RISCV_PTE_X)))
 #define ARCH_ENCODE_PTE(paddr, flags) (((paddr) >> 2) | (flags))
 #define ARCH_DECODE_PTE(pte) (((pte) & ARCH_PTE_MASK) << 2)
+#define ARCH_DECODE_LARGE_PTE(pte) ARCH_DECODE_PTE(pte)
 
 static inline uint32_t arch_get_mmu_config() {
     uint32_t config = MMU_CONFIG_L2_LEAF | MMU_CONFIG_L3_LEAF | MMU_CONFIG_NX;
@@ -51,6 +50,7 @@ static inline uint64_t prot_to_mmu_flags(uint64_t attr) {
     flags |= (attr & PAGE_W) ? (RISCV_PTE_W | RISCV_PTE_R) : 0;
     flags |= (attr & PAGE_X) ? RISCV_PTE_X : 0;
     flags |= (attr & PAGE_U) ? RISCV_PTE_U : 0;
+    flags |= (attr & PAGE_G) ? RISCV_PTE_G : 0;
     return flags;
 }
 
@@ -62,6 +62,7 @@ static inline uint64_t mmu_flags_to_prot(uint64_t pte, MAYBE_UNUSED int level) {
     perm |= (pte & RISCV_PTE_W) ? PAGE_W : 0;
     perm |= (pte & RISCV_PTE_X) ? PAGE_X : 0;
     perm |= (pte & RISCV_PTE_U) ? PAGE_U : 0;
+    perm |= (pte & RISCV_PTE_G) ? PAGE_G : 0;
     return perm;
 }
 

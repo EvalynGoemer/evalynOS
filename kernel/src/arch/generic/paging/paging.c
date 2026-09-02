@@ -4,57 +4,19 @@
 
 #include <arch/intrin/paging.h>
 #include <arch/generic/paging/paging.h>
+#include <arch/generic/paging/helpers.h>
 #include <loader/elf_structs.h>
 #include <loader/elf_introspection.h>
 #include <mem/pmm.h>
 #include <mem/balloc.h>
+#include <mem/pfndb.h>
 #include <utils/limine.h>
 #include <utils/lib.h>
-#include <assert.h>
 
 uint64_t kernel_page_table;
-
+uint32_t mmu_config = 0;
 uint64_t VADDR_LOWER_HALF_TOP = 0;
 uint64_t VADDR_HIGHER_HALF_BASE = 0;
-
-uint32_t mmu_config = 0;
-
-/* Internal Helpers */
-static inline uint64_t get_next_level_and_allocate(uint64_t pte_phys, MAYBE_UNUSED int attr) {
-    uint64_t* vpte = TO_HHDM_PTR(pte_phys);
-    uint64_t entry = *vpte;
-
-    if (!ARCH_PTE_PRESENT(entry)) {
-        uint64_t new_table = pmm_alloc_page();
-        entry = ARCH_ENCODE_PTE(new_table, ARCH_INTERMEDIATE_MMU_FLAGS(attr));
-        *vpte = entry;
-    }
-
-    return ARCH_DECODE_PTE(entry);
-}
-
-static inline uint64_t get_next_level_and_bump_allocate(uint64_t pte_phys, MAYBE_UNUSED int attr) {
-    uint64_t* vpte = TO_HHDM_PTR(pte_phys);
-    uint64_t entry = *vpte;
-
-    if (!ARCH_PTE_PRESENT(entry)) {
-        uint64_t new_table = balloc_alloc_page();
-        entry = ARCH_ENCODE_PTE(new_table, ARCH_INTERMEDIATE_MMU_FLAGS(attr));
-        *vpte = entry;
-    }
-
-    return ARCH_DECODE_PTE(entry);
-}
-
-static inline void write_leaf(uint64_t pte_phys, uint64_t paddr, uint64_t vaddr, int attr) {
-    uint64_t *pte_virt = TO_HHDM_PTR(pte_phys);
-    uint64_t flags = prot_to_mmu_flags(attr);
-    if (PAGE_LEAF_LEVEL(attr) != 1) flags = arch_large_page_fixup(flags);
-    *pte_virt = ARCH_ENCODE_PTE(paddr, flags);
-    arch_tlb_flush(vaddr);
-}
-
-/* Public Functions */
 
 void paging_init() {
     mmu_config = arch_get_mmu_config();
@@ -144,7 +106,7 @@ void paging_init() {
     for (uint16_t i = 0; i < header->program_header_entries; i++) {
         struct elf_program_header_64 *ph = &prog_headers[i];
         if (ph->type != ELF_PROG_PT_LOAD_TYPE) continue;
-        uint64_t flags = PAGE_R;
+        uint64_t flags = PAGE_R | PAGE_G;
         if (ph->flags & ELF_PROG_WRITE)     flags |= PAGE_W;
         if (ph->flags & ELF_PROG_EXEC_FLAG) flags |= PAGE_X;
 
@@ -166,56 +128,4 @@ void paging_init() {
 
     arch_load_page_table(kernel_page_table);
     LOG_TAGGED_OK("MEMORY", ANSI_BGREEN, "Paging Init")
-}
-
-static inline uint64_t paging_get_pte(uint64_t table, uint64_t vaddr, int level) {
-    uint64_t index;
-    switch (level) {
-        case 5: index = GET_PML5i(vaddr); break;
-        case 4: index = GET_PML4i(vaddr); break;
-        case 3: index = GET_PML3i(vaddr); break;
-        case 2: index = GET_PML2i(vaddr); break;
-        case 1: index = GET_PML1i(vaddr); break;
-        default: UNREACHABLE();
-    }
-    return table + index * sizeof(uint64_t);
-}
-
-static inline void assert_alignment(uint64_t vaddr, uint64_t paddr, int leaf_level) {
-    static const uint64_t psz[] = { PAGE_SIZE, PAGE_SIZE_LARGE, PAGE_SIZE_GIANT };
-    assert(leaf_level >= 1 && leaf_level <= 3);
-    assert(vaddr % psz[leaf_level - 1] == 0);
-    assert(paddr % psz[leaf_level - 1] == 0);
-}
-
-void paging_early_map_page(uint64_t page_table, uint64_t vaddr, uint64_t paddr, int attr) {
-    int top_level = MMU_CONFIG_TOP_LEVEL(mmu_config);
-    int leaf_level = PAGE_LEAF_LEVEL(attr);
-    uint64_t current_table = page_table;
-
-    assert_alignment(vaddr, paddr, leaf_level);
-
-    for (int level = top_level; level > leaf_level; level--) {
-        uint64_t pte_phys = paging_get_pte(current_table, vaddr, level);
-        current_table = get_next_level_and_bump_allocate(pte_phys, PAGE_URWX);
-    }
-
-    uint64_t leaf_pte = paging_get_pte(current_table, vaddr, leaf_level);
-    write_leaf(leaf_pte, paddr, vaddr, attr);
-}
-
-void paging_map_page(uint64_t page_table, uint64_t vaddr, uint64_t paddr, int attr) {
-    int top_level = MMU_CONFIG_TOP_LEVEL(mmu_config);
-    int leaf_level = PAGE_LEAF_LEVEL(attr);
-    uint64_t current_table = page_table;
-
-    assert_alignment(vaddr, paddr, leaf_level);
-
-    for (int level = top_level; level > leaf_level; level--) {
-        uint64_t pte_phys = paging_get_pte(current_table, vaddr, level);
-        current_table = get_next_level_and_allocate(pte_phys, PAGE_URWX);
-    }
-
-    uint64_t leaf_pte = paging_get_pte(current_table, vaddr, leaf_level);
-    write_leaf(leaf_pte, paddr, vaddr, attr);
 }

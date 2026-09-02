@@ -14,8 +14,7 @@ bool verify_acpi() {
     int count = acpi_table_count();
     LOG_TAGGED("ACPI", ANSI_BMAGENTA, "Found %d tables in the RSDT", count)
     for (int i = 0; i < count; i++) {
-        struct SDTHeader* header = (struct SDTHeader*)acpi_get_sdt(i);
-        if (!header) continue;
+        struct SDTHeader* header = acpi_get_sdt(i);
 
         char signature[5]  = {0};
         char oemID[7]      = {0};
