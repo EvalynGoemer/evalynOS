@@ -16,6 +16,7 @@
 #define ELF_EXECUTABLE_TYPE 0x02
 
 #define ELF_X86_64_ARCH    0x3E
+#define ELF_RISCV_ARCH     0xF3
 #define ELF_LOONGARCH_ARCH 0x102
 
 struct [[gnu::packed]] elf_header_64 {
