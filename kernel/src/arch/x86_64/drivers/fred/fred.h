@@ -6,6 +6,13 @@
 
 #define FRED_FAKE_VECTOR_CPL0   0
 #define FRED_FAKE_VECTOR_CPL3   3
+
+#define FRED_EVENT_TYPE_EXTINT  0
+#define FRED_EVENT_TYPE_NMI     2
+#define FRED_EVENT_TYPE_HWFAULT 3
+#define FRED_EVENT_TYPE_SWINT   4
+#define FRED_EVENT_TYPE_KSWINT  5
+#define FRED_EVENT_TYPE_SWFAULT 6
 #define FRED_EVENT_TYPE_SYSCALL 7
 
 extern bool fred_enabled;

@@ -30,26 +30,11 @@ interrupt_handler_asm:
     andi  $t1, $t1, 0x3 # bits 1:0 = pplv ; 0 = from kernel ; nonzero = from user
     beqz  $t1, 1f       # branch if from kernel mode
     ld.d  $t1, $t2, 0   # load current thread pointer if from user mode
-    ld.d  $sp, $t1, 0   # get kernel stack pointer
+    ld.d  $sp, $t1, 8   # get kernel stack pointer
     1:                  # else proceed
 
     # generate interrupt frame
     addi.d $sp, $sp, -304
-    # save era
-    csrrd $t1, era
-    st.d  $t1, $sp, 256
-    # save prmd
-    csrrd $t1, prmd
-    st.d  $t1, $sp, 264
-    # save estat
-    csrrd $t1, estat
-    st.d  $t1, $sp, 272
-    # save badv
-    csrrd $t1, badv
-    st.d  $t1, $sp, 280
-    # save badi
-    csrrd $t1, badi
-    st.d  $t1, $sp, 288
 
     # save sp into frame.x[3]
     ld.d  $t1, $t2, 24
@@ -93,17 +78,48 @@ interrupt_handler_asm:
     st.d  $r30, $sp, 240
     st.d  $r31, $sp, 248
 
-    # pass the frame as an argument
-    move  $a0, $sp
+    # save era
+    csrrd $t0, era
+    st.d  $t0, $sp, 256
+    # save prmd
+    csrrd $t1, prmd
+    st.d  $t1, $sp, 264
+    # save estat
+    csrrd $t2, estat
+    st.d  $t2, $sp, 272
+    # save badv
+    csrrd $t3, badv
+    st.d  $t3, $sp, 280
+    # save badi
+    csrrd $t4, badi
+    st.d  $t4, $sp, 288
 
     # ensure cpulocal is valid
     csrrd $r21, save0
 
-    bl dispatch_interrupt
+    srli.d $t2, $t2, 16      # get ecode from estat
+    andi   $t2, $t2, 0x3f    # mask out the non ecode bits
+    addi.d $t2, $t2, -0xB    # if t2 (ecode) - 0xB (syscall 0) != 0
+    bnez  $t2, .interrupt    # branch to interrupt handler
+
+    addi.d $t0, $t0, 4       # t0 (era) += 4
+    st.d  $t0, $sp, 256      # store in frame
+    move  $r11, $sp          # pass the frame as the 8th arg
+    li.d  $t0, (1 << 2)      # enable interrupts
+    csrxchg $t0, $t0, crmd
+    bl    dispatch_syscall   # call into C
+    st.d  $a0, $sp, 32       # put return values on stack to be restored
+    st.d  $a1, $sp, 40
+    b     .common
+
+    .interrupt:
+    move  $a0, $sp           # pass the frame as an argument
+    call dispatch_interrupt
+
+    .common:
     # disable interrupts
-    move  $t0, $zero
     li.d  $t1, (1 << 2)
-    csrxchg $t0, $t1, crmd
+    csrxchg $zero, $t1, crmd
 
     # restore required interrupt frame parts
     ld.d  $t0, $sp, 256 # restore era

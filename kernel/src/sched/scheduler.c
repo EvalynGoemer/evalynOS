@@ -1,4 +1,6 @@
 #include <assert.h>
+#include <arch/generic/paging/paging.h>
+#include <mem/address_space.h>
 #include <sched/scheduler.h>
 #include <arch/intrin/interrupts.h>
 #include <arch/generic/thread/switch.h>
@@ -12,6 +14,15 @@ void early_sched_init() {
     thread_t* idle = CPU_LOCAL_PTR(idle_thread);
     idle->state = THREAD_RUNNING;
     CPU_LOCAL_SET_CURRENT_THREAD(idle);
+}
+
+void enqueue_thread(thread_t* thread) {
+    disable_interrupts();
+    spinlock_t* lock = CPU_LOCAL_GET_SCHED_LOCK_PTR();
+    spinlock_lock(lock);
+    llist_push_back(CPU_LOCAL_GET_RUN_QUEUE_PTR(), &thread->node);
+    spinlock_unlock(lock);
+    enable_interrupts();
 }
 
 void schedule() {
@@ -49,5 +60,11 @@ void schedule_finalize(thread_t* prev, thread_t* next) {
         prev->state = THREAD_RUNABLE;
         llist_t* queue = CPU_LOCAL_GET_RUN_QUEUE_PTR();
         llist_push_back(queue, &prev->node);
+    }
+
+    // is a user thread
+    if (next->addrspace != nullptr) {
+        arch_load_page_table(next->addrspace->pagetable);
+        arch_finalize_user_switch(next);
     }
 }

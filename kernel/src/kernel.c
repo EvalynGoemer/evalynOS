@@ -62,8 +62,6 @@ void kmain() {
 
     for (unsigned int i = 0; i < ARRAY_SIZE(test_threads); i++) {
         uintptr_t paddr = (uintptr_t)pmm_alloc_page();
-        test_threads[i].kstack_alloc_base = paddr;
-        test_threads[i].kstack_alloc_size = PAGE_SIZE;
         test_threads[i].kstack = arch_prepare_thread_stack(TO_HHDM(paddr) + PAGE_SIZE, (uintptr_t)test_thread, i);
         test_threads[i].state = THREAD_RUNABLE;
         llist_push_back(CPU_LOCAL_GET_RUN_QUEUE_PTR(), &test_threads[i].node);

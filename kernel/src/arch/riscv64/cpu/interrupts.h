@@ -19,3 +19,4 @@ extern const char* exception_names[];
 
 #define EXCEPTION_CAUSE_EBREAK 3
 #define INTERRUPT_CAUSE_TIMER  5
+#define EXCEPTION_CAUSE_ECALL  8

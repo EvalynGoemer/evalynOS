@@ -1,4 +1,5 @@
 .extern dispatch_interrupt
+.extern dispatch_syscall
 .global interrupt_handler_asm
 .balign 4
 interrupt_handler_asm:
@@ -19,23 +20,11 @@ interrupt_handler_asm:
     andi t1, t1, (1 << 8)   # bit 8 = SPP ; nonzero = from kernel ; 0 = from user
     bnez t1, 1f             # branch if from kernel mode
     ld t1, 0(t0)            # load current thread pointer if from user mode
-    ld sp, 0(t1)            # get kernel stack pointer
+    ld sp, 8(t1)            # get kernel stack pointer
     1:                      # else proceed
 
     # generate interrupt frame
     addi sp, sp, -288
-    # save sepc
-    csrr t1, sepc
-    sd t1, 256(sp)
-    # save sstatus
-    csrr t1, sstatus
-    sd t1, 264(sp)
-    # save scause
-    csrr t1, scause
-    sd t1, 272(sp)
-    # save stval
-    csrr t1, stval
-    sd t1, 280(sp)
 
     # save sp into frame.x[2]
     ld t1, 24(t0)
@@ -79,13 +68,38 @@ interrupt_handler_asm:
     sd x30, 240(sp)
     sd x31, 248(sp)
 
-    # pass the frame as an argument
-    mv a0, sp
+    # save sepc
+    csrr t0, sepc
+    sd t0, 256(sp)
+    # save sstatus
+    csrr t1, sstatus
+    sd t1, 264(sp)
+    # save scause
+    csrr t2, scause
+    sd t2, 272(sp)
+    # save stval
+    csrr t3, stval
+    sd t3, 280(sp)
 
     # ensure cpulocal is valid
     csrr tp, sscratch
 
+    addi t2, t2, -8         # if t2 (scause) - 8 (ecall from umode) != 0
+    bnez t2, .interrupt     # branch to interrupt handler
+    addi t0, t0, 4          # t0 (sepc) += 4
+    sd t0, 256(sp)          # store in frame
+    mv a7, sp               # pass the frame as the 8th arg
+    csrsi sstatus, 2        # enable interrupts
+    call dispatch_syscall   # call into C
+    sd a0, 80(sp)           # put return values on stack to be restored
+    sd a1, 88(sp)
+    j .common
+
+    .interrupt:
+    mv a0, sp               # pass the frame as an argument
     call dispatch_interrupt
+
+    .common:
     # disable interrupts
     csrci sstatus, 2
 

@@ -1,5 +1,9 @@
 .globl arch_thread_switch
 .type arch_thread_switch, @function
+.globl arch_switch_to_user
+.type arch_switch_to_user, @function
+.global arch_finalize_user_switch
+.type arch_finalize_user_switch, @function
 
 .extern schedule_finalize
 
@@ -49,4 +53,57 @@ arch_thread_switch:
     ld s0,  88(sp)
     ld ra,  96(sp)
     addi sp, sp, 104
+    ret
+
+# a0 = user entry
+# a1 = user stack top
+arch_switch_to_user:
+    # zero registers skipping zero, sp, a0, a1
+    move x1,  zero
+    move x3,  zero
+    move x4,  zero
+    move x5,  zero
+    move x6,  zero
+    move x7,  zero
+    move x8,  zero
+    move x9,  zero
+    move x12, zero
+    move x13, zero
+    move x14, zero
+    move x15, zero
+    move x16, zero
+    move x17, zero
+    move x18, zero
+    move x19, zero
+    move x20, zero
+    move x21, zero
+    move x22, zero
+    move x23, zero
+    move x24, zero
+    move x25, zero
+    move x26, zero
+    move x27, zero
+    move x28, zero
+    move x29, zero
+    move x30, zero
+    move x31, zero
+
+    # disable interrupts
+    csrc sstatus, (1 << 1)
+    # clear SPP
+    li t0, (1 << 8)
+    csrc sstatus, t0
+    # set SPIE
+    li t0, (1 << 5)
+    csrs sstatus, t0
+
+    csrw sepc, a0
+    mv sp, a1
+
+    move a0, zero
+    move a1, zero
+
+    sret
+
+arch_finalize_user_switch:
     ret

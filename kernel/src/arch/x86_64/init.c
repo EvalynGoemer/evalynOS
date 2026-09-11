@@ -1,3 +1,4 @@
+#include "arch/x86_64/syscall/syscall.h"
 #include <stdint.h>
 #include <utils/limine.h>
 #include <libc/stdio.h>
@@ -59,4 +60,5 @@ void arch_post_mm_init() {
 
     setup_timers(0);
     setup_lapic();
+    setup_syscall();
 }

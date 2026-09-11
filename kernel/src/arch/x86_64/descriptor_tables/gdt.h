@@ -44,3 +44,5 @@ extern void setup_bsp_gdt();
 [[gnu::aligned(64)]] extern uint8_t bsp_df_stack[4096];
 [[gnu::aligned(64)]] extern uint8_t bsp_nmi_stack[4096];
 [[gnu::aligned(64)]] extern uint8_t bsp_mce_stack[4096];
+
+extern struct TSS bsp_tss;

@@ -20,15 +20,13 @@ void dispatch_interrupt(interrupt_frame_t* frame) {
 
     /* FRED Logic */
     vector = (frame->cpu_frame.ss >> 32) & 0xFF;
+    uint8_t type = (frame->cpu_frame.ss >> 48) & 0xF;
     if (frame->vector == FRED_FAKE_VECTOR_CPL3) {
-        uint8_t type = (frame->cpu_frame.ss >> 48) & 0xF;
-        if (type == FRED_EVENT_TYPE_SYSCALL) {
-            // TODO: when syscalls are setup replace this with the handle syscall function
-            panic("Kernel should not be getting syscalls right now");
-            return;
+        // ignore these from userspace
+        switch (type) {
+            case FRED_EVENT_TYPE_SWINT:   return;
+            case FRED_EVENT_TYPE_SWFAULT: return;
         }
-        // TODO: when ring3 is properly setup remove this
-        panic("Kernel should not be getting interrupts from ring3 right now");
     }
     skip_fred:
 

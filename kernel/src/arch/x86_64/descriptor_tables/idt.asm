@@ -14,6 +14,11 @@ isr%1:
 %endmacro
 
 dispatch_interrupt_asm:
+    test byte [rsp + 24], 3
+    jz .kernel_entry
+    swapgs
+    .kernel_entry:
+
     push rax
     push rbx
     push rcx
@@ -52,6 +57,11 @@ dispatch_interrupt_asm:
     pop rcx
     pop rbx
     pop rax
+
+    test byte [rsp + 24], 3
+    jz .kernel_exit
+    swapgs
+    .kernel_exit:
 
     add rsp, 16
     iretq
