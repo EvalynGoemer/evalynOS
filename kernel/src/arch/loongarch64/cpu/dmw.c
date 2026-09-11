@@ -44,10 +44,22 @@ void rebase_limine_requests() {
     executable_file_request.response = rebase_ptr((void*)executable_file_request.response, cached_delta);
     if (executable_file_request.response && executable_file_request.response->executable_file) {
         executable_file_request.response->executable_file = rebase_ptr(executable_file_request.response->executable_file, cached_delta);
-        struct limine_file *file = executable_file_request.response->executable_file;
+        struct limine_file* file = executable_file_request.response->executable_file;
         file->address = rebase_ptr(file->address, cached_delta);
         file->path = rebase_ptr(file->path, cached_delta);
         file->string = rebase_ptr(file->string, cached_delta);
+    }
+
+    module_request.response = rebase_ptr((void*)module_request.response, cached_delta);
+    if (module_request.response) {
+        module_request.response->modules = rebase_ptr(module_request.response->modules, cached_delta);
+        for (uint64_t i = 0; i < module_request.response->module_count; i++) {
+            struct limine_file* file = module_request.response->modules[i] =
+            rebase_ptr(module_request.response->modules[i], cached_delta);
+            file->address = rebase_ptr(file->address, cached_delta);
+            file->path    = rebase_ptr(file->path,    cached_delta);
+            file->string  = rebase_ptr(file->string,  cached_delta);
+        }
     }
 
     rsdp_request.response = rebase_ptr((void*)rsdp_request.response, cached_delta);
