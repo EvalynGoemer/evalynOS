@@ -1,0 +1,16 @@
+#!/bin/sh
+name=klib
+version=0.0git
+revision=1
+skip_pkg_check=yes
+source_dir="dist/klib"
+hostdeps="llvm"
+
+build() {
+    cp -rpf "${source_dir}"/. ./
+    make CC="clang --target=${TARGET_TRIPLET} ${TARGET_CFLAGS}"
+}
+
+package() {
+    make CC="clang --target=${TARGET_TRIPLET} ${TARGET_CFLAGS}" DESTDIR="${dest_dir}" install
+}

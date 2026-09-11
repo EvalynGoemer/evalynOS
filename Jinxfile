@@ -1,19 +1,27 @@
 #!/bin/sh
 
 JINX_MAJOR_VER=0.10
-JINX_ARCH=x86_64
 JINX_DEBIAN_SNAPSHOT="20260320T113529Z"
 
 JINX_BASE_PACKAGES="build-essential"
 
 XBPS_REPO_BASE="https://build.evalyngoemer.com/artifacts/evalynos-xbps"
-JINX_REPO_URL="${XBPS_REPO_BASE}/target-x86_64"
 JINX_HOST_REPO_URL="${XBPS_REPO_BASE}/host-x86_64"
 
-TARGET_CFLAGS="-O2"
-TARGET_CXXFLAGS="-O2"
-TARGET_LDFLAGS=""
-TARGET_TRIPLET="x86_64-evalynos"
+case "${JINX_ARCH}" in
+    x86_64)
+        TARGET_TRIPLET="x86_64-unknown-elf"
+        TARGET_CFLAGS="-O2 -std=gnu23"
+        ;;
+    riscv64)
+        TARGET_TRIPLET="riscv64-unknown-elf"
+        TARGET_CFLAGS="-O2 -std=gnu23 -march=rv64imac_zbb_zba"
+        ;;
+    loongarch64)
+        TARGET_TRIPLET="loongarch64-unknown-elf"
+        TARGET_CFLAGS="-O2 -std=gnu23 -march=la464"
+        ;;
+esac
 
 HOST_CFLAGS="-O2"
 HOST_CXXFLAGS="-O2"

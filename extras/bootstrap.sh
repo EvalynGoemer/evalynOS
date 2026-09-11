@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 
-set -e
+set -euo pipefail
 
-DOWNLOAD=0; [[ "$1" == "--download" ]] && DOWNLOAD=1
+DOWNLOAD=0; [[ "${1-}" == "--download" ]] && DOWNLOAD=1
 
 cd "$(dirname -- "$0")"
 
-EXTRAS_DIR="$(realpath .)"
+PROJECT_DIR="$(realpath ../)"
 JINX_DIR="$(realpath ../jinx/)"
 KERNEL_DIR="$(realpath ../kernel/)"
 
@@ -54,16 +54,23 @@ for pkg in "${host_pkgs[@]}"; do
     tar -xf "$xbps" -C "$JINX_DIR/host-pkgs/$pkg"
 done
 
+for arch in riscv64 loongarch64; do
+    build_dir="${JINX_DIR}-${arch}"
+    rm -rf "${build_dir}"
+    mkdir -p "${build_dir}"
+    ln -s ../jinx/host-pkgs   "${build_dir}/host-pkgs"
+    ln -s ../jinx/host-builds "${build_dir}/host-builds"
+    (cd "${build_dir}" && "${JINX_DIR}/jinx" init .. ARCH="${arch}")
+done
+
 cd "$KERNEL_DIR"
 echo "getting kernel deps"
 ./get-deps
 
-cd "$EXTRAS_DIR"
-echo "compiling kernel"
-./compile-kernel.sh
+cd "$PROJECT_DIR"
 echo "generating initramfs"
-./generate-initramfs.sh
+make initramfs
 echo "generating iso"
-./generate-iso.sh
+make mkiso
 
 echo "finished bootstrap"

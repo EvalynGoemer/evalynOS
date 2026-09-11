@@ -3,7 +3,7 @@ default:
 	@echo "Available Targets:"
 	@echo "  - bootstrap              // Compiles required things to build packages"
 	@echo "  - bootstrap-bin          // Downloads required things to build packages"
-	@echo "  - initramfs              // Compiles packages for the initramfs if needed and generates"
+	@echo "  - initramfs              // Compiles packages for the initramfs if needed and generates one per architecture"
 	@echo "  - run                    // Compiles the kernel and runs in qemu w/ KVM"
 	@echo "  - run-tcg                // Compiles the kernel and runs in qemu w/ TCG"
 	@echo "  - run-debug              // Compiles the kernel and runs in qemu w/ TCG & Debugger"
@@ -26,7 +26,9 @@ bootstrap-bin:
 
 .PHONY: initramfs
 initramfs:
-	./extras/generate-initramfs.sh
+	ARCH=x86_64 ./extras/generate-initramfs.sh
+	ARCH=riscv64 ./extras/generate-initramfs.sh
+	ARCH=loongarch64 ./extras/generate-initramfs.sh
 
 .PHONY: mkiso
 mkiso:

@@ -1,0 +1,19 @@
+#!/bin/sh
+
+name=helloworld
+version=0.0git
+revision=1
+skip_pkg_check=yes
+deps="klib"
+hostdeps="llvm"
+
+source_dir="dist/helloworld"
+
+build() {
+    cp -rpf "${source_dir}"/. ./
+    make CC="clang --target=${TARGET_TRIPLET} ${TARGET_CFLAGS}" LD=ld.lld
+}
+
+package() {
+    cp ./helloworld.elf ${dest_dir}
+}
