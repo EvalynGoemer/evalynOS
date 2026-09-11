@@ -15,6 +15,7 @@
 #include <utils/misc/build_id.h>
 #include <utils/lib.h>
 #include <utils/limine.h>
+#include <stdlib.h>
 #include <sched/scheduler.h>
 #include <arch/generic/thread/init.h>
 #include <arch/intrin/cpulocal.h>
@@ -51,6 +52,7 @@ void kmain() {
     pfndb_init();
     buddy_init();
     vmem_init();
+    malloc_init();
 
     arch_post_mm_init();
     arch_init_aps();

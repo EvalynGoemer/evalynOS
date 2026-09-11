@@ -16,8 +16,8 @@
 void spalloc_init(spalloc_allocator_t* alloc, size_t obj_size, size_t obj_align) {
     assert(alloc != nullptr);
     assert(obj_size >= 8);
-    assert(obj_size  <= (PAGE_SIZE / 4));
-    assert(obj_align <= (PAGE_SIZE / 4));
+    assert(obj_size  <= (PAGE_SIZE / 2));
+    assert(obj_align <= (PAGE_SIZE / 2));
     assert(isPow2ull(obj_align));
 
     int stride = ALIGN_UP(obj_size, obj_align);
