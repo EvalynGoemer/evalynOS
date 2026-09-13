@@ -3,6 +3,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#define COUNT_TRAILING_ZEROS(v) ((v) ? __builtin_ctzll((v)) : 64)
+
 static inline int log2ull(unsigned long long val) {
     if(val == 0) return 0;
     return 63 - __builtin_clzll(val);

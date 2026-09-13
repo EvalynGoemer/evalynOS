@@ -26,6 +26,8 @@ typedef struct vmem_allocator {
     uint64_t base;
     uint64_t size;
     uint32_t quantum;
+
+    uint64_t bitmap;
     llist_t freelists[64];
     llist_t segments_list;
     rbtree_t segments_tree;

@@ -62,6 +62,7 @@ void vmem_allocator_init(vmem_allocator_t* alloc, uint64_t base, uint64_t size, 
     alloc->base = base;
     alloc->size = size;
     alloc->quantum = quantum;
+    alloc->bitmap = 0;
 
     alloc->segments_tree = RBTREE_INIT;
     alloc->segments_tree.value_of_node = vmem_segment_get_value;
@@ -74,6 +75,17 @@ void vmem_allocator_init(vmem_allocator_t* alloc, uint64_t base, uint64_t size, 
     spalloc_init(&alloc->segment_allocator, sizeof(vmem_segment_t), alignof(vmem_segment_t));
 
     vmem_add_segment(alloc, base, size);
+}
+
+static void vmem_flist_add(vmem_allocator_t* alloc, vmem_segment_t* seg, uint32_t index) {
+    llist_push(&alloc->freelists[index], &seg->freelist_node);
+    alloc->bitmap |= 1ull << index;
+}
+
+static void vmem_flist_del(vmem_allocator_t* alloc, vmem_segment_t* seg, uint32_t index) {
+    llist_node_delete(&alloc->freelists[index], &seg->freelist_node);
+    if (alloc->freelists[index].head == nullptr)
+        alloc->bitmap &= ~(1ull << index);
 }
 
 void vmem_add_segment(vmem_allocator_t* alloc, uint64_t base, uint64_t size) {
@@ -97,7 +109,7 @@ void vmem_add_segment(vmem_allocator_t* alloc, uint64_t base, uint64_t size) {
     else
         llist_push_back(&alloc->segments_list, &seg->segment_list_node);
 
-    llist_push(&alloc->freelists[log2ull(size)], &seg->freelist_node);
+    vmem_flist_add(alloc, seg, log2ull(size));
 }
 
 struct fit_alloc_ret {
@@ -106,22 +118,24 @@ struct fit_alloc_ret {
     vmem_segment_t* seg;
 };
 
+#define FIT_ALLOC_FAIL (struct fit_alloc_ret){.addr = 0, .flist_idx = -1, .seg = nullptr}
+
 static struct fit_alloc_ret fit_alloc(vmem_allocator_t* alloc, uint64_t size, uint64_t addr) {
     // either a fixed allocation or an open allocation
     uint64_t min = ALIGN_UP(addr, alloc->quantum);
     uint64_t max = addr ? ALIGN_UP(addr + size, alloc->quantum) : UINT64_MAX;
 
-    uint32_t index = log2ull(size);
-    assert(index < ARRAY_SIZE(alloc->freelists));
+    uint32_t index = log2ullceil(size);
+    index = MIN(index, 63);
 
-    for (uint32_t i = index; i < ARRAY_SIZE(alloc->freelists); i++) {
+    // attempt instant fit
+    uint64_t bitmap = alloc->bitmap & (~0ull << index);
+    for (uint32_t i = COUNT_TRAILING_ZEROS(bitmap); i < ARRAY_SIZE(alloc->freelists); i++) {
         LLIST_FOR_EACH(alloc->freelists[i], cnode) {
             vmem_segment_t* cseg = CONTAINER_OF(cnode, vmem_segment_t, freelist_node);
             uint64_t alloc_start = MAX(min, cseg->base);
             alloc_start = ALIGN_UP(alloc_start, alloc->quantum);
 
-            if (alloc_start < min)
-                continue;
             if (cseg->size < size)
                 continue;
             if (alloc_start - cseg->base > cseg->size - size)
@@ -133,7 +147,27 @@ static struct fit_alloc_ret fit_alloc(vmem_allocator_t* alloc, uint64_t size, ui
         }
     }
 
-    return (struct fit_alloc_ret){.addr = 0, .flist_idx = -1, .seg = nullptr};
+    // if the index is zero there is nowhere else to look
+    if (index == 0)
+        return FIT_ALLOC_FAIL;
+
+    // do a linear scan of index - 1 if instant fit fails
+    LLIST_FOR_EACH(alloc->freelists[index - 1], cnode) {
+        vmem_segment_t* cseg = CONTAINER_OF(cnode, vmem_segment_t, freelist_node);
+        uint64_t alloc_start = MAX(min, cseg->base);
+        alloc_start = ALIGN_UP(alloc_start, alloc->quantum);
+
+        if (cseg->size < size)
+            continue;
+        if (alloc_start - cseg->base > cseg->size - size)
+            continue;
+        if (max != UINT64_MAX && alloc_start + size > max)
+            continue;
+
+        return (struct fit_alloc_ret){.addr = alloc_start, .flist_idx = (index - 1), .seg = cseg};
+    }
+
+    return FIT_ALLOC_FAIL;
 }
 
 // addr 0 means any address
@@ -154,7 +188,7 @@ uint64_t vmem_alloc(vmem_allocator_t* alloc, uint64_t size, uint64_t addr) {
 
     assert(ret.seg->size >= size);
 
-    llist_node_delete(&alloc->freelists[ret.flist_idx], &ret.seg->freelist_node);
+    vmem_flist_del(alloc, ret.seg, ret.flist_idx);
 
     // left split
     if (ret.seg->base != ret.addr && (ret.addr - ret.seg->base) >= alloc->quantum) {
@@ -164,7 +198,8 @@ uint64_t vmem_alloc(vmem_allocator_t* alloc, uint64_t size, uint64_t addr) {
         new_seg->size = ret.addr - ret.seg->base;
 
         llist_node_prepend(&alloc->segments_list, &ret.seg->segment_list_node, &new_seg->segment_list_node);
-        llist_push(&alloc->freelists[log2ull(new_seg->size)], &new_seg->freelist_node);
+
+        vmem_flist_add(alloc, new_seg, log2ull(new_seg->size));
 
         ret.seg->base = ret.addr;
         ret.seg->size -= new_seg->size;
@@ -184,7 +219,8 @@ uint64_t vmem_alloc(vmem_allocator_t* alloc, uint64_t size, uint64_t addr) {
         ret.seg->freelist_node = (llist_node_t){0};
 
         llist_node_prepend(&alloc->segments_list, &ret.seg->segment_list_node, &new_seg->segment_list_node);
-        llist_push(&alloc->freelists[log2ull(ret.seg->size)], &ret.seg->freelist_node);
+
+        vmem_flist_add(alloc, ret.seg, log2ull(ret.seg->size));
 
         rbtree_insert(&alloc->segments_tree, &new_seg->segment_tree_node);
 
@@ -275,7 +311,8 @@ void vmem_free(vmem_allocator_t* alloc, uint64_t addr, uint64_t size) {
         if (prev_node != nullptr) {
             vmem_segment_t* prev_seg = CONTAINER_OF(prev_node, vmem_segment_t, segment_list_node);
             if (!prev_seg->allocated && prev_seg->base + prev_seg->size == seg->base) {
-                llist_node_delete(&alloc->freelists[log2ull(prev_seg->size)], &prev_seg->freelist_node);
+                vmem_flist_del(alloc, prev_seg, log2ull(prev_seg->size));
+
                 llist_node_delete(&alloc->segments_list, &prev_seg->segment_list_node);
                 seg->base = prev_seg->base;
                 seg->size += prev_seg->size;
@@ -288,7 +325,8 @@ void vmem_free(vmem_allocator_t* alloc, uint64_t addr, uint64_t size) {
         if (next_node != nullptr) {
             vmem_segment_t* next_seg = CONTAINER_OF(next_node, vmem_segment_t, segment_list_node);
             if (!next_seg->allocated && seg->base + seg->size == next_seg->base) {
-                llist_node_delete(&alloc->freelists[log2ull(next_seg->size)], &next_seg->freelist_node);
+                vmem_flist_del(alloc, next_seg, log2ull(next_seg->size));
+
                 llist_node_delete(&alloc->segments_list, &next_seg->segment_list_node);
                 seg->size += next_seg->size;
                 spalloc_free(&alloc->segment_allocator, next_seg);
@@ -297,7 +335,7 @@ void vmem_free(vmem_allocator_t* alloc, uint64_t addr, uint64_t size) {
 
         assert(seg->size != 0);
         seg->freelist_node = (llist_node_t){0};
-        llist_push(&alloc->freelists[log2ull(seg->size)], &seg->freelist_node);
+        vmem_flist_add(alloc, seg, log2ull(seg->size));
     }
 }
 
