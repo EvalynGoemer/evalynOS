@@ -84,4 +84,6 @@ void dispatch_interrupt(interrupt_frame_t* frame) {
 
 void setup_interrupts() {
     csrw(CSR_STVEC, (uint64_t)interrupt_handler_asm);
+    if ((csrr(CSR_STVEC) & 1) == 1)
+        csrw(CSR_STVEC, (uint64_t)vectored_interrupt_table);
 }

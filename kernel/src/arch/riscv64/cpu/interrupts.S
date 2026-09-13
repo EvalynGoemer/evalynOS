@@ -1,6 +1,17 @@
 .extern dispatch_interrupt
 .extern dispatch_syscall
 .global interrupt_handler_asm
+.global vectored_interrupt_table
+
+.option push
+.option norvc
+.balign 4096
+vectored_interrupt_table:
+.rept 32
+    j interrupt_handler_asm
+.endr
+.option pop
+
 .balign 4
 interrupt_handler_asm:
     # cpulocal + 0  = current thread struct

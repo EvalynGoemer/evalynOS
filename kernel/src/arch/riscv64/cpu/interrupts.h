@@ -14,6 +14,7 @@ extern void dispatch_interrupt(interrupt_frame_t* frame);
 extern void setup_interrupts();
 
 extern void interrupt_handler_asm();
+extern void vectored_interrupt_table();
 
 extern const char* exception_names[];
 
