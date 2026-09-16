@@ -8,7 +8,7 @@ panic:
     push 0
     push 0
     push 0
-    push rsp
+    push 0
     pushfq
     push 0
     push 0
@@ -30,6 +30,12 @@ panic:
     push r13
     push r14
     push r15
+
+    mov rax, [rsp + 192] ; get the return address
+    dec rax              ; decrement by one to be as if it was interrupted
+    mov [rsp + 136], rax ; store it into cpu_frame.ip
+    lea rax, [rsp + 200] ; compute the callers rsp
+    mov [rsp + 160], rax ; store it into cpu_frame.rsp
 
     mov rsi, rsp
     call panic_interrupt

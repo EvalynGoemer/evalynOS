@@ -1,0 +1,34 @@
+diff --git a/llvm/lib/MC/MCDwarf.cpp b/llvm/lib/MC/MCDwarf.cpp
+index 37ec324cd..e76535861 100644
+--- a/llvm/lib/MC/MCDwarf.cpp
++++ b/llvm/lib/MC/MCDwarf.cpp
+@@ -1921,6 +1921,8 @@ const MCSymbol &FrameEmitterImpl::EmitCIE(const MCDwarfFrameInfo &Frame) {
+     if (Frame.IsMTETaggedFrame)
+       Augmentation += "G";
+     Streamer.emitBytes(Augmentation);
++  } else if (Frame.IsSignalFrame) {
++    Streamer.emitInt8('S');
+   }
+   Streamer.emitInt8(0);
+ 
+@@ -2100,8 +2102,8 @@ struct CIEKey {
+   bool operator<(const CIEKey &Other) const {
+     assert(IsEH == Other.IsEH);
+     if (!IsEH)
+-      return std::make_tuple(RAReg, IsSimple) <
+-             std::make_tuple(Other.RAReg, Other.IsSimple);
++      return std::make_tuple(RAReg, IsSimple, IsSignalFrame) <
++             std::make_tuple(Other.RAReg, Other.IsSimple, Other.IsSignalFrame);
+ 
+     return std::make_tuple(PersonalityName(), PersonalityEncoding, LsdaEncoding,
+                            IsSignalFrame, IsSimple, RAReg, IsBKeyFrame,
+@@ -2115,7 +2117,8 @@ struct CIEKey {
+   bool operator==(const CIEKey &Other) const {
+     assert(IsEH == Other.IsEH);
+     if (!IsEH)
+-      return RAReg == Other.RAReg && IsSimple == Other.IsSimple;
++      return RAReg == Other.RAReg && IsSimple == Other.IsSimple &&
++             IsSignalFrame == Other.IsSignalFrame;
+ 
+     return Personality == Other.Personality &&
+            PersonalityEncoding == Other.PersonalityEncoding &&

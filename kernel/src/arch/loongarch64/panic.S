@@ -10,7 +10,7 @@ panic:
     st.d    $r0,  $sp, 0
     st.d    $r1,  $sp, 8
     st.d    $r2,  $sp, 16
-    st.d    $r3,  $sp, 24
+    # sp is handled later
     st.d    $r4,  $sp, 32
     st.d    $r5,  $sp, 40
     st.d    $r6,  $sp, 48
@@ -40,8 +40,13 @@ panic:
     st.d    $r30, $sp, 240
     st.d    $r31, $sp, 248
 
+    # put sp into the frame as if we never pushed anything
+    addi.d  $t0, $sp, 304
+    st.d    $t0, $sp, 24
+
     # fake interrupt frame
-    st.d    $r0, $sp, 256
+    addi.d  $t0, $ra, -1  # ra - 1 to simulate being interrupted
+    st.d    $t0, $sp, 256
     st.d    $r0, $sp, 264
     st.d    $r0, $sp, 272
     st.d    $r0, $sp, 280

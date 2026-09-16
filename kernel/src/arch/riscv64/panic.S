@@ -10,7 +10,7 @@ panic:
     # registers
     sd   x0,  0(sp)
     sd   x1,  8(sp)
-    sd   x2,  16(sp)
+    # sp is handled later
     sd   x3,  24(sp)
     sd   x4,  32(sp)
     sd   x5,  40(sp)
@@ -41,11 +41,16 @@ panic:
     sd   x30, 240(sp)
     sd   x31, 248(sp)
 
+    # put sp into the frame as if we never pushed anything
+    addi t0, sp, 288
+    sd   t0, 16(sp)
+
     # fake interrupt frame
-    sd    x0, 256(sp)
-    sd    x0, 264(sp)
-    sd    x0, 272(sp)
-    sd    x0, 280(sp)
+    addi t0, ra, -1  # ra - 1 to simulate being interrupted
+    sd   t0, 256(sp)
+    sd   x0, 264(sp)
+    sd   x0, 272(sp)
+    sd   x0, 280(sp)
 
     mv   a1, sp
     call panic_interrupt

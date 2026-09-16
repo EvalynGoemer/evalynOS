@@ -2,7 +2,7 @@ ARCH   ?= x86_64
 KASLR  ?= true
 LA64_PAGESIZE ?= 16KB
 
-CFLAGS := -O2 -flto -g -fno-omit-frame-pointer
+CFLAGS := -O2 -flto -g
 CPPFLAGS :=
 LDFLAGS :=
 
@@ -34,8 +34,13 @@ override CFLAGS +=        \
     -ffreestanding        \
     -ffunction-sections   \
     -fdata-sections       \
+    -fomit-frame-pointer  \
     -fstack-protector-all \
     -fsanitize=undefined
+
+ifneq ($(filter -g%,$(CFLAGS)),)
+    override CFLAGS += -gdwarf-4
+endif
 
 ifeq ($(ARCH),x86_64)
     override CFLAGS +=    \

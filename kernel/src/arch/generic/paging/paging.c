@@ -13,7 +13,7 @@
 #include <utils/limine.h>
 #include <utils/lib.h>
 
-uint64_t kernel_page_table;
+uint64_t kernel_page_table = 0;
 uint32_t mmu_config = 0;
 uint64_t VADDR_LOWER_HALF_TOP = 0;
 uint64_t VADDR_HIGHER_HALF_BASE = 0;
