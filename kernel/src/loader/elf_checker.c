@@ -1,4 +1,4 @@
-#include <loader/elf_structs.h>
+#include <arch/intrin/loader.h>
 #include <string.h>
 
 const unsigned char elf_magic[] = { 0x7F, 'E', 'L', 'F' };
@@ -20,19 +20,8 @@ bool verify_elf(void* file) {
         return false;
     if (header->type != ELF_EXECUTABLE_TYPE)
         return false;
-
-#ifdef __x86_64__
-    if (header->arch != ELF_X86_64_ARCH)
+    if (header->arch != ELF_CURRENT_ARCH)
         return false;
-#elif defined(__riscv)
-    if (header->arch != ELF_RISCV_ARCH)
-        return false;
-#elif defined(__loongarch__)
-    if (header->arch != ELF_LOONGARCH_ARCH)
-        return false;
-#else
-    _Static_assert(false, "architecture elf type not defined");
-#endif
 
     return true;
 }

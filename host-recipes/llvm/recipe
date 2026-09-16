@@ -1,10 +1,10 @@
 #!/bin/sh
 
 name=llvm
-version=23.1.0
+version=23.1.1
 revision=1
 tarball_url="https://github.com/llvm/llvm-project/releases/download/llvmorg-${version}/llvm-project-${version}.src.tar.xz"
-tarball_blake2b="9253189469c70b1e7e326851635934fab85bf64139f1dcd44721ab261c097c9980276d48eac705b999cde0a024a362191c719646956504364534585dbf57d643"
+tarball_blake2b="31d0ad202f4ad38d001baaf638a756508b164229b02a6e41b9689508a33b3a7baecaa10398e20f3661cacb712663fe379eeb94e50e017e40ae546a7e7de8049d"
 imagedeps="clang llvm lld cmake ninja-build python3 zlib1g-dev libzstd-dev"
 
 configure() {

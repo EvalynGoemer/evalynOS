@@ -2,6 +2,7 @@
 #include <arch/generic/panic.h>
 #include <arch/intrin/interrupts.h>
 #include <arch/x86_64/cpu/interrupts.h>
+#include <loader/dwarf/stacktrace.h>
 #include <stdio.h>
 
 [[noreturn]]
@@ -66,6 +67,8 @@ void panic_interrupt(const char* message, interrupt_frame_t* frame) {
            (int)cr8 >> 8  & 0xFF,
            (int)cr8       & 0xFF);
     printf("CR2=0x%016lx CR3=0x%016lx\n", cr2, cr3);
+
+    dwarf_stack_trace(frame);
 
     panic_print_end();
 

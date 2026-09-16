@@ -62,3 +62,30 @@ struct [[gnu::packed]] elf_program_header_64 {
     uint64_t mem_size;  // size of segment in memory
     uint64_t alignment; // alignment of segment; 0 and 1 = no alignment; otherwize virt_addr = offset % alignment
 };
+
+#define ELF_SECTION_ALLOC_FLAG 0x2
+
+struct [[gnu::packed]] elf_section_header_64 {
+    uint32_t name;       // offset into the section name string table
+    uint32_t type;       // section type
+    uint64_t flags;      // section flags
+    uint64_t virt_addr;  // virtual address (if allocated)
+    uint64_t offset;     // offset of section data in file
+    uint64_t size;       // size of section data
+    uint32_t link;       // linked section index
+    uint32_t info;       // extra info
+    uint64_t alignment;  // section alignment
+    uint64_t entry_size; // entry size for table sections
+};
+
+#define ELF_ST_TYPE(info) ((info) & 0xF)
+#define ELF_STT_FUNC   2
+
+struct [[gnu::packed]] elf_symbol_64 {
+    uint32_t name;  // offset into the string table
+    uint8_t  info;  // type and binding
+    uint8_t  other; // visibility
+    uint16_t shndx; // section index
+    uint64_t value; // symbol value
+    uint64_t size;  // symbol size
+};

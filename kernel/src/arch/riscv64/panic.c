@@ -1,6 +1,7 @@
 #include <arch/generic/panic.h>
 #include <arch/intrin/interrupts.h>
 #include <arch/riscv64/cpu/interrupts.h>
+#include <loader/dwarf/stacktrace.h>
 #include <stdio.h>
 #include <utils/locks/irqlock.h>
 
@@ -32,6 +33,7 @@ void panic_interrupt(const char* message, interrupt_frame_t* frame) {
            (unsigned)(frame->sstatus >> 16) & 0xFFFF,
            (unsigned) frame->sstatus        & 0xFFFF);
 
+    dwarf_stack_trace(frame);
 
     panic_print_end();
 

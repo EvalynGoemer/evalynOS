@@ -1,6 +1,7 @@
 #include <arch/generic/panic.h>
 #include <arch/intrin/interrupts.h>
 #include <arch/loongarch64/cpu/interrupts.h>
+#include <loader/dwarf/stacktrace.h>
 #include <stdio.h>
 #include <utils/locks/irqlock.h>
 
@@ -28,6 +29,8 @@ void panic_interrupt(const char* message, interrupt_frame_t* frame) {
     printf("ESTAT = 0x%016llx\n", frame->estat);
     printf("BADV  = 0x%016llx\n", frame->badv);
     printf("BADI  = 0x%08lx\n", (uint32_t)frame->badi);
+
+    dwarf_stack_trace(frame);
 
     panic_print_end();
 
