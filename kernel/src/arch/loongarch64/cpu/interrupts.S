@@ -1,5 +1,7 @@
 .extern dispatch_interrupt
+
 .global interrupt_handler_asm
+.type interrupt_handler_asm, @function
 
 .equiv crmd,  0x0
 .equiv prmd,  0x1
@@ -9,8 +11,18 @@
 .equiv badi,  0x8
 .equiv save0, 0x30
 
+.cfi_sections .debug_frame
+
+#define SAVE_REG(reg, sp_off, cfa_off) \
+    st.d $r##reg, $sp, sp_off;         \
+    .cfi_offset reg, cfa_off
+
 .balign 4096
 interrupt_handler_asm:
+    .cfi_startproc simple
+    .cfi_signal_frame
+    .cfi_def_cfa 3, 0
+
     # cpulocal + 0  = current thread struct
     # cpulocal + 8  = scratch t1
     # cpulocal + 16 = scratch t2
@@ -35,52 +47,55 @@ interrupt_handler_asm:
 
     # generate interrupt frame
     addi.d $sp, $sp, -304
+    .cfi_def_cfa_offset 304
 
     # save sp into frame.x[3]
     ld.d  $t1, $t2, 24
     st.d  $t1, $sp, 24
+    .cfi_offset 3, -280
 
     # restore t1 and t2 from scratch space
     ld.d  $t1, $t2, 8
     ld.d  $t2, $t2, 16
 
     # save all registers
-    st.d  $r0,  $sp, 0
-    st.d  $r1,  $sp, 8
-    st.d  $r2,  $sp, 16
+    SAVE_REG(0,  0,  -304)
+    SAVE_REG(1,  8,  -296)
+    SAVE_REG(2,  16, -288)
     # dont save sp/r3 here
-    st.d  $r4,  $sp, 32
-    st.d  $r5,  $sp, 40
-    st.d  $r6,  $sp, 48
-    st.d  $r7,  $sp, 56
-    st.d  $r8,  $sp, 64
-    st.d  $r9,  $sp, 72
-    st.d  $r10, $sp, 80
-    st.d  $r11, $sp, 88
-    st.d  $r12, $sp, 96
-    st.d  $r13, $sp, 104
-    st.d  $r14, $sp, 112
-    st.d  $r15, $sp, 120
-    st.d  $r16, $sp, 128
-    st.d  $r17, $sp, 136
-    st.d  $r18, $sp, 144
-    st.d  $r19, $sp, 152
-    st.d  $r20, $sp, 160
-    st.d  $r21, $sp, 168
-    st.d  $r22, $sp, 176
-    st.d  $r23, $sp, 184
-    st.d  $r24, $sp, 192
-    st.d  $r25, $sp, 200
-    st.d  $r26, $sp, 208
-    st.d  $r27, $sp, 216
-    st.d  $r28, $sp, 224
-    st.d  $r29, $sp, 232
-    st.d  $r30, $sp, 240
-    st.d  $r31, $sp, 248
+    SAVE_REG(4,  32, -272)
+    SAVE_REG(5,  40, -264)
+    SAVE_REG(6,  48, -256)
+    SAVE_REG(7,  56, -248)
+    SAVE_REG(8,  64, -240)
+    SAVE_REG(9,  72, -232)
+    SAVE_REG(10, 80, -224)
+    SAVE_REG(11, 88, -216)
+    SAVE_REG(12, 96, -208)
+    SAVE_REG(13, 104, -200)
+    SAVE_REG(14, 112, -192)
+    SAVE_REG(15, 120, -184)
+    SAVE_REG(16, 128, -176)
+    SAVE_REG(17, 136, -168)
+    SAVE_REG(18, 144, -160)
+    SAVE_REG(19, 152, -152)
+    SAVE_REG(20, 160, -144)
+    SAVE_REG(21, 168, -136)
+    SAVE_REG(22, 176, -128)
+    SAVE_REG(23, 184, -120)
+    SAVE_REG(24, 192, -112)
+    SAVE_REG(25, 200, -104)
+    SAVE_REG(26, 208, -96)
+    SAVE_REG(27, 216, -88)
+    SAVE_REG(28, 224, -80)
+    SAVE_REG(29, 232, -72)
+    SAVE_REG(30, 240, -64)
+    SAVE_REG(31, 248, -56)
 
     # save era
     csrrd $t0, era
     st.d  $t0, $sp, 256
+    .cfi_offset 1, -48
     # save prmd
     csrrd $t1, prmd
     st.d  $t1, $sp, 264
@@ -164,3 +179,4 @@ interrupt_handler_asm:
     # restore sp from frame.x[3]
     ld.d  $sp, $sp, 24
     ertn
+    .cfi_endproc
