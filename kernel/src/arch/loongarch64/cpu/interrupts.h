@@ -17,3 +17,5 @@ extern void setup_interrupts();
 extern void interrupt_handler_asm();
 
 extern const char* exception_names[];
+
+#define IRQNUM_TIMER_INTERRUPT_MASK 0x800
