@@ -153,11 +153,11 @@ static inline uint64_t vaddr_split_bit() {
     return MIN(valen - 1, LA64_VA_BITS - 1);
 }
 
-ALWAYS_INLINE static inline void arch_tlb_flush(uint64_t vaddr) {
+static inline void arch_tlb_flush(uint64_t vaddr) {
     asm volatile("invtlb 6, $r0, %0" :: "r"(vaddr) : "memory");
 }
 
-ALWAYS_INLINE static inline void arch_tlb_flush_all() {
+static inline void arch_tlb_flush_all() {
     asm volatile("invtlb 0, $r0, $r0" ::: "memory");
 }
 

@@ -93,18 +93,18 @@ static inline uint64_t mmu_flags_to_prot(uint64_t pte, int level) {
     return perm;
 }
 
-ALWAYS_INLINE static inline uint64_t vaddr_split_bit() {
+static inline uint64_t vaddr_split_bit() {
     return MMU_CONFIG_TOP_LEVEL(mmu_config) * 9 + 12 - 1;
 }
 
-ALWAYS_INLINE static inline void arch_load_page_table(uint64_t page_table) {
+static inline void arch_load_page_table(uint64_t page_table) {
     write_cr3(page_table);
 }
 
-ALWAYS_INLINE static inline void arch_tlb_flush(uint64_t vaddr) {
+static inline void arch_tlb_flush(uint64_t vaddr) {
     asm volatile("invlpg (%0)" :: "r"(vaddr) : "memory");
 }
 
-ALWAYS_INLINE static inline void arch_tlb_flush_all() {
+static inline void arch_tlb_flush_all() {
     write_cr3(read_cr3());
 }

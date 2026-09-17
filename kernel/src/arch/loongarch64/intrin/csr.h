@@ -1,9 +1,5 @@
 #pragma once
 
-#ifndef __ASSEMBLER__
-#include <stdint.h>
-#endif
-
 #define CSR_CRMD    0x00
 #define CSR_CRMD_IE (1 << 2)
 
@@ -36,20 +32,22 @@
 
 #ifndef __ASSEMBLER__
 
-static inline uint64_t csrrd(uint32_t csr) {
-    uint64_t value;
-    asm volatile("csrrd %0, %1" : "=r"(value) : "i"(csr) : "memory");
-    return value;
-}
+#define csrrd(csr) ({                                                                  \
+    uint64_t __val;                                                                    \
+    asm volatile("csrrd %0, %1" : "=r"(__val) : "i"(csr) : "memory");                  \
+    __val;                                                                             \
+})
 
-static inline uint64_t csrwr(uint32_t csr, uint64_t value) {
-    asm volatile("csrwr %0, %1" : "+r"(value) : "i"(csr) : "memory");
-    return value;
-}
+#define csrwr(csr, value) ({                                                           \
+    uint64_t __val = (value);                                                          \
+    asm volatile("csrwr %0, %1" : "+r"(__val) : "i"(csr) : "memory");                  \
+    __val;                                                                             \
+})
 
-static inline uint64_t csrxchg(uint32_t csr, uint64_t value, uint64_t mask) {
-    asm volatile("csrxchg %0, %1, %2" : "+r"(value) : "r"(mask), "i"(csr) : "memory");
-    return value;
-}
+#define csrxchg(csr, value, mask) ({                                                   \
+    uint64_t __val = (value);                                                          \
+    asm volatile("csrxchg %0, %1, %2" : "+r"(__val) : "r"(mask), "i"(csr) : "memory"); \
+    __val;                                                                             \
+})
 
 #endif
