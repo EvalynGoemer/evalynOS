@@ -17,9 +17,8 @@
 #define LIKELY(x)     __builtin_expect(!!(x), 1)
 #define UNLIKELY(x)   __builtin_expect(!!(x), 0)
 #define UNREACHABLE() __builtin_unreachable()
-#define UNUSED(x)    ((void)(x))
 
-#define ALWAYS_INLINE [[gnu::always_inline]]
+#define UNUSED(x)    ((void)(x))
 #define MAYBE_UNUSED [[gnu::unused]]
 
 #define STRINGIFY_IMPL(x) #x

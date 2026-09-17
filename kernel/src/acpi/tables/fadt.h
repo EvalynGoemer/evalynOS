@@ -72,7 +72,6 @@ extern struct FADT clean_fadt;
 
 #define FADT_FLAG_HW_REDUCED_ACPI (1 << 20)
 
-[[gnu::always_inline]]
 static inline bool acpi_is_hw_reduced() {
     return clean_fadt.flags & FADT_FLAG_HW_REDUCED_ACPI;
 }

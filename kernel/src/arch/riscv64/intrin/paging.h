@@ -85,14 +85,14 @@ static inline void arch_load_page_table(uint64_t page_table) {
 
 #define arch_large_page_fixup(flags) (flags)
 
-ALWAYS_INLINE static inline uint64_t vaddr_split_bit() {
+static inline uint64_t vaddr_split_bit() {
     return MMU_CONFIG_TOP_LEVEL(mmu_config) * 9 + 12 - 1;
 }
 
-ALWAYS_INLINE static inline void arch_tlb_flush(uint64_t vaddr) {
+static inline void arch_tlb_flush(uint64_t vaddr) {
     asm volatile("sfence.vma %0" :: "r"(vaddr) : "memory");
 }
 
-ALWAYS_INLINE static inline void arch_tlb_flush_all() {
+static inline void arch_tlb_flush_all() {
     asm volatile("sfence.vma" ::: "memory");
 }
