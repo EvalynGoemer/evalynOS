@@ -1,4 +1,5 @@
 #include "arch/x86_64/intrin/interrupts.h"
+#include "sched/wait.h"
 #include <arch/generic/panic.h>
 #include <arch/x86_64/cpu/interrupts.h>
 #include <arch/x86_64/drivers/fred/fred.h>
@@ -39,10 +40,7 @@ void dispatch_interrupt(interrupt_frame_t* frame) {
             handle_exception_mce(frame);
             break;
         case LAPIC_TIMER_VECTOR:
-            // make sure to call this every timer irq to ensure
-            // rollover is handled when the HPET or ACPI PMT is in use
-            timer_get_ns();
-
+            sched_handle_timeouts();
             timer_set_timeout_ms(1);
             arch_send_eoi();
             enable_interrupts();

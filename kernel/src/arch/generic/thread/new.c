@@ -5,6 +5,7 @@
 #include <assert.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <string.h>
 #include <utils/locks/irqlock.h>
 #include <utils/defer.h>
 #include <mem/pmm.h>
@@ -16,6 +17,7 @@
 thread_t* create_kthread(uintptr_t entry, size_t arg1, size_t arg2) {
     uintptr_t paddr = pmm_alloc_page();
     thread_t* thread = malloc(sizeof(thread_t));
+    memset(thread, 0, sizeof(thread_t));
     thread->kstack_top  = TO_HHDM(paddr + PAGE_SIZE);
     thread->kstack_size = PAGE_SIZE;
     thread->kstack = arch_prepare_thread_stack(TO_HHDM(paddr) + PAGE_SIZE, entry, arg1, arg2);

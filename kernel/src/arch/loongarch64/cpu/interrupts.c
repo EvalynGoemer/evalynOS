@@ -1,6 +1,7 @@
 #include <arch/loongarch64/cpu/interrupts.h>
 #include <arch/loongarch64/timer/timer.h>
 #include <sched/scheduler.h>
+#include <sched/wait.h>
 #include <arch/generic/panic.h>
 #include <stdint.h>
 #include <arch/loongarch64/intrin/csr.h>
@@ -53,6 +54,7 @@ void dispatch_interrupt(interrupt_frame_t* frame) {
         }
         case 0x0: {
             if (irq_num & IRQNUM_TIMER_INTERRUPT_MASK) {
+                sched_handle_timeouts();
                 timer_set_timeout_ms(5);
                 enable_interrupts();
                 schedule();

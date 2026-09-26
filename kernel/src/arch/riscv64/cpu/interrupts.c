@@ -1,4 +1,5 @@
 #include "sched/scheduler.h"
+#include "sched/wait.h"
 #include <stdint.h>
 #include <stdio.h>
 #include <utils/lib.h>
@@ -69,6 +70,7 @@ void dispatch_interrupt(interrupt_frame_t* frame) {
 
     switch (cause) {
         case INTERRUPT_CAUSE_TIMER: {
+            sched_handle_timeouts();
             timer_set_timeout_ms(1);
             enable_interrupts();
             schedule();

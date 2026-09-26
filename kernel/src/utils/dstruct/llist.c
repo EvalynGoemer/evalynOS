@@ -71,4 +71,16 @@ void llist_node_delete(llist_t* llist, llist_node_t* node) {
 
     if(node->prev != nullptr) node->prev->next = node->next;
     if(node->next != nullptr) node->next->prev = node->prev;
+
+    // link to self to mark as deleted
+    node->next = node;
+    node->prev = node;
+}
+
+bool llist_node_try_delete(llist_t* llist, llist_node_t* node) {
+    if (node->next != node || node->prev != node) {
+        llist_node_delete(llist, node);
+        return true;
+    }
+    return false;
 }

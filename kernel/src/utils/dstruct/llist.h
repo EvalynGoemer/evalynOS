@@ -52,3 +52,4 @@ llist_node_t* llist_pop_back(llist_t* list);
 void llist_node_append(llist_t* list, llist_node_t* pos, llist_node_t* node);
 void llist_node_prepend(llist_t* list, llist_node_t* pos, llist_node_t* node);
 void llist_node_delete(llist_t* list, llist_node_t* node);
+extern bool llist_node_try_delete(llist_t* llist, llist_node_t* node);
