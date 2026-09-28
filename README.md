@@ -2,10 +2,9 @@
 
 A W.I.P 64 Bit Operating System & Kernel
 
-This kernel uses the [jinx](https://github.com/Mintsuki/Jinx) meta build system to compile. You will need all dependencies for such.
+This kernel uses the [chariot](https://github.com/chariot-build/chariot) meta build system to compile. You will need all dependencies for such.
 
-Run `make bootstrap` to build the tools used for compiling the kernel
-Run `make bootstrap-bin` to download the tools used for compiling the kernel
+Run `make bootstrap` to build the tools used for compiling the kernel  
 Run `make initramfs` to build all packages for the initramfs and generate it  
 Run `make run` to build the ISO and run it in QEMU  
 Run `make mkiso` to build the ISO

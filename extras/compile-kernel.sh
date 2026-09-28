@@ -8,14 +8,14 @@ ARCH="${ARCH:-x86_64}"
 KASLR="${KASLR:-true}"
 LA64_PAGESIZE="${LA64_PAGESIZE:-16KB}"
 
-JINX_DIR="$(realpath ../jinx/)"
+PACKAGES_DIR="$(realpath ./host-packages)"
 KERNEL_DIR="$(realpath ../kernel)"
 ISO_DIR="$(realpath ./iso/)"
 ARGS_FILE="$(realpath .build_args.stamp)"
 
-CC="${JINX_DIR}/host-pkgs/llvm/usr/local/bin/clang"
-LD="${JINX_DIR}/host-pkgs/llvm/usr/local/bin/ld.lld"
-NASM="${JINX_DIR}/host-pkgs/nasm/usr/local/bin/nasm"
+CC="${PACKAGES_DIR}/llvm/usr/local/bin/clang"
+LD="${PACKAGES_DIR}/llvm/usr/local/bin/ld.lld"
+NASM="${PACKAGES_DIR}/nasm/usr/local/bin/nasm"
 
 cd ${KERNEL_DIR}
 

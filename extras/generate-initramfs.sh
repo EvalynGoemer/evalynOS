@@ -7,14 +7,16 @@ cd "$(dirname -- "$0")"
 ARCH="${ARCH:-x86_64}"
 
 case "${ARCH}" in
-    x86_64)      LIMINE_ARCH="x86-64";      BUILD_DIR="../jinx";;
-    riscv64)     LIMINE_ARCH="riscv64";     BUILD_DIR="../jinx-riscv64";;
-    loongarch64) LIMINE_ARCH="loongarch64"; BUILD_DIR="../jinx-loongarch64";;
+    x86_64)      LIMINE_ARCH="x86-64";      ;;
+    riscv64)     LIMINE_ARCH="riscv64";     ;;
+    loongarch64) LIMINE_ARCH="loongarch64"; ;;
 esac
 
-JINX_DIR="$(realpath "${BUILD_DIR}")"
-JINX_SCRIPT="$(realpath ../jinx/jinx)"
-STAGE_DIR="${PWD}/initramfs-${LIMINE_ARCH}"
+CHARIOT_DIR="$(realpath ../chariot/)"
+CHARIOT="${CHARIOT_DIR}/chariot-linux-x86_64"
+
+STAGE_DIR="$(realpath ./initramfs-${LIMINE_ARCH})"
+PROJECT_DIR="$(realpath ../)"
 ISO_DIR="$(realpath ./iso/)"
 
 PACKAGES=(
@@ -22,11 +24,11 @@ PACKAGES=(
     helloworld
 )
 
-mkdir -p "${STAGE_DIR}"
+cd ${PROJECT_DIR}
 
-cd "${JINX_DIR}"
-"${JINX_SCRIPT}" build      "${PACKAGES[@]}"
-"${JINX_SCRIPT}" install -f "${STAGE_DIR}" "${PACKAGES[@]}"
+for pkg in "${PACKAGES[@]}"; do
+    ${CHARIOT} install --arch ${ARCH} --allow-new-profiles --force "${pkg}" "${STAGE_DIR}"
+done
 
 tar --sort=name                         \
     --mtime='UTC 2026-01-01'            \

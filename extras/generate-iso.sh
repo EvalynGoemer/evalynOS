@@ -3,25 +3,26 @@
 set -e
 
 cd "$(dirname -- "$0")"
-JINX_DIR="$(realpath ../jinx/)"
+
+PACKAGES_DIR="$(realpath ./host-packages)"
 ISO_DIR="$(realpath ./iso/)"
 
 mkdir -p ${ISO_DIR}/EFI/BOOT/
-cp ${JINX_DIR}/host-pkgs/limine/usr/local/share/limine/BOOTX64.EFI         ${ISO_DIR}/EFI/BOOT/
-cp ${JINX_DIR}/host-pkgs/limine/usr/local/share/limine/BOOTIA32.EFI        ${ISO_DIR}/EFI/BOOT/
-cp ${JINX_DIR}/host-pkgs/limine/usr/local/share/limine/BOOTLOONGARCH64.EFI ${ISO_DIR}/EFI/BOOT/
-cp ${JINX_DIR}/host-pkgs/limine/usr/local/share/limine/BOOTRISCV64.EFI     ${ISO_DIR}/EFI/BOOT/
-cp ${JINX_DIR}/host-pkgs/limine/usr/local/share/limine/limine-bios-cd.bin  ${ISO_DIR}
-cp ${JINX_DIR}/host-pkgs/limine/usr/local/share/limine/limine-uefi-cd.bin  ${ISO_DIR}
-cp ${JINX_DIR}/host-pkgs/limine/usr/local/share/limine/limine-bios.sys     ${ISO_DIR}
-cp ${JINX_DIR}/host-pkgs/ovmf2-bin/ovmf-code-x86_64.fd .
-cp ${JINX_DIR}/host-pkgs/ovmf2-bin/ovmf-vars-x86_64.fd .
-cp ${JINX_DIR}/host-pkgs/ovmf2-bin/ovmf-code-loongarch64.fd .
-cp ${JINX_DIR}/host-pkgs/ovmf2-bin/ovmf-vars-loongarch64.fd .
-cp ${JINX_DIR}/host-pkgs/ovmf2-bin/ovmf-code-riscv64.fd .
-cp ${JINX_DIR}/host-pkgs/ovmf2-bin/ovmf-vars-riscv64.fd .
+cp ${PACKAGES_DIR}/limine/usr/local/share/limine/BOOTX64.EFI         ${ISO_DIR}/EFI/BOOT/
+cp ${PACKAGES_DIR}/limine/usr/local/share/limine/BOOTIA32.EFI        ${ISO_DIR}/EFI/BOOT/
+cp ${PACKAGES_DIR}/limine/usr/local/share/limine/BOOTLOONGARCH64.EFI ${ISO_DIR}/EFI/BOOT/
+cp ${PACKAGES_DIR}/limine/usr/local/share/limine/BOOTRISCV64.EFI     ${ISO_DIR}/EFI/BOOT/
+cp ${PACKAGES_DIR}/limine/usr/local/share/limine/limine-bios-cd.bin  ${ISO_DIR}
+cp ${PACKAGES_DIR}/limine/usr/local/share/limine/limine-uefi-cd.bin  ${ISO_DIR}
+cp ${PACKAGES_DIR}/limine/usr/local/share/limine/limine-bios.sys     ${ISO_DIR}
+cp ${PACKAGES_DIR}/ovmf2/ovmf-code-x86_64.fd .
+cp ${PACKAGES_DIR}/ovmf2/ovmf-vars-x86_64.fd .
+cp ${PACKAGES_DIR}/ovmf2/ovmf-code-loongarch64.fd .
+cp ${PACKAGES_DIR}/ovmf2/ovmf-vars-loongarch64.fd .
+cp ${PACKAGES_DIR}/ovmf2/ovmf-code-riscv64.fd .
+cp ${PACKAGES_DIR}/ovmf2/ovmf-vars-riscv64.fd .
 
-"${JINX_DIR}/host-pkgs/xorriso/usr/local/bin/xorriso" \
+"${PACKAGES_DIR}/xorriso/usr/local/bin/xorriso" \
     -as mkisofs -V "EvalynOS" -R -r -J    \
     --modification-date=2026010100000000  \
     --set_all_file_dates 2026010100000000 \
@@ -37,6 +38,6 @@ cp ${JINX_DIR}/host-pkgs/ovmf2-bin/ovmf-vars-riscv64.fd .
     -o evalynOS.iso                       \
     ${ISO_DIR}
 
-${JINX_DIR}/host-pkgs/limine/usr/local/bin/limine bios-install evalynOS.iso
+${PACKAGES_DIR}/limine/usr/local/bin/limine bios-install evalynOS.iso
 
 cp ./evalynOS.iso ../evalynOS.iso

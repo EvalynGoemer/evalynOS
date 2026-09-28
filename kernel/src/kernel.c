@@ -52,7 +52,7 @@ void kmain() {
 
     LOG("Starting Scheduler");
 
-    thread_t* thread = create_uthread_from_elf("./helloworld.elf");
+    thread_t* thread = create_uthread_from_elf("./usr/bin/helloworld.elf");
     enqueue_thread(thread);
 
     while (true)

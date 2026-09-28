@@ -1,8 +1,7 @@
-# Jinx
-.jinx-cache
-jinx*
-sources
-host-sources
+# Chariot
+/chariot
+/.chariot*
+/.luarc.json
 
 # QEMU Files
 ovmf-code*

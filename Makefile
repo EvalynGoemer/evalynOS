@@ -2,7 +2,6 @@
 default:
 	@echo "Available Targets:"
 	@echo "  - bootstrap              // Compiles required things to build packages"
-	@echo "  - bootstrap-bin          // Downloads required things to build packages"
 	@echo "  - initramfs              // Compiles packages for the initramfs if needed and generates one per architecture"
 	@echo "  - run                    // Compiles the kernel and runs in qemu w/ KVM"
 	@echo "  - run-tcg                // Compiles the kernel and runs in qemu w/ TCG"
@@ -14,15 +13,11 @@ default:
 	@echo "  - run-debug-riscv64      // Compiles the kernel for riscv64 and runs in qemu w/ TCG & Debugger"
 	@echo "  - mkiso                  // Makes an ISO that can be ran (Also rebuilds kernel)"
 
-QEMU := ./extras/container-run.sh host:qemu /usr/local/bin
+QEMU := ./extras/qemu-run.sh /usr/local/bin
 
 .PHONY: bootstrap
 bootstrap:
 	./extras/bootstrap.sh
-
-.PHONY: bootstrap-bin
-bootstrap-bin:
-	./extras/bootstrap.sh --download
 
 .PHONY: initramfs
 initramfs:

@@ -1,0 +1,22 @@
+[host_machine]
+system = 'evalynos'
+kernel = 'evalynos'
+cpu_family = 'x86_64'
+cpu = 'x86_64'
+endian = 'little'
+
+[binaries]
+c = 'clang'
+c_ld = 'lld'
+ar = 'llvm-ar'
+strip = 'llvm-strip'
+pkg-config = 'pkg-config'
+
+[built-in options]
+c_args = ['--target=x86_64-unknown-elf', '--sysroot=${SYSROOT_DIR}']
+c_link_args = ['--target=x86_64-unknown-linux-gnu', '--sysroot=${SYSROOT_DIR}']
+pkg_config_path = ['${SYSROOT_DIR}${PREFIX}/lib/pkgconfig']
+
+[properties]
+needs_exe_wrapper = true
+sys_root = '${SYSROOT_DIR}'
