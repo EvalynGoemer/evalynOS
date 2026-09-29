@@ -10,5 +10,7 @@ thread_init_trampoline:
     move $a5, $s5
     move $a6, $s6
     move $a7, $s7
-    ld.d $t0, $sp, 0
-    jirl $zero, $t0, 0
+    ld.d $t0, $sp, 0 # entry
+    ld.d $ra, $sp, 8 # exit
+    addi.d $sp, $sp, 16
+    jr $t0

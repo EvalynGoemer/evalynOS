@@ -1,3 +1,4 @@
+#include <klib/syscall.h>
 #include <klib/misc_ctl.h>
 
 int puts(char* str) {
@@ -7,7 +8,6 @@ int puts(char* str) {
 }
 
 void _start() {
-    while (true) {
-        puts("Hello from userspace!\n");
-    }
+    puts("Hello from userspace!\n");
+    syscall0(SYS_EXIT);
 }

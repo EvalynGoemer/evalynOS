@@ -10,5 +10,7 @@ thread_init_trampoline:
     mv a5, s5
     mv a6, s6
     mv a7, s7
-    ld t0, 0(sp)
-    jalr zero, t0, 0
+    ld t0, 0(sp) # entry
+    ld ra, 8(sp) # exit
+    addi sp, sp, 16
+    jr t0

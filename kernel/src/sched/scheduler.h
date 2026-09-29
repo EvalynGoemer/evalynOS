@@ -35,6 +35,7 @@ _Static_assert(offsetof(thread_t, kstack) == 0);
 _Static_assert(offsetof(thread_t, user_stack_save) == 32);
 
 extern void early_sched_init();
+extern void sched_init();
 extern bool schedule();
 extern void schedule_finalize(thread_t* prev, thread_t* next);
 extern void enqueue_thread(thread_t* thread);

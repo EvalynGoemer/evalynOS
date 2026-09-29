@@ -1,10 +1,12 @@
 #include <stdint.h>
+#include <arch/generic/thread/exit.h>
 
 extern void thread_init_trampoline(void);
 
 uintptr_t arch_prepare_thread_stack(uintptr_t stack_top, uintptr_t entry, uintptr_t arg1, uintptr_t arg2) {
     uintptr_t sp = stack_top;
 
+    sp -= 8; *(uintptr_t*)sp = (uintptr_t)thread_exit;            // exit point
     sp -= 8; *(uintptr_t*)sp = entry;                             // entry point
     sp -= 8; *(uintptr_t*)sp = (uintptr_t)thread_init_trampoline; // return address
     sp -= 8; *(uintptr_t*)sp = arg1;                              // rbx -> rdi (arg1)

@@ -3,6 +3,7 @@
 
 #include <stddefer.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
 #include <assert.h>
 #include <stdio.h>
@@ -25,6 +26,29 @@
 #include <loader/elf_introspection.h>
 
 vmem_allocator_t kernel_vmem_allocator = {0};
+
+static uint64_t vmem_segment_get_value(rbtree_node_t* node) {
+    vmem_segment_t* n = CONTAINER_OF(node, vmem_segment_t, segment_tree_node);
+    return n->base;
+}
+
+static void vmem_allocator_init(vmem_allocator_t* alloc, uint64_t base, uint64_t size, uint32_t quantum) {
+    alloc->base = base;
+    alloc->size = size;
+    alloc->quantum = quantum;
+    alloc->bitmap = 0;
+
+    alloc->segments_tree = RBTREE_INIT;
+    alloc->segments_tree.value_of_node = vmem_segment_get_value;
+
+    alloc->segments_list = LLIST_INIT;
+    for (uint32_t i = 0; i < ARRAY_SIZE(alloc->freelists); i++) {
+        alloc->freelists[i] = LLIST_INIT;
+    }
+
+    spalloc_init(&alloc->segment_allocator, sizeof(vmem_segment_t), alignof(vmem_segment_t));
+    vmem_add_segment(alloc, base, size);
+}
 
 void vmem_init() {
     vmem_allocator_init(&kernel_vmem_allocator, VADDR_HIGHER_HALF_BASE, (UINT64_MAX - VADDR_HIGHER_HALF_BASE) + 1, PAGE_SIZE);
@@ -53,28 +77,19 @@ void vmem_init() {
     LOG_TAGGED_OK("MEMORY", ANSI_BGREEN, "Kernel VMEM Allocator Init")
 }
 
-static uint64_t vmem_segment_get_value(rbtree_node_t* node) {
-    vmem_segment_t* n = CONTAINER_OF(node, vmem_segment_t, segment_tree_node);
-    return n->base;
+vmem_allocator_t* new_vmem_allocator(uint64_t base, uint64_t size, uint32_t quantum) {
+    vmem_allocator_t* alloc = malloc(sizeof(vmem_allocator_t));
+    memset(alloc, 0, sizeof(vmem_allocator_t));
+    vmem_allocator_init(alloc, base, size, quantum);
+    return alloc;
 }
 
-void vmem_allocator_init(vmem_allocator_t* alloc, uint64_t base, uint64_t size, uint32_t quantum) {
-    alloc->base = base;
-    alloc->size = size;
-    alloc->quantum = quantum;
-    alloc->bitmap = 0;
-
-    alloc->segments_tree = RBTREE_INIT;
-    alloc->segments_tree.value_of_node = vmem_segment_get_value;
-
-    alloc->segments_list = LLIST_INIT;
-    for (uint32_t i = 0; i < ARRAY_SIZE(alloc->freelists); i++) {
-        alloc->freelists[i] = LLIST_INIT;
+void free_vmem_allocator(vmem_allocator_t* alloc) {
+    LLIST_FOR_EACH(alloc->segments_list, node) {
+        void* seg = CONTAINER_OF(node, vmem_segment_t, segment_list_node);
+        spalloc_free(&alloc->segment_allocator, seg);
     }
-
-    spalloc_init(&alloc->segment_allocator, sizeof(vmem_segment_t), alignof(vmem_segment_t));
-
-    vmem_add_segment(alloc, base, size);
+    free(alloc);
 }
 
 static void vmem_flist_add(vmem_allocator_t* alloc, vmem_segment_t* seg, uint32_t index) {

@@ -43,7 +43,7 @@ thread_t* create_uthread_from_elf(const char* initramfs_path) {
     // TODO: return an error instead and free things
     assert(entry != 0);
 
-    uint64_t stack_base = vmem_alloc(&as->valloc, 0x20000, 0);
+    uint64_t stack_base = vmem_alloc(as->valloc, 0x20000, 0);
     uint64_t stack_top = stack_base + 0x20000;
     for (uint64_t a = stack_base; a < stack_top; a += PAGE_SIZE)
         paging_map_page(as->pagetable, a, pmm_alloc_page(), PAGE_URW);

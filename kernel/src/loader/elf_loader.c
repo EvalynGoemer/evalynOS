@@ -35,7 +35,7 @@ uint64_t load_elf(void *file, address_space_t* addrspace) {
         uint64_t vaddr_offset = ph->virt_addr - aligned_start;
         uint64_t pagesToMap = (aligned_end - aligned_start) / PAGE_SIZE;
 
-        if (!vmem_alloc(&addrspace->valloc, aligned_end - aligned_start, aligned_start))
+        if (!vmem_alloc(addrspace->valloc, aligned_end - aligned_start, aligned_start))
             return 0;
 
         uint64_t fileRemaining = ph->file_size;

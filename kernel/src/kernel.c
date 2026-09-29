@@ -1,5 +1,6 @@
 #include <arch/generic/thread/switch.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 
 #include <stdlib.h>
@@ -20,11 +21,22 @@
 #include <utils/lib.h>
 #include <utils/limine.h>
 #include <sched/scheduler.h>
+#include <sched/wait.h>
 #include <arch/generic/thread/init.h>
 #include <arch/generic/thread/new.h>
 #include <arch/intrin/cpulocal.h>
 #include <utils/dstruct/llist.h>
 #include <utils/locks/irqlock.h>
+
+static void test_thread() {
+    uint64_t i = 0;
+    while (++i) {
+        printf("starting process %lld\n", i);
+        thread_t* thread = create_uthread_from_elf("./usr/bin/helloworld.elf");
+        enqueue_thread(thread);
+        sched_wait_on(nullptr, 100 * 1000000);
+    }
+}
 
 void kmain() {
     if (LIMINE_BASE_REVISION_SUPPORTED(limine_base_revision) == false)
@@ -46,13 +58,14 @@ void kmain() {
     buddy_init();
     vmem_init();
     malloc_init();
+    sched_init();
 
     arch_post_mm_init();
     arch_init_aps();
 
     LOG("Starting Scheduler");
 
-    thread_t* thread = create_uthread_from_elf("./usr/bin/helloworld.elf");
+    thread_t* thread = create_kthread((uintptr_t)test_thread, 0, 0);
     enqueue_thread(thread);
 
     while (true)

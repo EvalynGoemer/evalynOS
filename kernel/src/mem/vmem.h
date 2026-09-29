@@ -37,10 +37,10 @@ typedef struct vmem_allocator {
 } vmem_allocator_t;
 
 extern void vmem_init();
-
 extern vmem_allocator_t kernel_vmem_allocator;
 
-extern void vmem_allocator_init(vmem_allocator_t* alloc, uint64_t base, uint64_t size, uint32_t quantum);
+extern vmem_allocator_t* new_vmem_allocator(uint64_t base, uint64_t size, uint32_t quantum);
+extern void free_vmem_allocator(vmem_allocator_t* alloc);
 extern void vmem_add_segment(vmem_allocator_t* alloc, uint64_t base, uint64_t size);
 extern uint64_t vmem_alloc(vmem_allocator_t* alloc, uint64_t size, uint64_t addr);
 extern void vmem_free(vmem_allocator_t* alloc, uint64_t addr, uint64_t size);

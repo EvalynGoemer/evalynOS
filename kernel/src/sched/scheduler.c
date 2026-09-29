@@ -1,7 +1,9 @@
+#include "sched/wait.h"
 #include <assert.h>
 #include <arch/generic/paging/paging.h>
 #include <mem/address_space.h>
 #include <sched/scheduler.h>
+#include <sched/reaper.h>
 #include <arch/intrin/interrupts.h>
 #include <arch/generic/thread/switch.h>
 #include <utils/dstruct/llist.h>
@@ -10,10 +12,16 @@
 
 CPU_LOCAL thread_t idle_thread = {};
 
+// should be called by all APs
 void early_sched_init() {
     thread_t* idle = CPU_LOCAL_PTR(idle_thread);
     idle->state = THREAD_RUNNING;
     CPU_LOCAL_SET_CURRENT_THREAD(idle);
+}
+
+// should only be called by the BSP
+void sched_init() {
+    init_reaper();
 }
 
 void enqueue_thread(thread_t* thread) {
@@ -78,15 +86,26 @@ void schedule_finalize(thread_t* prev, thread_t* next) {
             }
             break;
         }
-        //
+        case THREAD_REAPING: {
+            int lock1r = irqlock_lock(&reaper_waiter.lock);
+            llist_push_back(&reaper_list, &prev->node);
+            llist_node_t* node = llist_pop(&reaper_waiter.threads);
+            if (node != nullptr) {
+                thread_t* reaper = CONTAINER_OF(node, waitable_token_t, linkage)->thread;
+                thread_state_t prev_state = __atomic_exchange_n(&reaper->state, THREAD_RUNABLE, __ATOMIC_RELEASE);
+                if (prev_state == THREAD_BLOCKED) llist_push_back(CPU_LOCAL_GET_RUN_QUEUE_PTR(), &reaper->node);
+            }
+            irqlock_unlock(&reaper_waiter.lock, lock1r);
+            break;
+        }
         case THREAD_BLOCKED: panic("scheduler reached invalid state");
-        // TODO: add to the reaper threads queue when a thread is in this state
-        case THREAD_REAPING: break;
     }
 
     // is a user thread
     if (next->addrspace != nullptr) {
         arch_load_page_table(next->addrspace->pagetable);
         arch_finalize_user_switch(next);
+    } else {
+        arch_load_page_table(kernel_page_table);
     }
 }
