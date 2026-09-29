@@ -1,3 +1,7 @@
+#include "arch/x86_64/cpu/CRx.h"
+#include "arch/x86_64/descriptor_tables/gdt.h"
+#include "arch/x86_64/descriptor_tables/idt.h"
+#include "arch/x86_64/drivers/fred/fred.h"
 #include <string.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -151,7 +155,18 @@ void x86_ap_entry(uint32_t core_id) {
     LOG_TAGGED("AP/STARTUP", ANSI_BYELLOW, "AP %d started", core_id);
 
     per_ap_data_t* per_data = global_ap_data->per_ap_data_ptrs[core_id];
-    SET_CPU_LOCAL(per_data->cpulocal_base);
+    SET_CPU_LOCAL(per_data->cpulocal_base)
+
+    early_sched_init();
+
+    setup_ap_gdt(per_data->cpulocal_base);
+
+    if (fred_enabled)
+        setup_fred_ap();
+    else
+        setup_ap_idt();
+
+    setup_control_regs_ap();
 
     setup_timers(core_id);
 

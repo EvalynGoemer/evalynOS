@@ -5,7 +5,9 @@
 #include <arch/x86_64/cpu/CRx.h>
 #include <arch/x86_64/drivers/fred/fred.h>
 #include <arch/x86_64/descriptor_tables/gdt.h>
+#include <mem/pmm.h>
 #include <stdio.h>
+#include <assert.h>
 
 #define FRED_STKLVL(n, lvl)  ((uint64_t)(lvl) << ((n) * 2))
 
@@ -20,9 +22,9 @@ bool setup_fred_bsp() {
     uint64_t star = ((uint64_t)(0x18 | 3) << 48) | ((uint64_t)0x08 << 32);
     wrmsr(MSR_STAR, star);
     wrmsr(MSR_FRED_CONFIG, (uint64_t)fred_ring3_entry_asm);
-    wrmsr(MSR_FRED_RSP1,   (uint64_t)&bsp_df_stack     + sizeof(bsp_df_stack));
-    wrmsr(MSR_FRED_RSP2,   (uint64_t)&bsp_nmi_stack    + sizeof(bsp_nmi_stack));
-    wrmsr(MSR_FRED_RSP3,   (uint64_t)&bsp_mce_stack    + sizeof(bsp_mce_stack));
+    wrmsr(MSR_FRED_RSP1,   (uint64_t)&bsp_df_stack  + sizeof(bsp_df_stack));
+    wrmsr(MSR_FRED_RSP2,   (uint64_t)&bsp_nmi_stack + sizeof(bsp_nmi_stack));
+    wrmsr(MSR_FRED_RSP3,   (uint64_t)&bsp_mce_stack + sizeof(bsp_mce_stack));
     wrmsr(MSR_FRED_STKLVLS,
         FRED_STKLVL(INTERRUPT_DOUBLE_FAULT,            1) |
         FRED_STKLVL(INTERRUPT_NON_MASKABLE_INTERRUPT,  2) |
@@ -33,4 +35,22 @@ bool setup_fred_bsp() {
 
     fred_enabled = true;
     return true;
+}
+
+void setup_fred_ap() {
+    assert(cpuid_check(CPUID_HAS_FRED));
+
+    set_cr4_bit(CR4_BIT_FRED);
+
+    uint64_t star = ((uint64_t)(0x18 | 3) << 48) | ((uint64_t)0x08 << 32);
+    wrmsr(MSR_STAR, star);
+    wrmsr(MSR_FRED_CONFIG, (uint64_t)fred_ring3_entry_asm);
+    wrmsr(MSR_FRED_RSP1,   TO_HHDM(pmm_alloc_page() + PAGE_SIZE));
+    wrmsr(MSR_FRED_RSP2,   TO_HHDM(pmm_alloc_page() + PAGE_SIZE));
+    wrmsr(MSR_FRED_RSP3,   TO_HHDM(pmm_alloc_page() + PAGE_SIZE));
+    wrmsr(MSR_FRED_STKLVLS,
+          FRED_STKLVL(INTERRUPT_DOUBLE_FAULT,            1) |
+          FRED_STKLVL(INTERRUPT_NON_MASKABLE_INTERRUPT,  2) |
+          FRED_STKLVL(INTERRUPT_MACHINE_CHECK_EXCEPTION, 3)
+    );
 }

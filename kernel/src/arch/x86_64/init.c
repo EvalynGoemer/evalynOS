@@ -49,7 +49,7 @@ void arch_early_init() {
     if (!setup_fred_bsp())
         setup_bsp_idt();
 
-    setup_control_regs();
+    setup_control_regs_bsp();
 
     setup_mce();
 }

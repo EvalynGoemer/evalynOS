@@ -88,6 +88,7 @@ static inline void clear_cr4_bit(unsigned int bit) {
     write_cr4(val);
 }
 
-extern void setup_control_regs();
+extern void setup_control_regs_bsp();
+extern void setup_control_regs_ap();
 extern bool smep_enabled;
 extern bool smap_enabled;

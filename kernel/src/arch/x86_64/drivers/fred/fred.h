@@ -18,6 +18,7 @@
 extern bool fred_enabled;
 
 extern bool setup_fred_bsp();
+extern void setup_fred_ap();
 
 extern void fred_switch_to_user(uint64_t start_addr, uint64_t stack_top);
 

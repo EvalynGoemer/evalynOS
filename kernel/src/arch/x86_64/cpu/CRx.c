@@ -1,12 +1,13 @@
 #include <arch/x86_64/cpu/CRx.h>
 #include <arch/x86_64/cpu/cpuid.h>
+#include <assert.h>
 #include <stdint.h>
 #include <stdio.h>
 
 bool smep_enabled = false;
 bool smap_enabled = false;
 
-void setup_control_regs() {
+void setup_control_regs_bsp() {
     uint64_t cr0 = read_cr0();
     cr0 &= ~(1ull << CR0_BIT_EM);
     cr0 &= ~(1ull << CR0_BIT_TS);
@@ -33,4 +34,30 @@ void setup_control_regs() {
     write_cr4(cr4);
 
     LOG_TAGGED_OK("ARCH EARLY INIT", ANSI_BYELLOW, "Control Registers Init")
+}
+
+void setup_control_regs_ap() {
+    uint64_t cr0 = read_cr0();
+    cr0 &= ~(1ull << CR0_BIT_EM);
+    cr0 &= ~(1ull << CR0_BIT_TS);
+    cr0 |= (1ull << CR0_BIT_MP);
+    cr0 |= (1ull << CR0_BIT_NE);
+    write_cr0(cr0);
+
+    uint64_t cr4 = read_cr4();
+    cr4 |= (1ull << CR4_BIT_PSE);
+    cr4 |= (1ull << CR4_BIT_OSFXSR);
+    cr4 |= (1ull << CR4_BIT_OSXMMEXCPT);
+
+    if (smep_enabled) {
+        assert(cpuid_check(CPUID_HAS_SMEP));
+        cr4 |= (1ull << CR4_BIT_SMEP);
+    }
+
+    if (smap_enabled) {
+        assert(cpuid_check(CPUID_HAS_SMAP));
+        cr4 |= (1ull << CR4_BIT_SMAP);
+    }
+
+    write_cr4(cr4);
 }

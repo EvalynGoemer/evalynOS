@@ -1,3 +1,4 @@
+#include <arch/intrin/cpulocal.h>
 #include "arch/x86_64/cpu/msr.h"
 #include "arch/x86_64/descriptor_tables/gdt.h"
 #include "arch/x86_64/drivers/fred/fred.h"
@@ -17,5 +18,5 @@ void arch_finalize_user_switch(thread_t* next) {
     if (fred_enabled)
         wrmsr(MSR_FRED_RSP0, next->kstack_top);
     else
-        bsp_tss.rsp0 = next->kstack_top;
+        CPU_LOCAL_WRITE(tss.rsp[0], next->kstack_top);
 }

@@ -1,3 +1,4 @@
+#include "arch/x86_64/intrin/cpulocal.h"
 #include <arch/intrin/cpulocal.h>
 #include <arch/x86_64/cpu/cpulocal.h>
 
@@ -6,5 +7,5 @@ fixed_cpu_local_t fixed_cpu_local = {0};
 
 void setup_cpulocal_bsp() {
     SET_CPU_LOCAL(0);
-    fixed_cpu_local.self = &fixed_cpu_local;
+    CPU_LOCAL_FIXED_WRITE64(self, &fixed_cpu_local);
 }
