@@ -13,6 +13,7 @@ typedef enum: uint32_t {
     THREAD_REAPING,
     THREAD_BLOCKING,
     THREAD_BLOCKED,
+    THREAD_IDLE_THREAD,
 } thread_state_t;
 
 typedef struct thread {
@@ -34,8 +35,9 @@ typedef struct thread {
 _Static_assert(offsetof(thread_t, kstack) == 0);
 _Static_assert(offsetof(thread_t, user_stack_save) == 32);
 
-extern void early_sched_init();
+extern void early_sched_init_bsp();
+extern void early_sched_init_ap(thread_t* init_thread, uint64_t idle_stack, uint64_t idle_stack_size);
 extern void sched_init();
-extern bool schedule();
+extern void schedule();
 extern void schedule_finalize(thread_t* prev, thread_t* next);
 extern void enqueue_thread(thread_t* thread);

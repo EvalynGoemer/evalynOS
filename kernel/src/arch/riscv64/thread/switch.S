@@ -1,11 +1,19 @@
 .globl arch_thread_switch
 .type arch_thread_switch, @function
+.global arch_thread_pivot
+.type arch_thread_pivot, @function
 .globl arch_switch_to_user
 .type arch_switch_to_user, @function
 .global arch_finalize_user_switch
 .type arch_finalize_user_switch, @function
 
 .extern schedule_finalize
+
+# a0 = new ip
+# a1 = new sp
+arch_thread_pivot:
+    move sp, a1
+    jr a0
 
 # a0 = prev thread_t*
 # a1 = next thread_t*

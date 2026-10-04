@@ -57,14 +57,7 @@ static wait_status_t wait_impl(waitable_t* waitable_object, wait_cond_t cond, vo
 
     // reschedule and preempt away
     enable_preemption();
-    bool preempted = schedule();
-
-    // if preemption failed fallback to spinning on the thread state
-    // this would only happen if there is no other eligible thread to switch to
-    if (UNLIKELY(!preempted)) {
-        while (__atomic_load_n(&cur->state, __ATOMIC_ACQUIRE) == THREAD_BLOCKING)
-            spin();
-    }
+    schedule();
 
     // we have now woken up and need to cleanup
     // use the "try" methods because something else may have already removed us

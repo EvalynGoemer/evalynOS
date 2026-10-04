@@ -22,8 +22,10 @@
 #include <utils/lib.h>
 #include <utils/limine.h>
 #include <sched/scheduler.h>
+#include <sched/idle.h>
 #include <sched/wait.h>
 #include <arch/generic/thread/init.h>
+#include <arch/generic/thread/exit.h>
 #include <arch/generic/thread/new.h>
 #include <arch/intrin/cpulocal.h>
 #include <utils/dstruct/llist.h>
@@ -40,6 +42,15 @@ static void test_thread() {
     }
 }
 
+static void threaded_kmain() {
+    arch_init_aps();
+
+    thread_t* thread = create_kthread((uintptr_t)test_thread, 0, 0);
+    enqueue_thread(thread);
+
+    thread_exit();
+}
+
 void kmain() {
     if (LIMINE_BASE_REVISION_SUPPORTED(limine_base_revision) == false)
         hcf();
@@ -52,7 +63,7 @@ void kmain() {
     print_build_info();
 
     arch_early_init();
-    early_sched_init();
+    early_sched_init_bsp();
 
     memmap_print();
     paging_init();
@@ -63,14 +74,10 @@ void kmain() {
     sched_init();
 
     arch_post_mm_init();
-    arch_init_aps();
 
-    LOG("Starting Scheduler");
+    thread_t* thread = create_kthread((uintptr_t)threaded_kmain, 0, 0);
+    uint64_t idle_stack = TO_HHDM(pmm_alloc_page()) + PAGE_SIZE;
 
-    thread_t* thread = create_kthread((uintptr_t)test_thread, 0, 0);
     enqueue_thread(thread);
-
-    while (true)
-        wfi();
-    hcf();
+    arch_thread_pivot((uintptr_t)idle_thread_entry, idle_stack);
 }

@@ -2,6 +2,7 @@ global arch_thread_switch
 global idt_switch_to_user
 extern fixed_cpu_local
 extern schedule_finalize
+extern arch_thread_pivot
 
 section .rodata
 
@@ -9,6 +10,12 @@ x87fpu dw 0x0C3F
 ssefpu dd 0x1F80
 
 section .text
+
+; rdi = new rip
+; rsi = new rsp
+arch_thread_pivot:
+    mov rsp, rsi
+    jmp rdi
 
 ; rdi = prev thread_t*
 ; rsi = next thread_t*

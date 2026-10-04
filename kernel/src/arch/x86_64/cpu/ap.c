@@ -2,6 +2,10 @@
 #include "arch/x86_64/descriptor_tables/gdt.h"
 #include "arch/x86_64/descriptor_tables/idt.h"
 #include "arch/x86_64/drivers/fred/fred.h"
+#include "sched/scheduler.h"
+#include "sched/wait.h"
+#include <arch/generic/thread/new.h>
+#include <arch/generic/thread/exit.h>
 #include <string.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -75,7 +79,6 @@ static uint64_t setup_trampoline() {
 static spalloc_allocator_t per_ap_data_allocator;
 
 static void setup_global_ap_data() {
-
     uint64_t global_data_size = sizeof(global_ap_data_t) + sizeof(per_ap_data_t*) * detected_cpus;
     uint64_t global_data_pages = ALIGN_UP(global_data_size, PAGE_SIZE) / PAGE_SIZE;
 
@@ -98,26 +101,30 @@ static void setup_global_ap_data() {
     for (uint32_t i = 1; i < detected_cpus; i++) {
         per_ap_data_t* per_data = spalloc_malloc(&per_ap_data_allocator);
 
-        uint64_t stack_paddr = pmm_alloc_page();
-        per_data->sp = TO_HHDM(stack_paddr) + PAGE_SIZE;
+        // this is the thread that will be set as running so its inital state is meaningless
+        per_data->init_thread = create_kthread(0, 0, 0);
 
+        uint64_t boot_stack_paddr = pmm_alloc_page();
+        uint64_t idle_stack_paddr = pmm_alloc_page();
+
+        per_data->init_thread_stack = TO_HHDM(boot_stack_paddr) + PAGE_SIZE;
+        per_data->idle_thread_stack = TO_HHDM(idle_stack_paddr) + PAGE_SIZE;
+
+        uint64_t cpulocal_vaddr;
         if (cpulocal_pages == 1) {
-            uint64_t cpulocal_vaddr = TO_HHDM(pmm_alloc_page());
-            memcpy((void*)cpulocal_vaddr, (void*)__cpu_local_start, cpulocal_size);
-            // setup the cpulocal self pointer
-            *(uintptr_t*)cpulocal_vaddr = cpulocal_vaddr;
-            per_data->cpulocal_base = cpulocal_vaddr - (uint64_t)__cpu_local_start;
+            cpulocal_vaddr = TO_HHDM(pmm_alloc_page());
         } else {
-            uint64_t cpulocal_vaddr = vmem_alloc(&kernel_vmem_allocator, cpulocal_size, 0);
+            cpulocal_vaddr = vmem_alloc(&kernel_vmem_allocator, cpulocal_size, 0);
             for (uint64_t p = 0; p < cpulocal_pages; p++) {
                 uint64_t paddr = pmm_alloc_page();
                 paging_map_page(kernel_page_table, cpulocal_vaddr + p * PAGE_SIZE, paddr, PAGE_KRW);
             }
-            memcpy((void*)cpulocal_vaddr, (void*)__cpu_local_start, cpulocal_size);
-            // setup the cpulocal self pointer
-            *(uintptr_t*)cpulocal_vaddr = cpulocal_vaddr;
-            per_data->cpulocal_base = cpulocal_vaddr - (uint64_t)__cpu_local_start;
         }
+
+        memcpy((void*)cpulocal_vaddr, (void*)__cpu_local_start, cpulocal_size);
+        per_data->cpulocal_base = cpulocal_vaddr - (uint64_t)__cpu_local_start;
+        // setup the cpulocal self pointer
+        *(uintptr_t*)cpulocal_vaddr = cpulocal_vaddr;
 
         global_ap_data->per_ap_data_ptrs[i] = per_data;
     }
@@ -141,7 +148,7 @@ void arch_init_aps() {
     }
 
     LOG_TAGGED("AP/INIT", ANSI_BYELLOW, "Waiting to send SIPIs")
-    timer_spin_wait_ms(10);
+    sched_wait_on(nullptr, 10000000);
 
     LOG_TAGGED("AP/INIT", ANSI_BYELLOW, "Sending SIPI IPIs to %d APs", detected_cpus - 1)
     RBTREE_FOR_EACH(detected_apics, node) {
@@ -157,7 +164,7 @@ void x86_ap_entry(uint32_t core_id) {
     per_ap_data_t* per_data = global_ap_data->per_ap_data_ptrs[core_id];
     SET_CPU_LOCAL(per_data->cpulocal_base)
 
-    early_sched_init();
+    early_sched_init_ap(per_data->init_thread, per_data->idle_thread_stack, PAGE_SIZE);
 
     setup_ap_gdt(per_data->cpulocal_base);
 
@@ -170,5 +177,5 @@ void x86_ap_entry(uint32_t core_id) {
 
     setup_timers(core_id);
 
-    hcf();
+    thread_exit();
 }

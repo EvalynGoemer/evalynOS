@@ -1,22 +1,34 @@
 #include "sched/wait.h"
-#include <assert.h>
+#include <sched/idle.h>
 #include <arch/generic/paging/paging.h>
+#include <arch/generic/thread/init.h>
 #include <mem/address_space.h>
 #include <sched/scheduler.h>
 #include <sched/reaper.h>
 #include <arch/intrin/interrupts.h>
 #include <arch/generic/thread/switch.h>
+#include <stdint.h>
 #include <utils/dstruct/llist.h>
 #include <utils/locks/spinlock.h>
 #include <arch/intrin/cpulocal.h>
 
 CPU_LOCAL thread_t idle_thread = {};
 
-// should be called by all APs
-void early_sched_init() {
+void early_sched_init_bsp() {
     thread_t* idle = CPU_LOCAL_PTR(idle_thread);
-    idle->state = THREAD_RUNNING;
+    idle->state = THREAD_IDLE_THREAD;
     CPU_LOCAL_SET_CURRENT_THREAD(idle);
+}
+
+void early_sched_init_ap(thread_t* init_thread, uint64_t idle_stack, uint64_t idle_stack_size) {
+    init_thread->state = THREAD_RUNNING;
+    CPU_LOCAL_SET_CURRENT_THREAD(init_thread);
+
+    thread_t* idle = CPU_LOCAL_PTR(idle_thread);
+    idle->state = THREAD_IDLE_THREAD;
+    idle->kstack_top = idle_stack;
+    idle->kstack_size = idle_stack_size;
+    idle->kstack = arch_prepare_thread_stack(idle_stack, (uintptr_t)idle_thread_entry, 0, 0);
 }
 
 // should only be called by the BSP
@@ -34,10 +46,10 @@ void enqueue_thread(thread_t* thread) {
     restore_interrupts(irqs);
 }
 
-bool schedule() {
+void schedule() {
     thread_t* current = CPU_LOCAL_GET_CURRENT_THREAD();
     if (current->preempt_disable_counter > 0)
-        return false;
+        return;
 
     disable_interrupts();
 
@@ -48,23 +60,29 @@ bool schedule() {
 
     llist_node_t* next_node = llist_pop_front(queue);
 
+    // no valid next thread go to idle
     if (next_node == nullptr) {
-        spinlock_unlock(lock);
-        enable_interrupts();
-        return false;
+        thread_t* idle = CPU_LOCAL_PTR(idle_thread);
+        // if we were already idling return
+        if (current == idle) {
+            spinlock_unlock(lock);
+            enable_interrupts();
+            return;
+        }
+        arch_thread_switch(current, idle);
+        return;
     }
 
     thread_t* next = CONTAINER_OF(next_node, thread_t, node);
 
-    assert(next != current);
-
     arch_thread_switch(current, next);
-    return true;
+    return;
 }
 
 void schedule_finalize(thread_t* prev, thread_t* next) {
     CPU_LOCAL_SET_CURRENT_THREAD(next);
-    __atomic_store_n(&next->state, THREAD_RUNNING, __ATOMIC_RELAXED);
+    if (__atomic_load_n(&next->state, __ATOMIC_RELAXED) != THREAD_IDLE_THREAD)
+        __atomic_store_n(&next->state, THREAD_RUNNING, __ATOMIC_RELAXED);
 
     switch (__atomic_load_n(&prev->state, __ATOMIC_RELAXED)) {
         // if the thread was running it should always be added back to the run queue
@@ -98,6 +116,7 @@ void schedule_finalize(thread_t* prev, thread_t* next) {
             irqlock_unlock(&reaper_waiter.lock, lock1r);
             break;
         }
+        case THREAD_IDLE_THREAD: break;
         case THREAD_BLOCKED: panic("scheduler reached invalid state");
     }
 

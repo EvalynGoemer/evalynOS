@@ -1,4 +1,5 @@
 #pragma once
+#include "sched/scheduler.h"
 #include <stdint.h>
 #include <stddef.h>
 
@@ -20,12 +21,14 @@ typedef struct [[gnu::packed]] {
     uint32_t config;
 } trampoline_data_t;
 
-typedef struct [[gnu::packed]] per_ap_data {
-    uint64_t sp;
+typedef struct per_ap_data {
+    uint64_t init_thread_stack;
+    thread_t* init_thread;
+    uint64_t idle_thread_stack;
     uint64_t cpulocal_base;
 } per_ap_data_t;
 
-typedef struct [[gnu::packed]] global_ap_data {
+typedef struct global_ap_data {
     uint32_t internal_core_id_counter; // atomic
     uint32_t total_cores;
     uint8_t _padding[56];
@@ -45,6 +48,8 @@ _Static_assert(offsetof(trampoline_data_t, config)      == 36);
 
 _Static_assert(offsetof(global_ap_data_t, internal_core_id_counter) == 0);
 _Static_assert(offsetof(global_ap_data_t, per_ap_data_ptrs) == 64);
+
+_Static_assert(offsetof(per_ap_data_t, init_thread_stack) == 0);
 
 extern uint8_t ap_trampoline[];
 extern uint64_t ap_trampoline_gdt[];
