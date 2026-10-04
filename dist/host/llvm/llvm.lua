@@ -1,6 +1,7 @@
 local LLVM_VERSION <const> = "23.1.2"
 
 local llvm_source = Source {
+    name = "llvm",
     Archive (
         string.gsub("https://github.com/llvm/llvm-project/releases/download/llvmorg-${version}/llvm-project-${version}.src.tar.xz", "${version}", LLVM_VERSION),
              "c98bbef08a2b4c2613cd50e9aa9ae7b69b1fe6c16b2c40373bc0ab6116fdf78a"
@@ -15,9 +16,9 @@ local llvm_package = Tool {
     name = "llvm",
     version = LLVM_VERSION,
     revision = 1,
+    source = llvm_source,
     dependencies = {
         "base-devel", "clang", "llvm", "lld",  "cmake", "ninja", "zlib", "zstd",
-        _ = llvm_source
     },
     configure = [[
         cmake -S "${SOURCE_DIR}"/llvm -B build -G Ninja           \
@@ -163,7 +164,7 @@ local llvm_package = Tool {
             -DLLD_SYMLINKS_TO_CREATE='ld.lld'
     ]],
     build = [[
-        cmake --build build --parallel "${PARALLELISM}"
+        cmake --build build --parallel "$(nproc)"
     ]],
     install = [[
         DESTDIR="${INSTALL_DIR}" cmake --install build

@@ -4,8 +4,8 @@ set -euo pipefail
 
 cd "$(dirname -- "$0")"
 
-CHARIOT_URL="https://github.com/chariot-build/chariot/releases/download/2026-09-26/chariot-linux-x86_64"
-CHARIOT_HASH="08f8031db1d9116b2daff27736c14dc0c7d962fa039182a9185988ccd71172ed"
+CHARIOT_URL="https://github.com/chariot-build/chariot/releases/download/2026-10-03/chariot-linux-x86_64"
+CHARIOT_HASH="bfcf206cebadc7f464463e0d9b3c60c79da69600ad32981c40e3656ea33e9fdf"
 CHARIOT_DIR="$(realpath ../chariot/)"
 CHARIOT="${CHARIOT_DIR}/chariot-linux-x86_64"
 
@@ -24,11 +24,14 @@ KERNEL_DIR="$(realpath ../kernel/)"
 
 cd "${PROJECT_DIR}"
 
-${CHARIOT} support setup-lsp
+${CHARIOT} support setup-lsp --support-dir .chariot-lsp-support
 
 host_pkgs=(limine llvm nasm ovmf2 xorriso)
 
 echo "building host packages"
+
+${CHARIOT} build --arch x86_64 --allow-new-profiles --tool "${host_pkgs[@]}"
+
 for pkg in "${host_pkgs[@]}"; do
     ${CHARIOT} install --arch x86_64 --allow-new-profiles --tool --force "${pkg}" "${PACKAGES_DIR}/${pkg}"
 done

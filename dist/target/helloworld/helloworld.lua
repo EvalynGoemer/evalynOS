@@ -6,11 +6,11 @@ Package {
     name = "helloworld",
     version = "0.0git",
     revision = 1,
+    source = Source { name = "helloworld", Local("dist/sources/helloworld") },
     dependencies = {
         "base-devel", "meson",
         helpers.targetTools, klib,
-        crossfiles = crossfiles,
-        _ = Source { Local("dist/sources/helloworld") }
+        crossfiles,
     },
     configure = helpers.genericMeson["configure"],
     build = helpers.genericMeson["build"],

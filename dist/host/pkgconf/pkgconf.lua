@@ -4,14 +4,15 @@ local pkgconf = Tool {
     name = "pkgconf",
     version = PKGCONF_VERSION,
     revision = 1,
+    source = Source {
+        name = "pkgconf",
+        Archive (
+            string.gsub("https://github.com/pkgconf/pkgconf/releases/download/pkgconf-${version}/pkgconf-${version}.tar.xz", "${version}", PKGCONF_VERSION),
+                 "c926ff491cbd9a331a589160811bd97ab1749b4d5198a519338f2cdfabe6940a"
+        )
+    },
     dependencies = {
         "base-devel",
-        _ = Source {
-            Archive (
-                string.gsub("https://github.com/pkgconf/pkgconf/releases/download/pkgconf-${version}/pkgconf-${version}.tar.xz", "${version}", PKGCONF_VERSION),
-                     "c926ff491cbd9a331a589160811bd97ab1749b4d5198a519338f2cdfabe6940a"
-            )
-        }
     },
     configure = [[
         ${SOURCE_DIR}/configure --prefix=${PREFIX}

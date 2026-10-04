@@ -1,4 +1,5 @@
 local crossfiles = Source {
+    name = "crossfiles",
     Local("extras/crossfiles"),
     prepare = string.format ([[
         PREFIX="%s"

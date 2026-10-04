@@ -4,14 +4,15 @@ Tool {
     name = "xorriso",
     version = XORRISO_VERSION,
     revision = 1,
+    source = Source {
+        name = "xorriso",
+        Archive (
+            string.gsub("https://mirrors.ocf.berkeley.edu/gnu/xorriso/xorriso-${version}.tar.gz", "${version}", XORRISO_VERSION),
+            "b1455ecafbf0692ddafe1d71002a96f2ce2d77f4deae602678261ce033f97bc8"
+        )
+    },
     dependencies = {
         "base-devel", "musl", "kernel-headers-musl",
-        _ = Source {
-            Archive (
-                string.gsub("https://mirrors.ocf.berkeley.edu/gnu/xorriso/xorriso-${version}.tar.gz", "${version}", XORRISO_VERSION),
-                "b1455ecafbf0692ddafe1d71002a96f2ce2d77f4deae602678261ce033f97bc8"
-            )
-        }
     },
     configure = [[
         CC="musl-gcc" "${SOURCE_DIR}"/configure --prefix="${PREFIX}" --disable-shared --enable-static
