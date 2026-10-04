@@ -3,6 +3,7 @@ local function host_package(package)
 end
 
 host_package("xorriso")
+host_package("pkgconf")
 host_package("limine")
 host_package("ovmf2")
 host_package("llvm")

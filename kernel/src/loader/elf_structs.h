@@ -12,6 +12,7 @@
 #define ELF_VER        1
 
 #define ELF_SYSV_ABI 0
+#define ELF_EVALYNOS_ABI 0xEE
 
 #define ELF_EXECUTABLE_TYPE 0x02
 

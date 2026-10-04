@@ -2,7 +2,6 @@
 #include "sched/scheduler.h"
 #include <arch/generic/thread/init.h>
 #include <arch/intrin/cpulocal.h>
-#include <assert.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
@@ -27,21 +26,27 @@ thread_t* create_kthread(uintptr_t entry, size_t arg1, size_t arg2) {
 }
 
 thread_t* create_uthread(uintptr_t entry, uintptr_t ustack, address_space_t* addrspace) {
-    thread_t* thread = create_kthread((uintptr_t)&arch_switch_to_user, entry, ustack);
+    thread_t* thread = create_kthread((uintptr_t)arch_switch_to_user, entry, ustack);
     thread->addrspace = addrspace;
     thread->user_stack_save = ustack;
     return thread;
 }
 
 thread_t* create_uthread_from_elf(const char* initramfs_path) {
+    if (!module_request.response || module_request.response->module_count == 0)
+        return nullptr;
+
     void* initramfs = module_request.response->modules[0]->address;
     void* elf = ustar_lookup(initramfs, initramfs_path, nullptr);
+    if (!elf) return nullptr;
 
     address_space_t* as = new_address_space();
     uint64_t entry = load_elf(elf, as);
 
-    // TODO: return an error instead and free things
-    assert(entry != 0);
+    if (entry == 0) {
+        free_address_space(as);
+        return nullptr;
+    }
 
     uint64_t stack_base = vmem_alloc(as->valloc, 0x20000, 0);
     uint64_t stack_top = stack_base + 0x20000;

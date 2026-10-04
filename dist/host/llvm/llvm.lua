@@ -1,18 +1,23 @@
-local LLVM_VERSION <const> = "23.1.1"
+local LLVM_VERSION <const> = "23.1.2"
 
-Tool {
+local llvm_source = Source {
+    Archive (
+        string.gsub("https://github.com/llvm/llvm-project/releases/download/llvmorg-${version}/llvm-project-${version}.src.tar.xz", "${version}", LLVM_VERSION),
+             "c98bbef08a2b4c2613cd50e9aa9ae7b69b1fe6c16b2c40373bc0ab6116fdf78a"
+    ),
+    patches = {
+        "dist/host/llvm/patches/0001-fix-debug-frame-augment.patch",
+        "dist/host/llvm/patches/0002-add-evalynos-target.patch"
+    }
+}
+
+local llvm_package = Tool {
     name = "llvm",
     version = LLVM_VERSION,
     revision = 1,
     dependencies = {
         "base-devel", "clang", "llvm", "lld",  "cmake", "ninja", "zlib", "zstd",
-        _ = Source {
-            Archive (
-                string.gsub("https://github.com/llvm/llvm-project/releases/download/llvmorg-${version}/llvm-project-${version}.src.tar.xz", "${version}", LLVM_VERSION),
-                "ebe9be46fe8756d58c5b198ffad0fa2a766257add81a4dc52179bfacc7888ee6"
-            ),
-            patches = {"dist/host/llvm/patches/0001-fix-debug-frame-augment.patch"}
-        }
+        _ = llvm_source
     },
     configure = [[
         cmake -S "${SOURCE_DIR}"/llvm -B build -G Ninja           \
@@ -67,7 +72,6 @@ Tool {
             -DLLVM_TOOL_LLC_BUILD=OFF                             \
             -DLLVM_TOOL_LLI_BUILD=OFF                             \
             -DLLVM_TOOL_LLUBI_BUILD=OFF                           \
-            -DLLVM_TOOL_LLVM_AR_BUILD=OFF                         \
             -DLLVM_TOOL_LLVM_AS_BUILD=OFF                         \
             -DLLVM_TOOL_LLVM_AS_FUZZER_BUILD=OFF                  \
             -DLLVM_TOOL_LLVM_BCANALYZER_BUILD=OFF                 \
@@ -154,7 +158,7 @@ Tool {
             -DLLVM_TOOL_VERIFY_USELISTORDER_BUILD=OFF             \
             -DLLVM_TOOL_VFABI_DEMANGLE_FUZZER_BUILD=OFF           \
             -DLLVM_TOOL_XCODE_TOOLCHAIN_BUILD=OFF                 \
-            -DLLVM_TOOLCHAIN_TOOLS='clang;clang++;lld;ld.lld;llvm-objcopy;llvm-objdump;llvm-nm;llvm-strip' \
+            -DLLVM_TOOLCHAIN_TOOLS='clang;clang++;lld;ld.lld;llvm-ar;llvm-objcopy;llvm-objdump;llvm-nm;llvm-strip' \
             -DCLANG_LINKS_TO_CREATE='clang++'                     \
             -DLLD_SYMLINKS_TO_CREATE='ld.lld'
     ]],
@@ -166,4 +170,9 @@ Tool {
         rm -rf "${INSTALL_DIR}/${PREFIX}/bin/git-clang-format" "${INSTALL_DIR}/${PREFIX}/bin/hmaptool" "${INSTALL_DIR}/${PREFIX}/include" "${INSTALL_DIR}/${PREFIX}/lib/cmake"
         find "${INSTALL_DIR}/${PREFIX}/bin" -maxdepth 1 -type f -exec strip {} + || true
     ]]
+}
+
+return {
+    source = llvm_source,
+    package = llvm_package
 }

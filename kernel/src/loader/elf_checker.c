@@ -16,7 +16,7 @@ bool verify_elf(void* file) {
         return false;
     if (header->endianness != ELF_LITTLE_ENDIAN)
         return false;
-    if (header->abi != ELF_SYSV_ABI)
+    if (header->abi != ELF_EVALYNOS_ABI)
         return false;
     if (header->type != ELF_EXECUTABLE_TYPE)
         return false;

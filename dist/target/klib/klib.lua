@@ -6,21 +6,14 @@ local klib = Package {
     version = "0.0git",
     revision = 1,
     dependencies = {
-        "base-devel", "clang", "llvm", "lld", "meson",
+        "base-devel", "meson",
+        helpers.targetTools,
         crossfiles = crossfiles,
         _ = Source { Local("dist/sources/klib")}
     },
-    configure = string.format([[
-        meson setup build "${SOURCE_DIR}"           \
-        --cross-file="${SOURCES_DIR}/crossfiles/%s" \
-        --prefix="${PREFIX}"
-    ]], helpers.getCrossFile()),
-    build = [[
-        meson compile -C build -j "${PARALLELISM}"
-    ]],
-    install = [[
-        DESTDIR="${INSTALL_DIR}" meson install -C build --strip
-    ]]
+    configure = helpers.genericMeson["configure"],
+    build = helpers.genericMeson["build"],
+    install = helpers.genericMeson["install"],
 }
 
 return klib

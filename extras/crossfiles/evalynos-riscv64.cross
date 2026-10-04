@@ -10,12 +10,11 @@ c = 'clang'
 c_ld = 'lld'
 ar = 'llvm-ar'
 strip = 'llvm-strip'
-pkg-config = 'pkg-config'
+pkg-config = 'riscv64-unknown-evalynos-pkg-config'
 
 [built-in options]
-c_args = ['--target=riscv64-unknown-elf', '-march=rv64imac_zbb_zba', '--sysroot=${SYSROOT_DIR}']
-c_link_args = ['--target=riscv64-unknown-linux-gnu', '--sysroot=${SYSROOT_DIR}']
-pkg_config_path = ['${SYSROOT_DIR}${PREFIX}/lib/pkgconfig']
+c_args = ['--target=riscv64-unknown-evalynos', '-march=rv64imac_zbb_zba', '--sysroot=${SYSROOT_DIR}']
+c_link_args = ['--target=riscv64-unknown-evalynos', '--sysroot=${SYSROOT_DIR}']
 
 [properties]
 needs_exe_wrapper = true

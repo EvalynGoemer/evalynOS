@@ -1,0 +1,371 @@
+diff --git a/clang/lib/Basic/LangStandards.cpp b/clang/lib/Basic/LangStandards.cpp
+index 01c524b7220f..a086e195cd74 100644
+--- a/clang/lib/Basic/LangStandards.cpp
++++ b/clang/lib/Basic/LangStandards.cpp
+@@ -104,6 +104,8 @@ LangStandard::Kind clang::getDefaultLanguageStandard(clang::Language Lang,
+     return LangStandard::lang_openclcpp10;
+   case Language::Asm:
+   case Language::C:
++    if (T.getOS() == llvm::Triple::EvalynOS)
++      return LangStandard::lang_gnu23;
+     // The PS4 uses C99 as the default C standard.
+     if (T.isPS4())
+       return LangStandard::lang_gnu99;
+@@ -114,6 +116,8 @@ LangStandard::Kind clang::getDefaultLanguageStandard(clang::Language Lang,
+   case Language::ObjCXX:
+   case Language::CUDA:
+   case Language::HIP:
++    if (T.getOS() == llvm::Triple::EvalynOS)
++      return LangStandard::lang_gnucxx20;
+     return LangStandard::lang_gnucxx17;
+   case Language::HLSL:
+     return LangStandard::lang_hlsl202x;
+diff --git a/clang/lib/Basic/Targets.cpp b/clang/lib/Basic/Targets.cpp
+index 8c01cfca8ccb..a74837c59114 100644
+--- a/clang/lib/Basic/Targets.cpp
++++ b/clang/lib/Basic/Targets.cpp
+@@ -492,6 +492,9 @@ std::unique_ptr<TargetInfo> AllocateTarget(const llvm::Triple &Triple,
+     case llvm::Triple::Serenity:
+       return std::make_unique<SerenityTargetInfo<RISCV64TargetInfo>>(Triple,
+                                                                      Opts);
++    case llvm::Triple::EvalynOS:
++      return std::make_unique<EvalynOSTargetInfo<RISCV64TargetInfo>>(Triple,
++                                                                     Opts);
+     default:
+       return std::make_unique<RISCV64TargetInfo>(Triple, Opts);
+     }
+@@ -693,6 +696,9 @@ std::unique_ptr<TargetInfo> AllocateTarget(const llvm::Triple &Triple,
+     case llvm::Triple::Serenity:
+       return std::make_unique<SerenityTargetInfo<X86_64TargetInfo>>(Triple,
+                                                                     Opts);
++    case llvm::Triple::EvalynOS:
++      return std::make_unique<EvalynOSTargetInfo<X86_64TargetInfo>>(Triple,
++                                                                    Opts);
+     default:
+       return std::make_unique<X86_64TargetInfo>(Triple, Opts);
+     }
+@@ -823,6 +829,9 @@ std::unique_ptr<TargetInfo> AllocateTarget(const llvm::Triple &Triple,
+     case llvm::Triple::OpenBSD:
+       return std::make_unique<OpenBSDTargetInfo<LoongArch64TargetInfo>>(Triple,
+                                                                         Opts);
++    case llvm::Triple::EvalynOS:
++      return std::make_unique<EvalynOSTargetInfo<LoongArch64TargetInfo>>(Triple,
++                                                                        Opts);
+     default:
+       return std::make_unique<LoongArch64TargetInfo>(Triple, Opts);
+     }
+diff --git a/clang/lib/Basic/Targets/OSTargets.h b/clang/lib/Basic/Targets/OSTargets.h
+index 7c4666606d89..327a5c245a8e 100644
+--- a/clang/lib/Basic/Targets/OSTargets.h
++++ b/clang/lib/Basic/Targets/OSTargets.h
+@@ -1139,6 +1139,31 @@ public:
+   }
+ };
+ 
++// EvalynOS target
++template <typename Target>
++class LLVM_LIBRARY_VISIBILITY EvalynOSTargetInfo : public OSTargetInfo<Target> {
++protected:
++  void getOSDefines(const LangOptions &Opts, const llvm::Triple &Triple, MacroBuilder &Builder) const override {
++    if (Opts.Freestanding) return;
++    Builder.defineMacro("__evalynos__");
++    DefineStd(Builder, "unix", Opts);
++    if (Opts.POSIXThreads) Builder.defineMacro("_REENTRANT");
++    if (Opts.CPlusPlus)    Builder.defineMacro("_GNU_SOURCE");
++    if (this->HasFloat128) Builder.defineMacro("__FLOAT128__");
++}
++
++public:
++  EvalynOSTargetInfo(const llvm::Triple &Triple, const TargetOptions &Opts) : OSTargetInfo<Target>(Triple, Opts) {
++    switch (Triple.getArch()) {
++      default: break;
++      case llvm::Triple::x86:
++      case llvm::Triple::x86_64:
++        this->HasFloat128 = true;
++        break;
++    }
++  }
++};
++
+ } // namespace targets
+ } // namespace clang
+ #endif // LLVM_CLANG_LIB_BASIC_TARGETS_OSTARGETS_H
+diff --git a/clang/lib/Driver/CMakeLists.txt b/clang/lib/Driver/CMakeLists.txt
+index 506536cdc04f..73f94ed63a04 100644
+--- a/clang/lib/Driver/CMakeLists.txt
++++ b/clang/lib/Driver/CMakeLists.txt
+@@ -63,6 +63,7 @@ add_clang_library(clangDriver
+   ToolChains/Cygwin.cpp
+   ToolChains/Darwin.cpp
+   ToolChains/DragonFly.cpp
++  ToolChains/EvalynOS.cpp
+   ToolChains/Flang.cpp
+   ToolChains/FreeBSD.cpp
+   ToolChains/Fuchsia.cpp
+diff --git a/clang/lib/Driver/Driver.cpp b/clang/lib/Driver/Driver.cpp
+index e606cdc4c1cf..ab46a3736713 100644
+--- a/clang/lib/Driver/Driver.cpp
++++ b/clang/lib/Driver/Driver.cpp
+@@ -19,6 +19,7 @@
+ #include "ToolChains/Cygwin.h"
+ #include "ToolChains/Darwin.h"
+ #include "ToolChains/DragonFly.h"
++#include "ToolChains/EvalynOS.h"
+ #include "ToolChains/FreeBSD.h"
+ #include "ToolChains/Fuchsia.h"
+ #include "ToolChains/Gnu.h"
+@@ -7122,6 +7123,9 @@ const ToolChain &Driver::getToolChain(const ArgList &Args,
+     case llvm::Triple::DragonFly:
+       TC = std::make_unique<toolchains::DragonFly>(*this, Target, Args);
+       break;
++    case llvm::Triple::EvalynOS:
++      TC = std::make_unique<toolchains::EvalynOSToolChain>(*this, Target, Args);
++      break;
+     case llvm::Triple::OpenBSD:
+       TC = std::make_unique<toolchains::OpenBSD>(*this, Target, Args);
+       break;
+diff --git a/clang/lib/Driver/ToolChains/EvalynOS.cpp b/clang/lib/Driver/ToolChains/EvalynOS.cpp
+new file mode 100644
+index 000000000000..755fe9f99f19
+--- /dev/null
++++ b/clang/lib/Driver/ToolChains/EvalynOS.cpp
+@@ -0,0 +1,75 @@
++//===---- EvalynOS.cpp - EvalynOS ToolChain Implementation ------*- C++ -*-===//
++//
++// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
++// See https://llvm.org/LICENSE.txt for license information.
++// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
++//
++//===----------------------------------------------------------------------===//
++
++#include "EvalynOS.h"
++#include "clang/Driver/CommonArgs.h"
++#include "clang/Driver/Compilation.h"
++#include "clang/Driver/Driver.h"
++#include "clang/Options/Options.h"
++#include "llvm/Option/ArgList.h"
++
++using namespace clang::driver;
++using namespace clang::driver::toolchains;
++using namespace clang;
++using namespace llvm::opt;
++
++void tools::evalynos::Linker::ConstructJob(Compilation &C, const JobAction &JA, const InputInfo &Output, const InputInfoList &Inputs, const ArgList &Args, const char *LinkingOutput) const {
++  const auto &TC = static_cast<const EvalynOSToolChain &>(getToolChain());
++  const Driver &D = TC.getDriver();
++  ArgStringList CmdArgs;
++
++  if (!D.SysRoot.empty())
++    CmdArgs.push_back(Args.MakeArgString("--sysroot=" + D.SysRoot));
++
++  if (Args.hasArg(options::OPT_shared))
++    CmdArgs.push_back("-shared");
++  else if (Args.hasArg(options::OPT_static))
++    CmdArgs.push_back("-static");
++  else if (Args.hasArg(options::OPT_pie))
++    CmdArgs.push_back("-pie");
++
++  if (Output.isFilename()) {
++    CmdArgs.push_back("-o");
++    CmdArgs.push_back(Output.getFilename());
++  }
++
++  Args.addAllArgs(CmdArgs, {options::OPT_L, options::OPT_u});
++  Args.addAllArgs(CmdArgs, {options::OPT_T_Group, options::OPT_s, options::OPT_t});
++
++  TC.AddFilePathLibArgs(Args, CmdArgs);
++  AddLinkerInputs(TC, Inputs, Args, CmdArgs, JA);
++
++  if (!Args.hasArg(options::OPT_nostdlib, options::OPT_nodefaultlibs))
++    AddRunTimeLibs(TC, D, CmdArgs, Args);
++
++  const char *Exec = Args.MakeArgString(TC.GetLinkerPath());
++  C.addCommand(std::make_unique<Command>(JA, *this, ResponseFileSupport::AtFileCurCP(), Exec, CmdArgs, Inputs, Output));
++}
++
++EvalynOSToolChain::EvalynOSToolChain(const Driver &D, const llvm::Triple &Triple, const ArgList &Args) : Generic_ELF(D, Triple, Args) {
++  getFilePaths().push_back(concat(getDriver().SysRoot, "/usr/lib"));
++}
++
++Tool *EvalynOSToolChain::buildLinker() const {
++  return new tools::evalynos::Linker(*this);
++}
++
++void EvalynOSToolChain::AddClangSystemIncludeArgs(const ArgList &DriverArgs, ArgStringList &CC1Args) const {
++  const Driver &D = getDriver();
++
++  if (DriverArgs.hasArg(options::OPT_nostdinc))
++    return;
++
++  if (!DriverArgs.hasArg(options::OPT_nobuiltininc))
++    addSystemInclude(DriverArgs, CC1Args, concat(D.ResourceDir, "/include"));
++
++  if (DriverArgs.hasArg(options::OPT_nostdlibinc))
++    return;
++
++  addSystemInclude(DriverArgs, CC1Args, concat(D.SysRoot, "/usr/include"));
++}
+diff --git a/clang/lib/Driver/ToolChains/EvalynOS.h b/clang/lib/Driver/ToolChains/EvalynOS.h
+new file mode 100644
+index 000000000000..9ff26eee3ab1
+--- /dev/null
++++ b/clang/lib/Driver/ToolChains/EvalynOS.h
+@@ -0,0 +1,49 @@
++//===---- EvalynOS.h - EvalynOS ToolChain Implementation --------*- C++ -*-===//
++//
++// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
++// See https://llvm.org/LICENSE.txt for license information.
++// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
++//
++//===----------------------------------------------------------------------===//
++
++#pragma once
++
++#include "Gnu.h"
++#include "clang/Driver/Tool.h"
++#include "clang/Driver/ToolChain.h"
++
++namespace clang {
++namespace driver {
++namespace tools {
++namespace evalynos {
++
++class LLVM_LIBRARY_VISIBILITY Linker final : public Tool {
++public:
++  Linker(const ToolChain &TC) : Tool("evalynos::Linker", "linker", TC) {}
++
++  bool hasIntegratedCPP() const override { return false; }
++  bool isLinkJob() const override { return true; }
++
++  void ConstructJob(Compilation &C, const JobAction &JA, const InputInfo &Output, const InputInfoList &Inputs, const llvm::opt::ArgList &TCArgs, const char *LinkingOutput) const override;
++};
++
++} // end namespace evalynos
++} // end namespace tools
++
++namespace toolchains {
++
++class LLVM_LIBRARY_VISIBILITY EvalynOSToolChain final : public Generic_ELF {
++public:
++  EvalynOSToolChain(const Driver &D, const llvm::Triple &Triple, const llvm::opt::ArgList &Args);
++
++  void AddClangSystemIncludeArgs(const llvm::opt::ArgList &DriverArgs, llvm::opt::ArgStringList &CC1Args) const override;
++  const char *getDefaultLinker() const override { return "ld.lld"; }
++  RuntimeLibType GetDefaultRuntimeLibType() const override { return ToolChain::RLT_CompilerRT; }
++
++protected:
++  Tool *buildLinker() const override;
++};
++
++} // end namespace toolchains
++} // end namespace driver
++} // end namespace clang
+diff --git a/clang/lib/Lex/InitHeaderSearch.cpp b/clang/lib/Lex/InitHeaderSearch.cpp
+index e894086b66e7..e97be9e2e43e 100644
+--- a/clang/lib/Lex/InitHeaderSearch.cpp
++++ b/clang/lib/Lex/InitHeaderSearch.cpp
+@@ -236,6 +236,7 @@ bool InitHeaderSearch::ShouldAddDefaultIncludePaths(
+   case llvm::Triple::WASIp3:
+   case llvm::Triple::Win32:
+   case llvm::Triple::ZOS:
++  case llvm::Triple::EvalynOS:
+     return false;
+ 
+   case llvm::Triple::UnknownOS:
+diff --git a/llvm/include/llvm/BinaryFormat/ELF.h b/llvm/include/llvm/BinaryFormat/ELF.h
+index 3f1889f236ea..a357a4d16c33 100644
+--- a/llvm/include/llvm/BinaryFormat/ELF.h
++++ b/llvm/include/llvm/BinaryFormat/ELF.h
+@@ -361,6 +361,7 @@ enum {
+   ELFOSABI_AROS = 15,          // AROS
+   ELFOSABI_FENIXOS = 16,       // FenixOS
+   ELFOSABI_CLOUDABI = 17,      // Nuxi CloudABI
++  ELFOSABI_EVALYNOS = 0xEE,    // EvalynOS
+   ELFOSABI_CUDA = 51,          // NVIDIA CUDA architecture.
+   ELFOSABI_CUDA_V2 = 41,       // NVIDIA CUDA architecture.
+   ELFOSABI_FIRST_ARCH = 64,    // First architecture-specific OS ABI
+diff --git a/llvm/include/llvm/MC/MCELFObjectWriter.h b/llvm/include/llvm/MC/MCELFObjectWriter.h
+index c9b40489b459..e92e63fe08fa 100644
+--- a/llvm/include/llvm/MC/MCELFObjectWriter.h
++++ b/llvm/include/llvm/MC/MCELFObjectWriter.h
+@@ -71,6 +71,8 @@ public:
+ 
+   static uint8_t getOSABI(Triple::OSType OSType) {
+     switch (OSType) {
++      case Triple::EvalynOS:
++        return ELF::ELFOSABI_EVALYNOS;
+       case Triple::HermitCore:
+         return ELF::ELFOSABI_STANDALONE;
+       case Triple::PS4:
+diff --git a/llvm/include/llvm/Object/ELFObjectFile.h b/llvm/include/llvm/Object/ELFObjectFile.h
+index 6d72741c3bde..b6a0c4548e86 100644
+--- a/llvm/include/llvm/Object/ELFObjectFile.h
++++ b/llvm/include/llvm/Object/ELFObjectFile.h
+@@ -1486,6 +1486,8 @@ template <class ELFT> Triple::OSType ELFObjectFile<ELFT>::getOS() const {
+     return Triple::AMDPAL;
+   case ELF::ELFOSABI_AMDGPU_MESA3D:
+     return Triple::Mesa3D;
++  case ELF::ELFOSABI_EVALYNOS:
++    return Triple::EvalynOS;
+   default:
+     return Triple::UnknownOS;
+   }
+diff --git a/llvm/include/llvm/TargetParser/Triple.h b/llvm/include/llvm/TargetParser/Triple.h
+index d819c4975b13..f3b1d60de3c4 100644
+--- a/llvm/include/llvm/TargetParser/Triple.h
++++ b/llvm/include/llvm/TargetParser/Triple.h
+@@ -347,7 +347,8 @@ public:
+     Firmware,
+     QURT,
+     H2,
+-    LastOSType = H2
++    EvalynOS,
++    LastOSType = EvalynOS
+   };
+   enum EnvironmentType {
+     UnknownEnvironment,
+diff --git a/llvm/include/llvm/TargetParser/TripleName.def b/llvm/include/llvm/TargetParser/TripleName.def
+index bbc03b318801..4c120452a5aa 100644
+--- a/llvm/include/llvm/TargetParser/TripleName.def
++++ b/llvm/include/llvm/TargetParser/TripleName.def
+@@ -81,6 +81,7 @@ TRIPLE_OS(ChipStar, "chipstar")
+ TRIPLE_OS(Firmware, "firmware")
+ TRIPLE_OS(QURT, "qurt")
+ TRIPLE_OS(H2, "h2")
++TRIPLE_OS(EvalynOS, "evalynos")
+ 
+ #undef TRIPLE_OS
+ #undef TRIPLE_OS_ALIAS
+diff --git a/llvm/lib/BinaryFormat/ELF.cpp b/llvm/lib/BinaryFormat/ELF.cpp
+index 4b430bc287ff..8a774a7fa59c 100644
+--- a/llvm/lib/BinaryFormat/ELF.cpp
++++ b/llvm/lib/BinaryFormat/ELF.cpp
+@@ -651,6 +651,7 @@ uint8_t ELF::convertNameToOSABI(StringRef Name) {
+       .StartsWith("aros", ELFOSABI_AROS)
+       .StartsWith("fenixos", ELFOSABI_FENIXOS)
+       .StartsWith("cloudabi", ELFOSABI_CLOUDABI)
++      .StartsWith("evalynos", ELFOSABI_EVALYNOS)
+       .StartsWith("cuda", ELFOSABI_CUDA)
+       .StartsWith("amdhsa", ELFOSABI_AMDGPU_HSA)
+       .StartsWith("amdpal", ELFOSABI_AMDGPU_PAL)
+@@ -695,6 +696,8 @@ StringRef ELF::convertOSABIToName(uint8_t OSABI) {
+     return "fenixos";
+   case ELFOSABI_CLOUDABI:
+     return "cloudabi";
++  case ELFOSABI_EVALYNOS:
++    return "evalynos";
+   case ELFOSABI_CUDA:
+     return "cuda";
+   case ELFOSABI_AMDGPU_HSA:
+diff --git a/llvm/tools/llvm-readobj/ELFDumper.cpp b/llvm/tools/llvm-readobj/ELFDumper.cpp
+index bdc3062f3a6b..7ba5a7e1edf0 100644
+--- a/llvm/tools/llvm-readobj/ELFDumper.cpp
++++ b/llvm/tools/llvm-readobj/ELFDumper.cpp
+@@ -1145,6 +1145,7 @@ constexpr EnumStringDef<unsigned, 2> ElfOSABIDefs[] = {
+     {{"CloudABI", "CloudABI"}, ELF::ELFOSABI_CLOUDABI},
+     {{"CUDA", "NVIDIA - CUDA"}, ELF::ELFOSABI_CUDA},
+     {{"CUDA", "NVIDIA - CUDA"}, ELF::ELFOSABI_CUDA_V2},
++    {{"EvalynOS", "EvalynOS"}, ELF::ELFOSABI_EVALYNOS},
+     {{"Standalone", "Standalone App"}, ELF::ELFOSABI_STANDALONE}};
+ constexpr auto ElfOSABI = BUILD_ENUM_STRINGS(ElfOSABIDefs);
+ 

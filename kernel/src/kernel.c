@@ -1,4 +1,5 @@
 #include <arch/generic/thread/switch.h>
+#include <assert.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -33,6 +34,7 @@ static void test_thread() {
     while (++i) {
         printf("starting process %lld\n", i);
         thread_t* thread = create_uthread_from_elf("./usr/bin/helloworld.elf");
+        assert(thread != nullptr);
         enqueue_thread(thread);
         sched_wait_on(nullptr, 100 * 1000000);
     }
