@@ -59,6 +59,6 @@ void arch_post_mm_init() {
         panic("ACPI setup failed");
 
     setup_timers(0);
-    setup_lapic();
+    setup_lapic_bsp();
     setup_syscall();
 }

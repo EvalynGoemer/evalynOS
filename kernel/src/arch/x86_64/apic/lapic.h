@@ -28,7 +28,9 @@
 #define LAPIC_TIMER_MODE_ONESHOT       0x00000
 #define LAPIC_TIMER_DIVIDE_1           0b1011
 
-extern void setup_lapic();
+extern void setup_lapic_bsp();
+extern void setup_lapic_ap();
+extern void calibrate_lapic_timer();
 extern void timer_set_timeout_ms(int ms);
 
 extern uint32_t arch_get_local_coreid();

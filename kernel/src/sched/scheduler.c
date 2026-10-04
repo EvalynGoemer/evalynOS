@@ -8,6 +8,7 @@
 #include <arch/intrin/interrupts.h>
 #include <arch/generic/thread/switch.h>
 #include <stdint.h>
+#include <string.h>
 #include <utils/dstruct/llist.h>
 #include <utils/locks/spinlock.h>
 #include <arch/intrin/cpulocal.h>
@@ -24,7 +25,12 @@ void early_sched_init_ap(thread_t* init_thread, uint64_t idle_stack, uint64_t id
     init_thread->state = THREAD_RUNNING;
     CPU_LOCAL_SET_CURRENT_THREAD(init_thread);
 
+    memset(CPU_LOCAL_GET_RUN_QUEUE_PTR(), 0, sizeof(llist_t));
+    spinlock_unlock(CPU_LOCAL_GET_SCHED_LOCK_PTR());
+
     thread_t* idle = CPU_LOCAL_PTR(idle_thread);
+    memset(idle, 0, sizeof(thread_t));
+
     idle->state = THREAD_IDLE_THREAD;
     idle->kstack_top = idle_stack;
     idle->kstack_size = idle_stack_size;

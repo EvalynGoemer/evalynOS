@@ -20,10 +20,10 @@ static const uint64_t timer_rollover_point[] = {
     [x86_WALLCLOCK_PVCLOCK]  = 0,
 };
 
+static uint64_t freq_shift;
+static uint64_t freq_mult;
 CPU_LOCAL static uint64_t last_tick;
 CPU_LOCAL static uint64_t rollover;
-CPU_LOCAL static uint64_t freq_shift;
-CPU_LOCAL static uint64_t freq_mult;
 
 void setup_timers(uint32_t core_id) {
     if (core_id == 0) {
@@ -48,33 +48,23 @@ void setup_timers(uint32_t core_id) {
             LOG_TAGGED("TIME", ANSI_BBLUE, "ACPI PM Timer setup running at %dHz", ACPI_TIMER_FREQUENCY);
         }
 
-        uint32_t shift = find_reciprocal_shift(1000000000ull, freq);
-        CPU_LOCAL_WRITE64(freq_shift, shift);
-        CPU_LOCAL_WRITE64(freq_mult, ((__uint128_t)1000000000ull << shift) / freq);
+        freq_shift = find_reciprocal_shift(1000000000ull, freq);
+        freq_mult = ((__uint128_t)1000000000ull << freq_shift) / freq;
         return;
     }
 
-    // APs do not need to do extra setup when using the ACPI PMT/HPET
-    // the info will get carried over when copying cpu local data
+    // APs do not need to do extra setup unless the pv clock is being used
 
     if (current_wallclock == x86_WALLCLOCK_PVCLOCK) {
         setup_pvclock();
         LOG_TAGGED("TIME", ANSI_BBLUE, "Setup PV clock for core %d; Current time %ldns", core_id, pvclock_get_ns());
-    }
-
-    if (current_wallclock == x86_WALLCLOCK_TSC) {
-        uint64_t freq = setup_tsc();
-        LOG_TAGGED("TIME", ANSI_BBLUE, "TSC calibrated for core %d at %lluHz", core_id, freq);
-        uint32_t shift = find_reciprocal_shift(1000000000ull, freq);
-        CPU_LOCAL_WRITE64(freq_shift, shift);
-        CPU_LOCAL_WRITE64(freq_mult, ((__uint128_t)1000000000ull << shift) / freq);
     }
 }
 
 static uint64_t timer_get_ticks() {
     uint64_t curr_tick;
     switch (current_wallclock) {
-        case x86_WALLCLOCK_TSC: curr_tick = __builtin_ia32_rdtsc(); break;
+        case x86_WALLCLOCK_TSC: return __builtin_ia32_rdtsc();
         case x86_WALLCLOCK_HPET: curr_tick = hpet_get_ticks(); break;
         case x86_WALLCLOCK_ACPI_PMT: curr_tick = acpi_pmt_get_ticks(); break;
         default: return 0;
@@ -92,8 +82,10 @@ static uint64_t timer_get_ticks() {
 uint64_t timer_get_ns() {
     disable_preemption();
     defer enable_preemption();
+
     if (current_wallclock == x86_WALLCLOCK_PVCLOCK)
         return pvclock_get_ns();
+
     uint64_t ticks = timer_get_ticks();
-    return ((__uint128_t)ticks * CPU_LOCAL_READ64(freq_mult)) >> CPU_LOCAL_READ64(freq_shift);
+    return ((__uint128_t)ticks * freq_mult) >> freq_shift;
 }

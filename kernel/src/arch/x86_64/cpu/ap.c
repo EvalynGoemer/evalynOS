@@ -2,6 +2,7 @@
 #include "arch/x86_64/descriptor_tables/gdt.h"
 #include "arch/x86_64/descriptor_tables/idt.h"
 #include "arch/x86_64/drivers/fred/fred.h"
+#include "arch/x86_64/syscall/syscall.h"
 #include "sched/scheduler.h"
 #include "sched/wait.h"
 #include <arch/generic/thread/new.h>
@@ -130,11 +131,15 @@ static void setup_global_ap_data() {
     }
 }
 
+static uint64_t start_time;
+
 void arch_init_aps() {
     if (detected_cpus <= 1) {
         LOG_TAGGED("AP/STARTUP", ANSI_BYELLOW, "No APs to start")
         return;
     }
+
+    start_time = timer_get_ns();
 
     setup_global_ap_data();
     uint64_t trampoline_page = setup_trampoline();
@@ -174,8 +179,12 @@ void x86_ap_entry(uint32_t core_id) {
         setup_ap_idt();
 
     setup_control_regs_ap();
+    setup_syscall();
 
     setup_timers(core_id);
+    setup_lapic_ap();
+
+    LOG_TAGGED("AP/STARTUP", ANSI_BYELLOW, "AP %d finished setup in %lld ns", core_id, timer_get_ns() - start_time);
 
     thread_exit();
 }

@@ -10,157 +10,77 @@
 #include <arch/intrin/mmio.h>
 #include <arch/x86_64/cpu/msr.h>
 #include <arch/x86_64/apic/lapic.h>
-#include <math.h>
+#include <arch/x86_64/apic/helpers.h>
 #include <assert.h>
 #include <stdint.h>
 #include <stdio.h>
 
-static uint64_t lapic_pbase = 0;
-static uint64_t lapic_vbase = 0;
+uint64_t lapic_vbase = 0;
 bool x2apic = false;
 
-static uint64_t tick_shift = 0;
-static uint64_t tick_mult  = 0;
+static uint64_t lapic_pbase = 0;
 
-static void write_lapic_register(uint32_t reg, uint32_t data) {
-    if (x2apic) {
-        reg = (reg >> 4) + 0x800;
-        assert(0x800 <= reg && reg <= 0x8FF);
-        wrmsr(reg, data);
-        return;
+static void enable_x2apic() {
+    uint64_t apic_base = rdmsr(MSR_APIC_BASE);
+    int apic_enabled = apic_base & LAPIC_BASE_x1ENABLE;
+    int x2apic_enabled = apic_base & LAPIC_BASE_x2ENABLE;
+
+    if (!apic_enabled) {
+        apic_base |= LAPIC_BASE_x1ENABLE;
+        wrmsr(MSR_APIC_BASE, apic_base);
     }
 
-    mmio_write_offset_32(lapic_vbase, reg, data);
-}
-
-static uint32_t read_lapic_register(uint32_t reg) {
-    if (x2apic) {
-        reg = (reg >> 4) + 0x800;
-        assert(0x800 <= reg && reg <= 0x8FF);
-        return rdmsr(reg);
+    if (!x2apic_enabled) {
+        apic_base |= LAPIC_BASE_x2ENABLE;
+        wrmsr(MSR_APIC_BASE, apic_base);
     }
-
-    return mmio_read_offset_32(lapic_vbase, reg);
 }
 
-void timer_set_timeout_ms(int ms) {
-    uint64_t ticks = ((__uint128_t)ms * tick_mult) >> tick_shift;
-    write_lapic_register(APIC_REGISTER_ICOUNT, ticks);
+static inline void lapic_setup_common() {
+    uint32_t apic_svr = read_lapic_register(APIC_REGISTER_SVR);
+    apic_svr |= 0x1FF; // enable lapic & enable spurious vector on vector 0xFF
+    write_lapic_register(APIC_REGISTER_SVR, apic_svr);
+
+    write_lapic_register(APIC_REGISTER_TIMER, LAPIC_TIMER_VECTOR | LAPIC_TIMER_MODE_ONESHOT);
+    timer_set_timeout_ms(1);
+    enable_interrupts();
 }
 
-void arch_send_eoi() {
-    write_lapic_register(APIC_REGISTER_EOI, 0);
-}
-
-void setup_lapic() {
+void setup_lapic_bsp() {
     if (!cpuid_check(CPUID_HAS_APIC))
         panic("CPU does not have the APIC enabled");
 
     x2apic = cpuid_check(CPUID_HAS_x2APIC);
 
     if (x2apic) {
-        uint64_t apic_base = rdmsr(MSR_APIC_BASE);
-        int apic_enabled = apic_base & LAPIC_BASE_x1ENABLE;
-        int x2apic_enabled = apic_base & LAPIC_BASE_x2ENABLE;
-
-        if (!apic_enabled) {
-            apic_base |= LAPIC_BASE_x1ENABLE;
-            wrmsr(MSR_APIC_BASE, apic_base);
-        }
-
-        if (!x2apic_enabled) {
-            apic_base |= LAPIC_BASE_x2ENABLE;
-            wrmsr(MSR_APIC_BASE, apic_base);
-        }
-    }
-
-    if (!x2apic && lapic_pbase == 0) {
+        enable_x2apic();
+    } else {
         lapic_pbase = rdmsr(MSR_APIC_BASE) & ~0xFFF;
-        assert(lapic_pbase != 0);
-    }
-
-    if(!x2apic && lapic_vbase == 0) {
         lapic_vbase = vmem_alloc(&kernel_vmem_allocator, PAGE_SIZE, 0);
+
+        assert(lapic_pbase != 0);
         paging_map_page(kernel_page_table, lapic_vbase, lapic_pbase, PAGE_KRW_UC);
     }
 
-    // ensure the lapic pbase is the same on all APs
-    if (!x2apic) {
+    calibrate_lapic_timer();
+    lapic_setup_common();
+
+    LOG_TAGGED("LAPIC", ANSI_BCYAN, "Local APIC Setup");
+}
+
+void setup_lapic_ap() {
+    if (x2apic) {
+        enable_x2apic();
+    } else {
         uint64_t lapic_conf = rdmsr(MSR_APIC_BASE) & 0xFFF;
         wrmsr(MSR_APIC_BASE, lapic_conf | lapic_pbase);
     }
 
-    uint32_t apic_svr = read_lapic_register(APIC_REGISTER_SVR);
-    apic_svr |= 0x1FF; // enable lapic & enable spurious vector on vector 0xFF
-    write_lapic_register(APIC_REGISTER_SVR, apic_svr);
-
-    LOG_TAGGED("LAPIC", ANSI_BCYAN, "Local APIC Setup");
-
-    // setup the lapic timer
-
-    write_lapic_register(APIC_REGISTER_TIMER, LAPIC_TIMER_VECTOR | LAPIC_TIMER_MODE_MASKED);
-    write_lapic_register(APIC_REGISTER_DIVIDE, LAPIC_TIMER_DIVIDE_1);
-    uint64_t total = 0;
-    for (int i = 0; i < 3; i++) {
-        write_lapic_register(APIC_REGISTER_ICOUNT, 0xFFFFFFFF);
-        timer_spin_wait_ms(10);
-        uint32_t remaining = read_lapic_register(APIC_REGISTER_CCOUNT);
-        total += (uint64_t)(0xFFFFFFFF - remaining) * 100;
-    }
-    uint64_t frequency = total / 3;
-
-    tick_shift = find_reciprocal_shift(frequency, 1000);
-    tick_mult  = ((__uint128_t)frequency << tick_shift) / 1000;
-
-    write_lapic_register(APIC_REGISTER_TIMER, LAPIC_TIMER_VECTOR | LAPIC_TIMER_MODE_ONESHOT);
-
-    LOG_TAGGED("LAPIC", ANSI_BCYAN, "Local APIC Timer Setup");
-
-    timer_set_timeout_ms(1);
-    enable_interrupts();
+    lapic_setup_common();
 }
 
 uint32_t arch_get_local_coreid() {
     if (x2apic)
         return read_lapic_register(APIC_REGISTER_ID);
     return read_lapic_register(APIC_REGISTER_ID) >> 24;
-}
-
-static void await_ipideliver() {
-    if (x2apic) return;
-    while (read_lapic_register(APIC_REGISTER_ICRL) & LAPIC_ICR_DELIVERY_STATUS)
-        spin();
-}
-
-void arch_send_ipi(uint32_t target_coreid, uint16_t vector) {
-    await_ipideliver();
-    if (x2apic) {
-        uint64_t icr = ((uint64_t)target_coreid << 32) | vector;
-        wrmsr(x2APIC_REGISTER_ICR, icr);
-    } else {
-        write_lapic_register(APIC_REGISTER_ICRH, target_coreid << 24);
-        write_lapic_register(APIC_REGISTER_ICRL, vector);
-    }
-}
-
-void x86_send_sipi(uint32_t target_coreid, uint8_t starting_page) {
-    await_ipideliver();
-    if (x2apic) {
-        uint64_t icr = ((uint64_t)target_coreid << 32) | LAPIC_ICR_DMODE_SIPI | starting_page;
-        wrmsr(x2APIC_REGISTER_ICR, icr);
-    } else {
-        write_lapic_register(APIC_REGISTER_ICRH, target_coreid << 24);
-        write_lapic_register(APIC_REGISTER_ICRL, LAPIC_ICR_DMODE_SIPI | starting_page);
-    }
-}
-
-void x86_send_init(uint32_t target_coreid) {
-    await_ipideliver();
-    if (x2apic) {
-        uint64_t icr = ((uint64_t)target_coreid << 32) | LAPIC_ICR_DMODE_INIT;
-        wrmsr(x2APIC_REGISTER_ICR, icr);
-    } else {
-        write_lapic_register(APIC_REGISTER_ICRH, target_coreid << 24);
-        write_lapic_register(APIC_REGISTER_ICRL, LAPIC_ICR_DMODE_INIT);
-    }
 }
