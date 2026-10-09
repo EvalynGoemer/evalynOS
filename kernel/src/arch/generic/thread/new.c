@@ -33,10 +33,8 @@ thread_t* create_uthread(uintptr_t entry, uintptr_t ustack, address_space_t* add
 }
 
 thread_t* create_uthread_from_elf(const char* initramfs_path) {
-    if (!module_request.response || module_request.response->module_count == 0)
-        return nullptr;
+    if (!initramfs) return nullptr;
 
-    void* initramfs = module_request.response->modules[0]->address;
     void* elf = ustar_lookup(initramfs, initramfs_path, nullptr);
     if (!elf) return nullptr;
 

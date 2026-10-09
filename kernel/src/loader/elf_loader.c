@@ -35,6 +35,7 @@ uint64_t load_elf(void *file, address_space_t* addrspace) {
         uint64_t vaddr_offset = ph->virt_addr - aligned_start;
         uint64_t pagesToMap = (aligned_end - aligned_start) / PAGE_SIZE;
 
+        if (aligned_start == 0) return 0;
         if (!vmem_alloc(addrspace->valloc, aligned_end - aligned_start, aligned_start))
             return 0;
 
@@ -43,7 +44,7 @@ uint64_t load_elf(void *file, address_space_t* addrspace) {
 
         for (uint64_t p = 0; p < pagesToMap; p++) {
             uint64_t ppage = pmm_alloc_page();
-            uint64_t vpage = ppage + hhdm_request.response->offset;
+            uint64_t vpage = ppage + hhdm_offset;
             paging_map_page(addrspace->pagetable, aligned_start, ppage, pte_flags);
 
             uint64_t offset = (p == 0) ? vaddr_offset : 0;

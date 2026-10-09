@@ -1,3 +1,5 @@
+#include "acpi/tables/madt.h"
+#include "arch/generic/timer/timer.h"
 #include <arch/generic/thread/switch.h>
 #include <assert.h>
 #include <stdbool.h>
@@ -18,6 +20,7 @@
 #include <mem/vmem.h>
 #include <mem/buddy.h>
 #include <mem/pfndb.h>
+#include <mem/reclaim.h>
 #include <utils/misc/build_id.h>
 #include <utils/lib.h>
 #include <utils/limine.h>
@@ -43,7 +46,28 @@ static void test_thread() {
 }
 
 static void threaded_kmain() {
+    uint64_t time = timer_get_ns();
     arch_init_aps();
+
+    // TODO; finish AP init on !x86
+#ifdef __x86_64__
+    uint32_t started = 0;
+    for (int i = 100; i > 0; i--) {
+        uint32_t old = started;
+        __atomic_load(&cpus_started, &started, __ATOMIC_ACQUIRE);
+        if (started == detected_cpus) break;
+        if (started > old) i += 10;
+        sched_wait_on(nullptr, 25000000);
+    }
+
+    // TODO; have a way to track which CPUs did not start to remove them from use
+    if (started != detected_cpus)
+        panic("Failed to start all APs");
+
+    LOG_TAGGED("AP/STARTUP", ANSI_BYELLOW, "All APs started in %llu ns", timer_get_ns() - time)
+#endif
+
+    reclaim_boot_memory();
 
     thread_t* thread = create_kthread((uintptr_t)test_thread, 0, 0);
     enqueue_thread(thread);
@@ -55,6 +79,7 @@ void kmain() {
     if (LIMINE_BASE_REVISION_SUPPORTED(limine_base_revision) == false)
         hcf();
 
+    limine_save_requests();
     arch_bootstrap_init();
     arch_earlycon_init();
 

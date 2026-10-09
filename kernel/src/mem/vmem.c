@@ -57,8 +57,8 @@ void vmem_init() {
 
 #ifndef ARCH_UNPAGED_HHDM
     // remove HHDM from vmem
-    alloced = vmem_alloc(&kernel_vmem_allocator, memmap_last_paddr(), hhdm_request.response->offset);
-    assert(alloced == hhdm_request.response->offset);
+    alloced = vmem_alloc(&kernel_vmem_allocator, memmap_last_paddr, hhdm_offset);
+    assert(alloced == hhdm_offset);
 #endif
 
     // remove pfndb from vmem
@@ -66,11 +66,10 @@ void vmem_init() {
     assert(alloced == (uintptr_t)pfndb);
 
     // remove kernel binary from vmem
-    struct limine_executable_address_response* kaddr = executable_address_request.response;
     uint64_t elf_base = elf_introspect_base();
     uint64_t elf_top = elf_introspect_top();
-    uint64_t vstart = kaddr->virtual_base;
-    uint64_t vend = kaddr->virtual_base + (elf_top - elf_base);
+    uint64_t vstart = kernel_virtual_base;
+    uint64_t vend = kernel_virtual_base + (elf_top - elf_base);
     alloced = vmem_alloc(&kernel_vmem_allocator, vend - vstart, vstart);
     assert(alloced == vstart);
 

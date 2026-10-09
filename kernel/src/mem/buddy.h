@@ -7,5 +7,6 @@
 #define ALLOC_FLAG_NOFAIL (1 << 0)
 
 extern void buddy_init();
+extern void buddy_add_range(uint64_t start, uint64_t length);
 extern uint64_t buddy_allocate(int order, size_t flags);
 extern void buddy_free(uint64_t paddr, int order);

@@ -10,8 +10,8 @@
 #define IS_ALIGNED(x, align) (((uint64_t)(x) & ((align) - 1)) == 0)
 #define MISALIGNMENT(x, align) (((uint64_t)(x) & ((align) - 1)))
 
-#define TO_HHDM(x)     ((uintptr_t)(x) + hhdm_request.response->offset)
-#define FROM_HHDM(x)   ((uintptr_t)(x) - hhdm_request.response->offset)
+#define TO_HHDM(x)     ((uintptr_t)(x) + hhdm_offset)
+#define FROM_HHDM(x)   ((uintptr_t)(x) - hhdm_offset)
 #define TO_HHDM_PTR(x) ((void*)TO_HHDM(x))
 
 #define LIKELY(x)     __builtin_expect(!!(x), 1)

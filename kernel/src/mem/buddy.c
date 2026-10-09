@@ -10,6 +10,7 @@
 #include <utils/defer.h>
 #include <utils/limine.h>
 #include <utils/dstruct/llist.h>
+#include <utils/dstruct/stack.h>
 #include <math.h>
 #include <stdio.h>
 
@@ -31,24 +32,36 @@ static inline void buddy_add_block(uint64_t paddr, int order) {
     llist_push(&orders[order], (llist_node_t*)TO_HHDM(paddr));
 }
 
+static inline void buddy_add_range_nlock(uint64_t start, uint64_t length) {
+    uint64_t end = ALIGN_DOWN(start + length, PAGE_SIZE);
+    start = ALIGN_UP(start, PAGE_SIZE);
+    if (end <= start) return;
+
+    uint64_t addr = start;
+    while (addr < end) {
+        dbg_assert(addr != 0);
+        uint64_t pages = (end - addr) >> PAGE_SIZE_SHIFT;
+        int max_fit = log2ull(pages);
+        int align   = GET_ORDER(addr);
+        int order   = MIN(MAX_ORDER, MIN(max_fit, align));
+        buddy_add_block(addr, order);
+        addr += GET_ORDER_SIZE(order);
+    }
+}
+
+void buddy_add_range(uint64_t start, uint64_t length) {
+    ticketlock_lock(&lock);
+    defer ticketlock_unlock(&lock);
+    buddy_add_range_nlock(start, length);
+}
+
 void buddy_init() {
     for (uint64_t i = 0; i < memmap_request.response->entry_count; i++) {
         struct limine_memmap_entry* entry = memmap_request.response->entries[i];
         if (entry->type != LIMINE_MEMMAP_USABLE) continue;
-
         uint64_t start = MAX(ALIGN_UP(entry->base, PAGE_SIZE), balloc_last_addr + PAGE_SIZE);
         uint64_t end   = ALIGN_DOWN(entry->base + entry->length, PAGE_SIZE);
-        if (end <= start) continue;
-
-        uint64_t addr = start;
-        while (addr < end) {
-            uint64_t pages = (end - addr) >> PAGE_SIZE_SHIFT;
-            int max_fit = log2ull(pages);
-            int align   = GET_ORDER(addr);
-            int order   = MIN(MAX_ORDER, MIN(max_fit, align));
-            buddy_add_block(addr, order);
-            addr += GET_ORDER_SIZE(order);
-        }
+        buddy_add_range_nlock(start, end - start);
     }
 
     LOG_TAGGED_OK("MEMORY", ANSI_BGREEN, "Buddy Allocator Init")

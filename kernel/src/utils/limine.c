@@ -1,5 +1,7 @@
 #include <stdint.h>
 #include <limine.h>
+#include <arch/generic/paging/paging.h>
+#include <utils/lib.h>
 
 [[gnu::used, gnu::section(".limine_requests_start")]]
 volatile uint64_t limine_requests_start_marker[] = LIMINE_REQUESTS_START_MARKER;
@@ -90,3 +92,36 @@ volatile struct limine_riscv_bsp_hartid_request riscv_bsp_hartid_request = {
 
 [[gnu::used, gnu::section(".limine_requests_end")]]
 volatile uint64_t limine_requests_end_marker[] = LIMINE_REQUESTS_END_MARKER;
+
+uint64_t hhdm_offset = 0;
+uint64_t kernel_virtual_base = 0;
+uint64_t memmap_last_paddr = 0;
+void*    initramfs = nullptr;
+void*    kernel_elf_file = nullptr;
+uint64_t kernel_elf_size = 0;
+
+void limine_save_requests() {
+    hhdm_offset = hhdm_request.response->offset;
+
+    uint64_t memmap_end = 0;
+    struct limine_memmap_response* mm = memmap_request.response;
+    for (uint64_t i = 0; i < mm->entry_count; i++) {
+        struct limine_memmap_entry* entry = mm->entries[i];
+        if (entry->type == LIMINE_MEMMAP_RESERVED)   continue;
+        if (entry->type == LIMINE_MEMMAP_BAD_MEMORY) continue;
+        uint64_t entry_end = entry->base + entry->length;
+        if (entry_end > memmap_end) memmap_end = entry_end;
+    }
+    memmap_last_paddr = ALIGN_UP(memmap_end, PAGE_SIZE);
+
+    if (executable_file_request.response) {
+        kernel_elf_file = executable_file_request.response->executable_file->address;
+        kernel_elf_size = executable_file_request.response->executable_file->size;
+    }
+
+    if (executable_address_request.response)
+        kernel_virtual_base = executable_address_request.response->virtual_base;
+
+    if (module_request.response && module_request.response->module_count > 0)
+        initramfs = module_request.response->modules[0]->address;
+}

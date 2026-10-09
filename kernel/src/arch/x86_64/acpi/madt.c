@@ -14,8 +14,6 @@ static spalloc_allocator_t alloc;
 static uint32_t madt_entries = 0;
 static uint32_t unknown_madt_entries = 0;
 
-uint32_t detected_cpus;
-
 static uint64_t detected_apic_get_value(rbtree_node_t* node) {
     detected_apic_t* x = CONTAINER_OF(node, detected_apic_t, node);
     return x->apic_id;

@@ -29,3 +29,11 @@ extern volatile struct limine_riscv_bsp_hartid_request riscv_bsp_hartid_request;
 #endif
 
 extern volatile uint64_t limine_requests_end_marker[];
+
+extern uint64_t hhdm_offset;
+extern uint64_t kernel_virtual_base;
+extern uint64_t memmap_last_paddr;
+extern void* initramfs;
+extern void* kernel_elf_file;
+extern uint64_t kernel_elf_size;
+extern void limine_save_requests();

@@ -12,14 +12,14 @@ page_t*  pfndb;
 uint64_t pfndb_size;
 
 void pfndb_init() {
-    uint64_t last_paddr = memmap_last_paddr();
+    uint64_t last_paddr = memmap_last_paddr;
 
     pfndb_size = sizeof(page_t) * (last_paddr >> PAGE_SIZE_SHIFT);
     pfndb_size = ALIGN_UP(pfndb_size, PAGE_SIZE);
-    uint64_t vbase = executable_address_request.response->virtual_base;
+    uint64_t vbase = kernel_virtual_base;
 
     #ifndef ARCH_UNPAGED_HHDM
-    uint64_t hhdm_base = hhdm_request.response->offset;
+    uint64_t hhdm_base = hhdm_offset;
     uint64_t hhdm_top = last_paddr + hhdm_base;
 
     assert(hhdm_base >= VADDR_HIGHER_HALF_BASE && vbase > hhdm_top);

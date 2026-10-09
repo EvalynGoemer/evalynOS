@@ -11,8 +11,7 @@
 // TODO: maybe make this a public paging helper instead
 static bool dwarf_vaddr_readable(uint64_t vaddr, uint64_t size) {
     #ifdef ARCH_UNPAGED_HHDM
-    uint64_t hhdm_base = hhdm_request.response->offset;
-    if (vaddr >= hhdm_base && vaddr - hhdm_base + size <= memmap_last_paddr())
+    if (vaddr >= hhdm_offset && vaddr - hhdm_offset + size <= memmap_last_paddr)
         return true;
     #endif
 

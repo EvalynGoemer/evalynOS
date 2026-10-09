@@ -2,6 +2,8 @@
 #include <stddef.h>
 #include <acpi/tables/madt.h>
 
+uint32_t detected_cpus;
+
 struct MADTEntryHeader* madt_first_entry(struct MADT* madt) {
     uint8_t* base = (uint8_t*)madt;
     uint8_t* end  = base + madt->header.length;

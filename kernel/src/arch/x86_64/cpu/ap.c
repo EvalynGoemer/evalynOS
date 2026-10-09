@@ -46,10 +46,13 @@ static uint64_t get_nth_lomem_page(uint64_t n) {
 }
 
 global_ap_data_t* global_ap_data;
+static uint64_t ap_page_table;
+static uint64_t global_data_vaddr;
+static uint64_t global_data_pages;
 
 static uint64_t setup_trampoline() {
     // make a 2mb identity map with the first lomem page
-    uint64_t ap_page_table = get_nth_lomem_page(0);
+    ap_page_table = get_nth_lomem_page(0);
     assert(ap_page_table != 0);
     memcpy(TO_HHDM_PTR(ap_page_table), TO_HHDM_PTR(kernel_page_table), PAGE_SIZE);
     paging_map_page(ap_page_table, 0, 0, PAGE_KRWX | PAGE_LARGE);
@@ -81,9 +84,9 @@ static spalloc_allocator_t per_ap_data_allocator;
 
 static void setup_global_ap_data() {
     uint64_t global_data_size = sizeof(global_ap_data_t) + sizeof(per_ap_data_t*) * detected_cpus;
-    uint64_t global_data_pages = ALIGN_UP(global_data_size, PAGE_SIZE) / PAGE_SIZE;
+    global_data_pages = ALIGN_UP(global_data_size, PAGE_SIZE) / PAGE_SIZE;
 
-    uint64_t global_data_vaddr = vmem_alloc(&kernel_vmem_allocator, global_data_pages * PAGE_SIZE, 0);
+    global_data_vaddr = vmem_alloc(&kernel_vmem_allocator, global_data_pages * PAGE_SIZE, 0);
 
     for (uint64_t i = 0; i < global_data_pages; i++) {
         uint64_t paddr = pmm_alloc_page();
@@ -129,6 +132,28 @@ static void setup_global_ap_data() {
 
         global_ap_data->per_ap_data_ptrs[i] = per_data;
     }
+}
+
+void arch_reclaim_ap_memory() {
+    if (detected_cpus <= 1)
+        return;
+
+    paging_unmap_range(ap_page_table, 0, PAGE_SIZE_LARGE);
+
+    for (uint32_t i = 1; i < detected_cpus; i++) {
+        per_ap_data_t* per_data = global_ap_data->per_ap_data_ptrs[i];
+        pmm_free_page(FROM_HHDM(per_data->init_thread_stack) - PAGE_SIZE);
+        spalloc_free(&per_ap_data_allocator, per_data);
+    }
+
+    for (uint64_t i = 0; i < global_data_pages; i++) {
+        uint64_t paddr = paging_get_paddr(kernel_page_table, global_data_vaddr + i * PAGE_SIZE, nullptr);
+        pmm_free_page(paddr);
+    }
+
+    paging_unmap_range(kernel_page_table, global_data_vaddr, global_data_pages * PAGE_SIZE);
+    vmem_free(&kernel_vmem_allocator, global_data_vaddr, global_data_pages * PAGE_SIZE);
+    global_ap_data = nullptr;
 }
 
 static uint64_t start_time;

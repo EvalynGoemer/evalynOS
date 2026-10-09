@@ -63,8 +63,6 @@ extern rbtree_t detected_apics;
 extern llist_t  detected_ioapics;
 extern llist_t  irq_overrides;
 
-extern uint32_t detected_cpus;
-
 extern void acpi_parse_madt();
 
 // ensure these can be allocated by the 64b internal allocator

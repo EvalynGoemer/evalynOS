@@ -32,12 +32,12 @@ void setup_timers(uint32_t core_id) {
         uint64_t freq;
         if (is_hypervisor && setup_pvclock()) {
             current_wallclock = x86_WALLCLOCK_PVCLOCK;
-            LOG_TAGGED("TIME", ANSI_BBLUE, "Setup PV clock for core %d; Current time %ldns", core_id, pvclock_get_ns());
+            LOG_TAGGED("TIME", ANSI_BBLUE, "Setup PV clock; Current time %ldns", pvclock_get_ns());
             return;
         } else if (cpuid_check(CPUID_HAS_INVARIANT_TSC)) {
             freq = setup_tsc();
             current_wallclock = x86_WALLCLOCK_TSC;
-            LOG_TAGGED("TIME", ANSI_BBLUE, "TSC calibrated for core %d at %lluHz", core_id, freq);
+            LOG_TAGGED("TIME", ANSI_BBLUE, "TSC calibrated at %lluHz", freq);
         } else if (setup_hpet()) {
             freq = hpet_get_frequency();
             current_wallclock = x86_WALLCLOCK_HPET;
@@ -55,10 +55,8 @@ void setup_timers(uint32_t core_id) {
 
     // APs do not need to do extra setup unless the pv clock is being used
 
-    if (current_wallclock == x86_WALLCLOCK_PVCLOCK) {
+    if (current_wallclock == x86_WALLCLOCK_PVCLOCK)
         setup_pvclock();
-        LOG_TAGGED("TIME", ANSI_BBLUE, "Setup PV clock for core %d; Current time %ldns", core_id, pvclock_get_ns());
-    }
 }
 
 static uint64_t timer_get_ticks() {

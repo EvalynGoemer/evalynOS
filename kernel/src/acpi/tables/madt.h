@@ -35,6 +35,8 @@ struct [[gnu::packed]] MADTEntryHeader {
     uint8_t length;
 };
 
+extern uint32_t detected_cpus;
+
 extern struct MADTEntryHeader* madt_first_entry(struct MADT *madt);
 extern struct MADTEntryHeader* madt_next_entry(struct MADT* madt, struct MADTEntryHeader *entry);
 
