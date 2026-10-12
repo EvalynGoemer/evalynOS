@@ -74,6 +74,9 @@ void dispatch_interrupt(interrupt_frame_t* frame) {
             timer_set_timeout_ms(1);
             enable_interrupts();
             schedule();
+            // set the fpu to be clean
+            frame->sstatus &= ~(3ull << 13);
+            frame->sstatus |=  (2ull << 13);
             break;
         }
         default: {

@@ -13,7 +13,7 @@ strip = 'llvm-strip'
 pkg-config = 'riscv64-unknown-evalynos-pkg-config'
 
 [built-in options]
-c_args = ['--target=riscv64-unknown-evalynos', '-march=rv64imac_zbb_zba', '--sysroot=${SYSROOT_DIR}']
+c_args = ['--target=riscv64-unknown-evalynos', '-march=rv64gc_zbb_zba', '--sysroot=${SYSROOT_DIR}']
 c_link_args = ['--target=riscv64-unknown-evalynos', '--sysroot=${SYSROOT_DIR}']
 
 [properties]

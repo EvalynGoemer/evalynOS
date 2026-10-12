@@ -203,7 +203,7 @@ void x86_ap_entry(uint32_t core_id) {
     else
         setup_ap_idt();
 
-    setup_control_regs_ap();
+    setup_control_regs(false);
     setup_syscall();
 
     setup_timers(core_id);

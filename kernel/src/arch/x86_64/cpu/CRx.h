@@ -72,6 +72,7 @@ static inline void clear_cr0_bit(unsigned int bit) {
 #define CR4_BIT_MCE         6
 #define CR4_BIT_OSFXSR      9
 #define CR4_BIT_OSXMMEXCPT  10
+#define CR4_BIT_OSXSAVE     18
 #define CR4_BIT_SMEP        20
 #define CR4_BIT_SMAP        21
 #define CR4_BIT_FRED        32
@@ -88,7 +89,24 @@ static inline void clear_cr4_bit(unsigned int bit) {
     write_cr4(val);
 }
 
-extern void setup_control_regs_bsp();
-extern void setup_control_regs_ap();
+#define XCR0_TILE_DATA_BIT 18
+#define XCR0_TILE_CONF_BIT 17
+#define XCR0_PKRU_BIT      9
+
+static inline uint64_t read_xcr(uint32_t xcr) {
+    uint32_t low, high;
+    asm volatile ("xgetbv" : "=a" (low), "=d" (high) : "c" (xcr));
+    return low + ((uint64_t) high << 32);
+}
+
+static inline void write_xcr(uint32_t xcr, uint64_t val) {
+    uint32_t low = val & 0xFFFFFFFF;
+    uint32_t high = val >> 32;
+    asm volatile("xsetbv" : : "a"(low), "d"(high), "c"(xcr) : "memory");
+}
+
+extern void setup_control_regs(bool bsp);
 extern bool smep_enabled;
 extern bool smap_enabled;
+extern bool xsave_enabled;
+extern uint32_t xsave_size;

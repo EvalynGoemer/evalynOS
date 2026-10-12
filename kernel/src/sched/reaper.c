@@ -6,6 +6,7 @@
 #include "utils/lib.h"
 #include "utils/locks/irqlock.h"
 #include <arch/generic/thread/new.h>
+#include <arch/generic/thread/init.h>
 #include <stdint.h>
 #include <stdlib.h>
 
@@ -34,7 +35,8 @@ static void reaper_thread() {
             // TODO: dont hard code the kernel stacks size
             pmm_free_page(FROM_HHDM(thread->kstack_top - PAGE_SIZE));
 
-            // TODO: have an arch spesific hook for cleaning up FPU save area etc
+            if (thread->fpu_save != nullptr)
+                arch_free_fpu_area(thread->fpu_save);
 
             free(thread);
         }

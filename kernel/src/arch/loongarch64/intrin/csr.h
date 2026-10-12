@@ -3,6 +3,11 @@
 #define CSR_CRMD    0x00
 #define CSR_CRMD_IE (1 << 2)
 
+#define CSR_EUEN      0x02
+#define CSR_EUEN_FPU  (1 << 0)
+#define CSR_EUEN_LSX  (1 << 1)
+#define CSR_EUEN_LASX (1 << 2)
+
 #define CSR_ECFG          0x04
 #define CSR_ECFG_TIMER_EN (1 << 11)
 

@@ -27,6 +27,7 @@ thread_t* create_kthread(uintptr_t entry, size_t arg1, size_t arg2) {
 
 thread_t* create_uthread(uintptr_t entry, uintptr_t ustack, address_space_t* addrspace) {
     thread_t* thread = create_kthread((uintptr_t)arch_switch_to_user, entry, ustack);
+    thread->fpu_save = arch_allocate_fpu_area();
     thread->addrspace = addrspace;
     thread->user_stack_save = ustack;
     return thread;

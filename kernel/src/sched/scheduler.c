@@ -126,8 +126,14 @@ void schedule_finalize(thread_t* prev, thread_t* next) {
         case THREAD_BLOCKED: panic("scheduler reached invalid state");
     }
 
-    // is a user thread
+    // prev was a user thread
+    if (prev->addrspace != nullptr) {
+        arch_fpu_save(prev->fpu_save);
+    }
+
+    // next is a user thread
     if (next->addrspace != nullptr) {
+        arch_fpu_restore(next->fpu_save);
         arch_load_page_table(next->addrspace->pagetable);
         arch_finalize_user_switch(next);
     } else {

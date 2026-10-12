@@ -61,6 +61,7 @@ enum HypervisorType {
 #define CPUID_GET_MAX_STANDARD  0x00000000
 #define CPUID_GET_FEATURES      0x00000001
 #define CPUID_GET_FEATURES_EXT  0x00000007
+#define CPUID_GET_XSAVE_STATE   0x0000000D
 #define CPUID_GET_FREQ_INFO1    0x00000015
 #define CPUID_GET_FREQ_INFO2    0x00000016
 #define CPUID_GET_MAX_EXTENDED  0x80000000
@@ -71,6 +72,7 @@ enum HypervisorType {
 #define CPUID_NX                20  /* EDX */
 #define CPUID_APIC              9   /* EDX */
 #define CPUID_x2APIC            21  /* ECX */
+#define CPUID_XSAVE             26  /* ECX */
 #define CPUID_ADJUST_TSC        1   /* EBX */
 #define CPUID_INVARIANT_TSC     8   /* EDX */
 #define CPUID_LAPIC_TSC         24  /* ECX */
@@ -85,6 +87,7 @@ enum HypervisorType {
 #define CPUID_HAS_NX            ((cpuid_request_t){ CPUID_GET_EXT_FEATURES, CPUID_NO_SUBLEAF, CPUID_EDX, CPUID_NX            })
 #define CPUID_HAS_APIC          ((cpuid_request_t){ CPUID_GET_FEATURES,     CPUID_NO_SUBLEAF, CPUID_EDX, CPUID_APIC          })
 #define CPUID_HAS_x2APIC        ((cpuid_request_t){ CPUID_GET_FEATURES,     CPUID_NO_SUBLEAF, CPUID_ECX, CPUID_x2APIC        })
+#define CPUID_HAS_XSAVE         ((cpuid_request_t){ CPUID_GET_FEATURES,     CPUID_NO_SUBLEAF, CPUID_ECX, CPUID_XSAVE         })
 #define CPUID_HAS_LAPIC_TSC     ((cpuid_request_t){ CPUID_GET_FEATURES,     CPUID_NO_SUBLEAF, CPUID_ECX, CPUID_LAPIC_TSC     })
 #define CPUID_HAS_ADJUST_TSC    ((cpuid_request_t){ CPUID_GET_CAPABILITIES, CPUID_NO_SUBLEAF, CPUID_EBX, CPUID_ADJUST_TSC    })
 #define CPUID_HAS_INVARIANT_TSC ((cpuid_request_t){ CPUID_GET_CAPABILITIES, CPUID_NO_SUBLEAF, CPUID_EDX, CPUID_INVARIANT_TSC })

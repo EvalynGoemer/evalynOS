@@ -3,6 +3,9 @@
 
 extern void malloc_init();
 
-[[gnu::malloc]]
-extern void* malloc(size_t size);
+extern void* kmalloc(size_t size);
+extern void kfree(void* ptr, size_t size);
+
+[[gnu::malloc]] extern void* malloc(size_t size);
+extern void* malloc_aligned(size_t size, size_t align);
 extern void free(void* ptr);

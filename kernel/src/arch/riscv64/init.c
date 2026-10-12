@@ -3,6 +3,7 @@
 #include <arch/riscv64/fdt/fdt.h>
 #include <arch/riscv64/acpi/acpi.h>
 #include <arch/riscv64/timer/timer.h>
+#include <arch/riscv64/intrin/csr.h>
 #include <arch/intrin/cpulocal.h>
 #include <arch/generic/panic.h>
 #include <utils/limine.h>
@@ -10,6 +11,8 @@
 
 void arch_bootstrap_init() {
     setup_cpulocal_bsp();
+    // enable the FPU
+    csrs(CSR_SSTATUS, 3ull << 13);
 }
 
 void arch_earlycon_init() {

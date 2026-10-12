@@ -1,9 +1,18 @@
+.option arch, +d
+
+#include <utils/lib.h>
+#define ZEROED_GPRS 1,3,4,5,6,7,8,9,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31
+
 .globl arch_thread_switch
 .type arch_thread_switch, @function
 .global arch_thread_pivot
 .type arch_thread_pivot, @function
 .globl arch_switch_to_user
 .type arch_switch_to_user, @function
+.global arch_fpu_save
+.type arch_fpu_save, @function
+.global arch_fpu_restore
+.type arch_fpu_restore, @function
 .global arch_finalize_user_switch
 .type arch_finalize_user_switch, @function
 
@@ -66,35 +75,14 @@ arch_thread_switch:
 # a0 = user entry
 # a1 = user stack top
 arch_switch_to_user:
-    # zero registers skipping zero, sp, a0, a1
-    move x1,  zero
-    move x3,  zero
-    move x4,  zero
-    move x5,  zero
-    move x6,  zero
-    move x7,  zero
-    move x8,  zero
-    move x9,  zero
-    move x12, zero
-    move x13, zero
-    move x14, zero
-    move x15, zero
-    move x16, zero
-    move x17, zero
-    move x18, zero
-    move x19, zero
-    move x20, zero
-    move x21, zero
-    move x22, zero
-    move x23, zero
-    move x24, zero
-    move x25, zero
-    move x26, zero
-    move x27, zero
-    move x28, zero
-    move x29, zero
-    move x30, zero
-    move x31, zero
+    ITER_REGS(ZEROED_GPRS, move x\i, zero)
+
+    # enable fpu
+    li  t0, (3 << 13)
+    csrs sstatus, t0
+    fscsr zero
+
+    ITER_REGS(ZERO_TO_31, fmv.d.x f\i, zero)
 
     # disable interrupts
     csrc sstatus, (1 << 1)
@@ -112,6 +100,36 @@ arch_switch_to_user:
     move a1, zero
 
     sret
+
+# a0 = fpu save pointer
+arch_fpu_save:
+    # check if fpu is dirty
+    csrr t0, sstatus
+    li   t1, 0x6000
+    and  t0, t0, t1
+    # branch if it is not
+    bne  t0, t1, .Lfpu_save_done
+
+    frcsr t0
+    sd t0, 256(a0)
+    ITER_REGS(ZERO_TO_31, fsd f\i, (\i * 8)(a0))
+
+    # set fpu to clean
+    li t0, 0x2000
+    csrc sstatus, t0
+.Lfpu_save_done:
+    ret
+
+# a0 = fpu save pointer
+arch_fpu_restore:
+    ld t0, 256(a0)
+    fscsr t0
+    ITER_REGS(ZERO_TO_31, fld f\i, (\i * 8)(a0))
+
+    # set fpu to clean
+    li t0, 0x2000
+    csrc sstatus, t0
+    ret
 
 arch_finalize_user_switch:
     ret

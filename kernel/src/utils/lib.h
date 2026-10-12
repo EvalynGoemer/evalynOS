@@ -1,6 +1,18 @@
 #pragma once
-#include <utils/limine.h>
 
+#ifndef __ASSEMBLER__
+#include <utils/limine.h>
+#endif
+
+// C/GAS macros
+#define STRINGIFY_IMPL(x) #x
+#define STRINGIFY(x) STRINGIFY_IMPL(x)
+
+#define CAT_IMPL(a, b) a##b
+#define CAT(a, b) CAT_IMPL(a, b)
+
+// C only macros
+#ifndef __ASSEMBLER__
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
@@ -21,11 +33,23 @@
 #define UNUSED(x)    ((void)(x))
 #define MAYBE_UNUSED [[gnu::unused]]
 
-#define STRINGIFY_IMPL(x) #x
-#define STRINGIFY(x) STRINGIFY_IMPL(x)
-
 #define CONTAINER_OF(PTR, TYPE, MEMBER)                                                                                               \
     ({                                                                                                                                \
         static_assert(__builtin_types_compatible_p(typeof(((TYPE*) 0)->MEMBER), typeof(*PTR)), "member type does not match pointer"); \
         (TYPE*) (((uintptr_t) (PTR)) - __builtin_offsetof(TYPE, MEMBER));                                                             \
     })
+
+#endif
+
+// GAS only macros
+#ifdef __ASSEMBLER__
+    #define ZERO_TO_31 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31
+
+    #define ITER_REGS(REGS, ...)    ;\
+        .macro CAT(iter_, __LINE__) ;\
+            .irp i, REGS            ;\
+                __VA_ARGS__         ;\
+            .endr                   ;\
+        .endm                       ;\
+        CAT(iter_, __LINE__)
+#endif

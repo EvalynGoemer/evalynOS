@@ -1,4 +1,6 @@
 #include <stdint.h>
+#include <string.h>
+#include <stdlib.h>
 #include <arch/generic/thread/exit.h>
 
 extern void thread_init_trampoline(void);
@@ -23,4 +25,17 @@ uintptr_t arch_prepare_thread_stack(uintptr_t stack_top, uintptr_t entry, uintpt
     sp -= 8; *(uintptr_t*)sp = 0;                                 // s11
 
     return sp;
+}
+
+#define RISCV_FPU_SAVE_SIZE ((32 * 8) + 8)
+
+void* arch_allocate_fpu_area() {
+    void* area = kmalloc(RISCV_FPU_SAVE_SIZE);
+    if (area != nullptr)
+        memset(area, 0, RISCV_FPU_SAVE_SIZE);
+    return area;
+}
+
+void arch_free_fpu_area(void* fpu_area) {
+    kfree(fpu_area, RISCV_FPU_SAVE_SIZE);
 }

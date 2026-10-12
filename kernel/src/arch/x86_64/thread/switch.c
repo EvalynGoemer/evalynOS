@@ -1,4 +1,5 @@
 #include <arch/intrin/cpulocal.h>
+#include "arch/x86_64/cpu/CRx.h"
 #include "arch/x86_64/cpu/msr.h"
 #include "arch/x86_64/descriptor_tables/gdt.h"
 #include "arch/x86_64/drivers/fred/fred.h"
@@ -19,4 +20,20 @@ void arch_finalize_user_switch(thread_t* next) {
         wrmsr(MSR_FRED_RSP0, next->kstack_top);
     else
         CPU_LOCAL_WRITE(tss.rsp[0], next->kstack_top);
+}
+
+void arch_fpu_save(void* fpu_area) {
+    if (xsave_enabled) {
+        asm volatile("xsave (%0)" : : "r"(fpu_area), "a"(UINT32_MAX), "d"(UINT32_MAX) : "memory");
+        return;
+    }
+    asm volatile("fxsave (%0)" : : "r"(fpu_area) : "memory");
+}
+
+void arch_fpu_restore(void* fpu_area) {
+    if (xsave_enabled) {
+        asm volatile("xrstor (%0)" : : "r"(fpu_area), "a"(UINT32_MAX), "d"(UINT32_MAX) : "memory");
+        return;
+    }
+    asm volatile("fxrstor (%0)" : : "r"(fpu_area) : "memory");
 }

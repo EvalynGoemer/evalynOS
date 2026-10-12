@@ -1,3 +1,4 @@
+#include "arch/loongarch64/cpu/fpu/fpu.h"
 #include <arch/loongarch64/timer/timer.h>
 #include <arch/loongarch64/cpu/cpulocal.h>
 #include <arch/loongarch64/cpu/interrupts.h>
@@ -37,6 +38,7 @@ void arch_post_mm_init() {
         panic("ACPI setup failed");
 
     setup_timer();
+    setup_fpu();
 }
 
 void arch_init_aps() {

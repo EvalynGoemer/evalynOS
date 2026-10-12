@@ -46,11 +46,11 @@ static void test_thread() {
 }
 
 static void threaded_kmain() {
+    // TODO; finish AP init on !x86
+#ifdef __x86_64__
     uint64_t time = timer_get_ns();
     arch_init_aps();
 
-    // TODO; finish AP init on !x86
-#ifdef __x86_64__
     uint32_t started = 0;
     for (int i = 100; i > 0; i--) {
         uint32_t old = started;
