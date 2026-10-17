@@ -7,6 +7,7 @@ endian = 'little'
 
 [binaries]
 c = 'clang'
+cpp = 'clang++'
 c_ld = 'lld'
 ar = 'llvm-ar'
 strip = 'llvm-strip'
@@ -15,6 +16,8 @@ pkg-config = 'loongarch64-unknown-evalynos-pkg-config'
 [built-in options]
 c_args = ['--target=loongarch64-unknown-evalynos', '-march=la464', '--sysroot=${SYSROOT_DIR}']
 c_link_args = ['--target=loongarch64-unknown-evalynos', '--sysroot=${SYSROOT_DIR}']
+cpp_args = ['--target=loongarch64-unknown-evalynos', '-march=la464', '--sysroot=${SYSROOT_DIR}']
+cpp_link_args = ['--target=loongarch64-unknown-evalynos', '--sysroot=${SYSROOT_DIR}']
 
 [properties]
 needs_exe_wrapper = true

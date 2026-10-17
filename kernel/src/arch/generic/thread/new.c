@@ -52,5 +52,15 @@ thread_t* create_uthread_from_elf(const char* initramfs_path) {
     for (uint64_t a = stack_base; a < stack_top; a += PAGE_SIZE)
         paging_map_page(as->pagetable, a, pmm_alloc_page(), PAGE_URW);
 
-    return create_uthread(entry, stack_top, as);
+    uint64_t  stack_paddr = paging_get_paddr(as->pagetable, stack_top - PAGE_SIZE, nullptr);
+    uintptr_t ustack_top = TO_HHDM(stack_paddr) + PAGE_SIZE;
+    uintptr_t ustack = ustack_top;
+
+    ustack -= 8; *(uintptr_t*)ustack = 0; // auxv
+    ustack -= 8; *(uintptr_t*)ustack = 0; // envp
+    ustack -= 8; *(uintptr_t*)ustack = 0; // argv
+    ustack -= 8; *(uintptr_t*)ustack = 0; // argc
+
+    uint64_t sp = stack_top - (ustack_top - ustack);
+    return create_uthread(entry, sp, as);
 }

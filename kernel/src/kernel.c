@@ -35,10 +35,8 @@
 #include <utils/locks/irqlock.h>
 
 static void test_thread() {
-    uint64_t i = 0;
-    while (++i) {
-        printf("starting process %lld\n", i);
-        thread_t* thread = create_uthread_from_elf("./usr/bin/helloworld.elf");
+    while (true) {
+        thread_t* thread = create_uthread_from_elf("./usr/bin/meow.elf");
         assert(thread != nullptr);
         enqueue_thread(thread);
         sched_wait_on(nullptr, 100 * 1000000);

@@ -1,23 +1,29 @@
--- internal
+local function require_host(package)
+    return require(string.gsub("dist.host.${pkg}.${pkg}", "${pkg}", package))
+end
 
-local cross_files <const> = {
+local function require_target(package)
+    return require(string.gsub("dist.target.${pkg}.${pkg}", "${pkg}", package))
+end
+
+local crossFiles <const> = {
     x86_64      = "evalynos-x86_64.cross",
     riscv64     = "evalynos-riscv64.cross",
     loongarch64 = "evalynos-loongarch64.cross",
 }
 
-local function require_host(package)
-    return require(string.gsub("dist.host.${pkg}.${pkg}", "${pkg}", package))
-end
-
--- exported
+local targetTriple <const> = {
+    x86_64      = "x86_64-unknown-evalynos",
+    riscv64     = "riscv64-unknown-evalynos",
+    loongarch64 = "loongarch64-unknown-evalynos",
+}
 
 local genericMeson = {
     configure = string.format([[
         meson setup ${BUILD_DIR} "${SOURCE_DIR}"    \
         --cross-file="${SOURCES_DIR}/crossfiles/%s" \
         --prefix="${PREFIX}"
-    ]], cross_files[chariot.target_arch]),
+    ]], crossFiles[chariot.target_arch]),
     build = [[
         meson compile -C ${BUILD_DIR} -j "${PARALLELISM}"
     ]],
@@ -38,6 +44,10 @@ local targetTools = Tool {
 }
 
 return {
-    genericMeson = genericMeson,
+    crossFiles = crossFiles,
+    targetTriple = targetTriple,
     targetTools = targetTools,
+    genericMeson = genericMeson,
+    require_host = require_host,
+    require_target = require_target,
 }

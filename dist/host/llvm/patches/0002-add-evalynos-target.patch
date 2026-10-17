@@ -55,10 +55,10 @@ index 8c01cfca8ccb..a74837c59114 100644
        return std::make_unique<LoongArch64TargetInfo>(Triple, Opts);
      }
 diff --git a/clang/lib/Basic/Targets/OSTargets.h b/clang/lib/Basic/Targets/OSTargets.h
-index 7c4666606d89..327a5c245a8e 100644
+index 7c4666606d89..5604b83c6716 100644
 --- a/clang/lib/Basic/Targets/OSTargets.h
 +++ b/clang/lib/Basic/Targets/OSTargets.h
-@@ -1139,6 +1139,31 @@ public:
+@@ -1139,6 +1139,30 @@ public:
    }
  };
  
@@ -67,7 +67,6 @@ index 7c4666606d89..327a5c245a8e 100644
 +class LLVM_LIBRARY_VISIBILITY EvalynOSTargetInfo : public OSTargetInfo<Target> {
 +protected:
 +  void getOSDefines(const LangOptions &Opts, const llvm::Triple &Triple, MacroBuilder &Builder) const override {
-+    if (Opts.Freestanding) return;
 +    Builder.defineMacro("__evalynos__");
 +    DefineStd(Builder, "unix", Opts);
 +    if (Opts.POSIXThreads) Builder.defineMacro("_REENTRANT");
@@ -126,10 +125,10 @@ index e606cdc4c1cf..ab46a3736713 100644
        break;
 diff --git a/clang/lib/Driver/ToolChains/EvalynOS.cpp b/clang/lib/Driver/ToolChains/EvalynOS.cpp
 new file mode 100644
-index 000000000000..755fe9f99f19
+index 000000000000..c7aed0bad3eb
 --- /dev/null
 +++ b/clang/lib/Driver/ToolChains/EvalynOS.cpp
-@@ -0,0 +1,75 @@
+@@ -0,0 +1,99 @@
 +//===---- EvalynOS.cpp - EvalynOS ToolChain Implementation ------*- C++ -*-===//
 +//
 +// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
@@ -160,14 +159,30 @@ index 000000000000..755fe9f99f19
 +
 +  if (Args.hasArg(options::OPT_shared))
 +    CmdArgs.push_back("-shared");
-+  else if (Args.hasArg(options::OPT_static))
++  else if (Args.hasArg(options::OPT_static, options::OPT_static_pie))
 +    CmdArgs.push_back("-static");
-+  else if (Args.hasArg(options::OPT_pie))
++  else if (!Args.hasArg(options::OPT_r)) {
++    CmdArgs.push_back("-dynamic-linker");
++    CmdArgs.push_back(Args.MakeArgString(TC.getDynamicLinker(Args)));
++  }
++
++  bool isPIE = Args.hasArg(options::OPT_pie, options::OPT_static_pie) && !Args.hasArg(options::OPT_no_pie, options::OPT_shared, options::OPT_r);
++
++  if (isPIE)
 +    CmdArgs.push_back("-pie");
++
++  CmdArgs.push_back("--eh-frame-hdr");
 +
 +  if (Output.isFilename()) {
 +    CmdArgs.push_back("-o");
 +    CmdArgs.push_back(Output.getFilename());
++  }
++
++  if (!Args.hasArg(options::OPT_nostdlib, options::OPT_nostartfiles, options::OPT_r)) {
++    if (!Args.hasArg(options::OPT_shared))
++      CmdArgs.push_back(Args.MakeArgString(TC.GetFilePath(isPIE ? "Scrt1.o" : "crt1.o")));
++    CmdArgs.push_back(Args.MakeArgString(TC.GetFilePath("crti.o")));
++    CmdArgs.push_back(TC.getCompilerRTArgString(Args, "crtbegin", ToolChain::FT_Object));
 +  }
 +
 +  Args.addAllArgs(CmdArgs, {options::OPT_L, options::OPT_u});
@@ -176,8 +191,15 @@ index 000000000000..755fe9f99f19
 +  TC.AddFilePathLibArgs(Args, CmdArgs);
 +  AddLinkerInputs(TC, Inputs, Args, CmdArgs, JA);
 +
-+  if (!Args.hasArg(options::OPT_nostdlib, options::OPT_nodefaultlibs))
++  if (!Args.hasArg(options::OPT_nostdlib, options::OPT_nodefaultlibs, options::OPT_r)) {
++    CmdArgs.push_back("-lc");
 +    AddRunTimeLibs(TC, D, CmdArgs, Args);
++  }
++
++  if (!Args.hasArg(options::OPT_nostdlib, options::OPT_nostartfiles, options::OPT_r)) {
++    CmdArgs.push_back(TC.getCompilerRTArgString(Args, "crtend", ToolChain::FT_Object));
++    CmdArgs.push_back(Args.MakeArgString(TC.GetFilePath("crtn.o")));
++  }
 +
 +  const char *Exec = Args.MakeArgString(TC.GetLinkerPath());
 +  C.addCommand(std::make_unique<Command>(JA, *this, ResponseFileSupport::AtFileCurCP(), Exec, CmdArgs, Inputs, Output));
@@ -185,6 +207,7 @@ index 000000000000..755fe9f99f19
 +
 +EvalynOSToolChain::EvalynOSToolChain(const Driver &D, const llvm::Triple &Triple, const ArgList &Args) : Generic_ELF(D, Triple, Args) {
 +  getFilePaths().push_back(concat(getDriver().SysRoot, "/usr/lib"));
++  getLibraryPaths().push_back(concat(getDriver().SysRoot, "/usr/lib/clang/23/lib", getTriple().str()));
 +}
 +
 +Tool *EvalynOSToolChain::buildLinker() const {
@@ -207,10 +230,10 @@ index 000000000000..755fe9f99f19
 +}
 diff --git a/clang/lib/Driver/ToolChains/EvalynOS.h b/clang/lib/Driver/ToolChains/EvalynOS.h
 new file mode 100644
-index 000000000000..9ff26eee3ab1
+index 000000000000..6c4acea800f6
 --- /dev/null
 +++ b/clang/lib/Driver/ToolChains/EvalynOS.h
-@@ -0,0 +1,49 @@
+@@ -0,0 +1,50 @@
 +//===---- EvalynOS.h - EvalynOS ToolChain Implementation --------*- C++ -*-===//
 +//
 +// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
@@ -251,6 +274,7 @@ index 000000000000..9ff26eee3ab1
 +
 +  void AddClangSystemIncludeArgs(const llvm::opt::ArgList &DriverArgs, llvm::opt::ArgStringList &CC1Args) const override;
 +  const char *getDefaultLinker() const override { return "ld.lld"; }
++  std::string getDynamicLinker(const llvm::opt::ArgList &Args) const override { return "/usr/lib/ld.so"; }
 +  RuntimeLibType GetDefaultRuntimeLibType() const override { return ToolChain::RLT_CompilerRT; }
 +
 +protected:

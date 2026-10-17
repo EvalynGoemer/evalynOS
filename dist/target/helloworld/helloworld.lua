@@ -1,5 +1,5 @@
 local helpers <const> = require("dist.target.helpers")
-local klib <const> = require("dist.target.klib.klib")
+local mlibc <const> = require("dist.target.mlibc.mlibc")
 local crossfiles <const> = require("dist.sources.crossfiles.crossfiles")
 
 Package {
@@ -9,8 +9,7 @@ Package {
     source = Source { name = "helloworld", Local("dist/sources/helloworld") },
     dependencies = {
         "base-devel", "meson",
-        helpers.targetTools, klib,
-        crossfiles,
+        helpers.targetTools, mlibc, crossfiles
     },
     configure = helpers.genericMeson["configure"],
     build = helpers.genericMeson["build"],

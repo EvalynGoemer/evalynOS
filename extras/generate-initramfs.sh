@@ -21,14 +21,13 @@ ISO_DIR="$(realpath ./iso/)"
 
 PACKAGES=(
     klib
+    meow
     helloworld
 )
 
 cd ${PROJECT_DIR}
 
-for pkg in "${PACKAGES[@]}"; do
-    ${CHARIOT} install --arch ${ARCH} --allow-new-profiles --force "${pkg}" "${STAGE_DIR}"
-done
+${CHARIOT} install --arch ${ARCH} --allow-new-profiles --force "${PACKAGES[@]}" "${STAGE_DIR}"
 
 tar --sort=name                         \
     --mtime='UTC 2026-01-01'            \
