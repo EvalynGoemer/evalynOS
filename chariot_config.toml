@@ -1,3 +1,6 @@
+lua_root = "chariot.lua"
+target_prefix = "/usr"
+
 [rootfs]
 version = "arch/2026.09.01"
-hash = "db0f05c517ae062b3256b57a61241dc188da43ef434ff1990482f5b3f7964a21"
+hash = "462c6ac79a621c3e1993b3a769b1d8ce7ae7bb967e9df1e248e415f7ba1e0fc3"

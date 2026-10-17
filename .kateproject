@@ -1,0 +1,18 @@
+{
+  "name": "evalynOS",
+  "files": [ { "git": 1 } ],
+  "lspclient": {
+    "servers": {
+      "c": {
+        "command": [
+          "env",
+          "LSP_MODE=true",
+          "LSP=clangd",
+          "%{Project:NativePath}/extras/chariot-lsp.sh"
+        ],
+        "root": "."
+      },
+      "cpp": { "use": "c" }
+    }
+  }
+}

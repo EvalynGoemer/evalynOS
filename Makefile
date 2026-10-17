@@ -12,6 +12,10 @@ default:
 	@echo "  - run-tcg-riscv64-acpi   // Compiles the kernel for riscv64 and runs in qemu w/ TCG & ACPI"
 	@echo "  - run-debug-riscv64      // Compiles the kernel for riscv64 and runs in qemu w/ TCG & Debugger"
 	@echo "  - mkiso                  // Makes an ISO that can be ran (Also rebuilds kernel)"
+	@echo "  - lsp                    // Sets up the lsp using the following arguments"
+	@echo "        PKG=<pkg>          // Sets the package to enable lsp for; (kernel is the package name for the kernel)"
+	@echo "        ARCH=<arch>        // Sets the architecture for the lsp"
+	@echo "        SRC=<name>=<path>  // Overrides a source to be set to a local path"
 
 QEMU := ./extras/qemu-run.sh /usr/local/bin
 
@@ -31,6 +35,10 @@ mkiso:
 	ARCH=riscv64 ./extras/compile-kernel.sh
 	ARCH=loongarch64 ./extras/compile-kernel.sh
 	./extras/generate-iso.sh
+
+.PHONY: lsp
+lsp:
+	@PKG="$(PKG)" SRC="$(SRC)" ARCH="$(ARCH)" ./extras/chariot-lsp.sh
 
 .PHONY: run
 run:

@@ -4,8 +4,8 @@ set -euo pipefail
 
 cd "$(dirname -- "$0")"
 
-CHARIOT_URL="https://github.com/chariot-build/chariot/releases/download/2026-10-03/chariot-linux-x86_64"
-CHARIOT_HASH="bfcf206cebadc7f464463e0d9b3c60c79da69600ad32981c40e3656ea33e9fdf"
+CHARIOT_URL="https://github.com/chariot-build/chariot/releases/download/2026-10-14/chariot-linux-x86_64"
+CHARIOT_HASH="8ff60b602af522bbdfa95af9c760d84bf984812d581b5b27427742b526f24599"
 CHARIOT_DIR="$(realpath ../chariot/)"
 CHARIOT="${CHARIOT_DIR}/chariot-linux-x86_64"
 

@@ -14,15 +14,15 @@ end
 
 local genericMeson = {
     configure = string.format([[
-        meson setup build "${SOURCE_DIR}"           \
+        meson setup ${BUILD_DIR} "${SOURCE_DIR}"    \
         --cross-file="${SOURCES_DIR}/crossfiles/%s" \
         --prefix="${PREFIX}"
     ]], cross_files[chariot.target_arch]),
     build = [[
-        meson compile -C build -j "${PARALLELISM}"
+        meson compile -C ${BUILD_DIR} -j "${PARALLELISM}"
     ]],
     install = [[
-        DESTDIR="${INSTALL_DIR}" meson install -C build --strip
+        DESTDIR="${INSTALL_DIR}" meson install -C ${BUILD_DIR} --strip
     ]]
 }
 
