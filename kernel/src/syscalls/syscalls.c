@@ -1,6 +1,10 @@
-#include "utils/lib.h"
+#include <arch/generic/timer/timer.h>
+#include <arch/intrin/cpulocal.h>
+#include <arch/intrin/paging.h>
+#include <sched/wait.h>
+#include <stdint.h>
+#include <utils/lib.h>
 #include <stddef.h>
-#include <assert.h>
 #include <syscalls/syscalls.h>
 #include <arch/generic/panic.h>
 #include <arch/generic/thread/exit.h>
@@ -14,9 +18,18 @@ sysret_t dispatch_syscall(size_t sysnum, size_t arg1, size_t arg2, size_t arg3, 
 
     switch (sysnum) {
         case SYS_MISC_CTL   : return syscall_misc_ctl(arg1, arg2);
-        case SYS_ALLOC_ANON : assert(!"unimplemented");
-        case SYS_FREE_ANON  : assert(!"unimplemented");
+        case SYS_ALLOC_ANON : return syscall_anon_alloc(arg1);
+        case SYS_FREE_ANON  : return syscall_anon_free(arg1, arg2);
         case SYS_EXIT       : thread_exit();
-        default: return (sysret_t){0, -1};
+        case SYS_SLEEP_NS   : {
+            if (arg1 == 0) return SYSRET_OKAY;
+            sched_wait_on(nullptr, arg1);
+            return SYSRET_OKAY;
+        }
+        case SYS_GET_NS: {
+            uint64_t ns = timer_get_ns();
+            return (sysret_t){.retval = ns, .error = 0};
+        }
+        default: return SYSRET_ENOSYS;
     }
 }

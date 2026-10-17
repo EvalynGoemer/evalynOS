@@ -20,6 +20,8 @@ void arch_finalize_user_switch(thread_t* next) {
         wrmsr(MSR_FRED_RSP0, next->kstack_top);
     else
         CPU_LOCAL_WRITE(tss.rsp[0], next->kstack_top);
+
+    wrmsr(MSR_FSBASE, next->user_tls_addr);
 }
 
 void arch_fpu_save(void* fpu_area) {

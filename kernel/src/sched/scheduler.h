@@ -22,6 +22,7 @@ typedef struct thread {
     uintptr_t kstack_size;
     void* fpu_save;
     uintptr_t user_stack_save;
+    uintptr_t user_tls_addr;
 
     struct address_space* addrspace;
     uint32_t preempt_disable_counter;
