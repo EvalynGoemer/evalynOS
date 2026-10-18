@@ -125,10 +125,10 @@ index e606cdc4c1cf..ab46a3736713 100644
        break;
 diff --git a/clang/lib/Driver/ToolChains/EvalynOS.cpp b/clang/lib/Driver/ToolChains/EvalynOS.cpp
 new file mode 100644
-index 000000000000..c7aed0bad3eb
+index 000000000000..28f95aef19e4
 --- /dev/null
 +++ b/clang/lib/Driver/ToolChains/EvalynOS.cpp
-@@ -0,0 +1,99 @@
+@@ -0,0 +1,111 @@
 +//===---- EvalynOS.cpp - EvalynOS ToolChain Implementation ------*- C++ -*-===//
 +//
 +// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
@@ -192,6 +192,11 @@ index 000000000000..c7aed0bad3eb
 +  AddLinkerInputs(TC, Inputs, Args, CmdArgs, JA);
 +
 +  if (!Args.hasArg(options::OPT_nostdlib, options::OPT_nodefaultlibs, options::OPT_r)) {
++    if (TC.ShouldLinkCXXStdlib(Args)) {
++      CmdArgs.push_back("-lc++");
++      CmdArgs.push_back("-lc++abi");
++      CmdArgs.push_back("-lunwind");
++    }
 +    CmdArgs.push_back("-lc");
 +    AddRunTimeLibs(TC, D, CmdArgs, Args);
 +  }
@@ -228,12 +233,19 @@ index 000000000000..c7aed0bad3eb
 +
 +  addSystemInclude(DriverArgs, CC1Args, concat(D.SysRoot, "/usr/include"));
 +}
++
++void EvalynOSToolChain::AddClangCXXStdlibIncludeArgs(const ArgList &DriverArgs, ArgStringList &CC1Args) const {
++  if (DriverArgs.hasArg(options::OPT_nostdinc, options::OPT_nostdincxx, options::OPT_nostdlibinc))
++    return;
++  if (GetCXXStdlibType(DriverArgs) == ToolChain::CST_Libcxx)
++    addSystemInclude(DriverArgs, CC1Args, concat(getDriver().SysRoot, "/usr/include/c++/v1"));
++}
 diff --git a/clang/lib/Driver/ToolChains/EvalynOS.h b/clang/lib/Driver/ToolChains/EvalynOS.h
 new file mode 100644
-index 000000000000..6c4acea800f6
+index 000000000000..034f52c3d34a
 --- /dev/null
 +++ b/clang/lib/Driver/ToolChains/EvalynOS.h
-@@ -0,0 +1,50 @@
+@@ -0,0 +1,52 @@
 +//===---- EvalynOS.h - EvalynOS ToolChain Implementation --------*- C++ -*-===//
 +//
 +// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
@@ -276,8 +288,10 @@ index 000000000000..6c4acea800f6
 +  const char *getDefaultLinker() const override { return "ld.lld"; }
 +  std::string getDynamicLinker(const llvm::opt::ArgList &Args) const override { return "/usr/lib/ld.so"; }
 +  RuntimeLibType GetDefaultRuntimeLibType() const override { return ToolChain::RLT_CompilerRT; }
++  CXXStdlibType GetDefaultCXXStdlibType() const override { return ToolChain::CST_Libcxx; }
 +
 +protected:
++  void AddClangCXXStdlibIncludeArgs(const llvm::opt::ArgList &DriverArgs, llvm::opt::ArgStringList &CC1Args) const override;
 +  Tool *buildLinker() const override;
 +};
 +

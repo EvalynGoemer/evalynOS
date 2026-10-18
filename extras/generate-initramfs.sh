@@ -23,6 +23,7 @@ PACKAGES=(
     klib
     meow
     helloworld
+    hellocxx
 )
 
 cd ${PROJECT_DIR}

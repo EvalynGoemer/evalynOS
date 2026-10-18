@@ -8,7 +8,8 @@ local llvm_source = Source {
     ),
     patches = {
         "dist/host/llvm/patches/0001-fix-debug-frame-augment.patch",
-        "dist/host/llvm/patches/0002-add-evalynos-target.patch"
+        "dist/host/llvm/patches/0002-add-evalynos-target.patch",
+        "dist/host/llvm/patches/0003-port-libcxx-evalynos.patch"
     }
 }
 

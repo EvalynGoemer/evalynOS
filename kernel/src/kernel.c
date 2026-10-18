@@ -35,6 +35,18 @@
 #include <utils/locks/irqlock.h>
 
 static void test_thread() {
+    thread_t* helloworld = create_uthread_from_elf("./usr/bin/helloworld.elf");
+    assert(helloworld != nullptr);
+    enqueue_thread(helloworld);
+
+    sched_wait_on(nullptr, 100 * 1000000);
+
+    thread_t* hellocxx = create_uthread_from_elf("./usr/bin/hellocxx.elf");
+    assert(hellocxx != nullptr);
+    enqueue_thread(hellocxx);
+
+    sched_wait_on(nullptr, 5200 * 1000000ull);
+
     while (true) {
         thread_t* thread = create_uthread_from_elf("./usr/bin/meow.elf");
         assert(thread != nullptr);
