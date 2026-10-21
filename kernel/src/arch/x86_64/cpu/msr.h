@@ -4,6 +4,10 @@
 // LAPIC
 #define MSR_APIC_BASE           0x0000001B
 
+// Page Attribute Table
+#define MSR_PAT                 0x00000277
+#define PAT_VALUE               0x0000010500070406
+
 // Machine Check Exception Handling
 #define MSR_MCE_CAP             0x00000179
 #define MSR_MCE_STATUS          0x0000017A

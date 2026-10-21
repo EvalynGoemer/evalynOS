@@ -30,9 +30,10 @@ local pkg = Package {
         -DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY               \
         -DLIBUNWIND_ENABLE_SHARED=OFF                                \
         -DLIBCXX_ENABLE_SHARED=OFF                                   \
-        -DLIBCXX_ENABLE_THREADS=OFF                                  \
+        -DLIBCXX_ENABLE_THREADS=ON                                   \
+        -DLIBCXX_HAS_PTHREAD_API=ON                                  \
         -DLIBCXXABI_ENABLE_SHARED=OFF                                \
-        -DLIBCXXABI_ENABLE_THREADS=OFF                               \
+        -DLIBCXXABI_ENABLE_THREADS=ON                                \
         -DLLVM_ENABLE_RUNTIMES='libunwind;libcxxabi;libcxx'          \
         -DLLVM_INCLUDE_TESTS=OFF
     ]], "${TARGET_TRIPLE}", helpers.targetTriple[chariot.target_arch])),

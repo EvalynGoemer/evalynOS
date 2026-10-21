@@ -537,12 +537,13 @@ index 00000000..66412d70
 \ No newline at end of file
 diff --git a/sysdeps/evalynos/include/bits/syscall.h b/sysdeps/evalynos/include/bits/syscall.h
 new file mode 100644
-index 00000000..66c07c25
+index 00000000..3938eded
 --- /dev/null
 +++ b/sysdeps/evalynos/include/bits/syscall.h
-@@ -0,0 +1,176 @@
+@@ -0,0 +1,191 @@
 +#pragma once
 +#include <stddef.h>
++#include <abi-bits/errno.h>
 +
 +#ifdef __cplusplus
 +extern "C" {
@@ -592,6 +593,20 @@ index 00000000..66c07c25
 +#define SYS_EXIT              3
 +#define SYS_SLEEP_NS          4
 +#define SYS_GET_NS            5
++#define SYS_FUTEX_WAIT        6
++#define SYS_FUTEX_WAKE        7
++
++static inline int evalynos_errno(size_t err) {
++    switch ((int)err) {
++        case 0:  return 0;
++        case -1: return ENOSYS;
++        case -2: return ENOMEM;
++        case -3: return EINVAL;
++        case -4: return EAGAIN;
++        case -5: return ETIMEDOUT;
++        default: return EINVAL;
++    }
++}
 +
 +#define SYS_MISC_CTL_DBG_PUTC 0xE9
 +#define SYS_MISC_CTL_X86_64_SET_FSBASE 0x100
@@ -1024,15 +1039,16 @@ index 00000000..0689cf67
 +} // namespace mlibc
 diff --git a/sysdeps/evalynos/sysdeps.cpp b/sysdeps/evalynos/sysdeps.cpp
 new file mode 100644
-index 00000000..94d13747
+index 00000000..98f3fd4a
 --- /dev/null
 +++ b/sysdeps/evalynos/sysdeps.cpp
-@@ -0,0 +1,111 @@
+@@ -0,0 +1,123 @@
 +#include <abi-bits/errno.h>
 +#include <bits/ensure.h>
 +#include <bits/syscall.h>
 +#include <mlibc/all-sysdeps.hpp>
 +#include <string.h>
++#include <limits>
 +
 +#define STUB()                                 \
 +    ({                                         \
@@ -1088,7 +1104,24 @@ index 00000000..94d13747
 +int Sysdeps<Sleep>::operator()(time_t* secs, long* nanos) {
 +    size_t ns = size_t(*secs) * 1000000000ull + size_t(*nanos);
 +    auto out = syscall1(SYS_SLEEP_NS, ns);
-+    return (int)out.error;
++    return evalynos_errno(out.error);
++}
++
++int Sysdeps<FutexWait>::operator()(int* uptr, int expected, timespec const* time) {
++    if (time) {
++        size_t ns = size_t(time->tv_sec) * 1000000000ull + size_t(time->tv_nsec);
++        auto out = syscall3(SYS_FUTEX_WAIT, size_t(uptr), expected, ns);
++        return evalynos_errno(out.error);
++    }
++
++    auto out = syscall3(SYS_FUTEX_WAIT, size_t(uptr), expected, 0);
++    return evalynos_errno(out.error);
++}
++
++int Sysdeps<FutexWake>::operator()(int* uptr, bool all) {
++    int count = all ? std::numeric_limits<int>::max() : 1;
++    auto out = syscall2(SYS_FUTEX_WAKE, size_t(uptr), count);
++    return evalynos_errno(out.error);
 +}
 +
 +// partly stubbed to make them "work"
@@ -1129,12 +1162,6 @@ index 00000000..94d13747
 +    STUB();
 +}
 +int Sysdeps<VmUnmap>::operator()(void *, size_t) {
-+    STUB();
-+}
-+int Sysdeps<FutexWake>::operator()(int *, bool) {
-+    STUB();
-+}
-+int Sysdeps<FutexWait>::operator()(int *, int, timespec const *) {
 +    STUB();
 +}
 +

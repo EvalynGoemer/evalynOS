@@ -1,4 +1,5 @@
 #include "arch/x86_64/syscall/syscall.h"
+#include <arch/x86_64/cpu/msr.h>
 #include <stdint.h>
 #include <utils/limine.h>
 #include <libc/stdio.h>
@@ -19,6 +20,7 @@
 
 void arch_bootstrap_init() {
     is_hypervisor = cpuid_check(CPUID_HAS_HYPERVISOR);
+    wrmsr(MSR_PAT, PAT_VALUE);
     setup_cpulocal_bsp();
 }
 

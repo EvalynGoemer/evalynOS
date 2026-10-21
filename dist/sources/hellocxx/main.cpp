@@ -1,7 +1,8 @@
 #include <iostream>
 #include <vector>
 #include <stdexcept>
-#include <unistd.h>
+#include <chrono>
+#include <thread>
 
 int main() {
     std::cout << "Hello from userspace w/ C++ && libcxx! " << std::endl;
@@ -18,7 +19,7 @@ int main() {
     std::cout << "vector: { ";
     for (const int& num : vector) {
         std::cout << num << " " << std::flush;
-        sleep(1);
+        std::this_thread::sleep_for(std::chrono::seconds(1));
     }
     std::cout << "}" << std::endl;
 

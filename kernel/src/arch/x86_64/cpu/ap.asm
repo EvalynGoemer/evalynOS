@@ -46,7 +46,7 @@ ap_trampoline:
 bits 32
 ap_trampoline32:
     ; eax = scratch (CRx / MSR)
-    ; edx = scratch (forced due to rdmsr/wrmsr)
+    ; edx = scratch (MSR)
     ; ecx = msr selector
     ; ebx = base address
     ; esi = config bitfield
@@ -85,9 +85,16 @@ ap_trampoline32:
     ; write EFER
     wrmsr
 
-    ; enable paging
+    ; setup the PAT
+    mov ecx, 0x277
+    mov eax, 0x00070406
+    mov edx, 0x00000105
+    wrmsr
+
+    ; enable paging and make sure caching is enabled
     mov eax, cr0
     or eax, (1 << 31)
+    and eax, ~((1 << 29) | (1 << 30))
     mov cr0, eax
 
     ; far jump to long mode
