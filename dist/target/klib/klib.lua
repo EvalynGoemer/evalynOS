@@ -1,5 +1,4 @@
 local helpers <const> = require("dist.target.helpers")
-local crossfiles <const> = require("dist.sources.crossfiles.crossfiles")
 
 local klib = Package {
     name = "klib",
@@ -9,7 +8,8 @@ local klib = Package {
     dependencies = {
         "base-devel", "meson",
         helpers.targetTools,
-        crossfiles,
+        helpers.require_target("mlibc-headers"),
+        helpers.require_target("libcxx")
     },
     configure = helpers.genericMeson["configure"],
     build = helpers.genericMeson["build"],

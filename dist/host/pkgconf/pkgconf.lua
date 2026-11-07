@@ -8,7 +8,7 @@ local pkgconf = Tool {
         name = "pkgconf",
         Archive (
             string.gsub("https://github.com/pkgconf/pkgconf/releases/download/pkgconf-${version}/pkgconf-${version}.tar.xz", "${version}", PKGCONF_VERSION),
-                 "c926ff491cbd9a331a589160811bd97ab1749b4d5198a519338f2cdfabe6940a"
+            "c926ff491cbd9a331a589160811bd97ab1749b4d5198a519338f2cdfabe6940a"
         )
     },
     dependencies = {

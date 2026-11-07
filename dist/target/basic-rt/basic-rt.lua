@@ -11,7 +11,10 @@ local pkg = Package {
         helpers.require_target("mlibc-headers"),
         helpers.targetTools,
     },
-    configure = (string.gsub([[
+    env = {
+        TARGET_TRIPLE = helpers.targetTriple[chariot.target_arch]
+    },
+    configure = [[
         cmake -S "${SOURCE_DIR}/compiler-rt" -B "${BUILD_DIR}" -G Ninja  \
         -DCMAKE_BUILD_TYPE=MinSizeRel                                    \
         -DCMAKE_INSTALL_PREFIX="${PREFIX}"                               \
@@ -36,7 +39,7 @@ local pkg = Package {
         -DCOMPILER_RT_INSTALL_PATH:PATH=lib/clang/23                     \
         -DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY                   \
         -DLLVM_ENABLE_PER_TARGET_RUNTIME_DIR=ON
-    ]], "${TARGET_TRIPLE}", helpers.targetTriple[chariot.target_arch])),
+    ]],
     build = [[
         cmake --build ${BUILD_DIR} --parallel "${PARALLELISM}"
     ]],

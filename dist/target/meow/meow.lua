@@ -13,10 +13,13 @@ Package {
         "base-devel",
         helpers.targetTools, mlibc,
     },
-    build = string.format([[
+    env = {
+        TARGET_TRIPLE = helpers.targetTriple[chariot.target_arch]
+    },
+    build = [[
         cd "${BUILD_DIR}"
-        clang --target=%s --sysroot="${SYSROOT_DIR}" -O2 -static "${SOURCE_DIR}/meow.c" -o meow
-    ]], helpers.targetTriple[chariot.target_arch]),
+        clang --target=${TARGET_TRIPLE} --sysroot="${SYSROOT_DIR}" -O2 -static "${SOURCE_DIR}/meow.c" -o meow
+    ]],
     install = [[
         install -Dm755 "${BUILD_DIR}/meow" "${INSTALL_DIR}${PREFIX}/bin/meow.elf"
     ]],

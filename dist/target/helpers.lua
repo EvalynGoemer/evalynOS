@@ -1,9 +1,11 @@
 local function require_host(package)
-    return require(string.gsub("dist.host.${pkg}.${pkg}", "${pkg}", package))
+    local v = require(string.gsub("dist.host.${pkg}.${pkg}", "${pkg}", package))
+    return v
 end
 
 local function require_target(package)
-    return require(string.gsub("dist.target.${pkg}.${pkg}", "${pkg}", package))
+    local v = require(string.gsub("dist.target.${pkg}.${pkg}", "${pkg}", package))
+    return v
 end
 
 local crossFiles <const> = {
@@ -21,7 +23,7 @@ local targetTriple <const> = {
 local genericMeson = {
     configure = string.format([[
         meson setup ${BUILD_DIR} "${SOURCE_DIR}"    \
-        --cross-file="${SOURCES_DIR}/crossfiles/%s" \
+        --cross-file="/usr/local/lib/%s" \
         --prefix="${PREFIX}"
     ]], crossFiles[chariot.target_arch]),
     build = [[
@@ -39,6 +41,7 @@ local targetTools = Tool {
     runtime_dependencies = {
         require_host("llvm").package,
         require_host("pkgconf"),
+        require_host("support"),
     },
     install = "exit 0"
 }

@@ -1,0 +1,18 @@
+[host_machine]
+system = 'evalynos'
+kernel = 'evalynos'
+cpu_family = 'loongarch64'
+cpu = 'loongarch64'
+endian = 'little'
+
+[binaries]
+c = ['clang', '--target=loongarch64-unknown-evalynos', '--sysroot=${SYSROOT_DIR}', '-march=la464']
+cpp = ['clang++', '--target=loongarch64-unknown-evalynos', '--sysroot=${SYSROOT_DIR}', '-march=la464']
+c_ld = 'lld'
+ar = 'llvm-ar'
+strip = 'llvm-strip'
+pkg-config = 'loongarch64-unknown-evalynos-pkg-config'
+
+[properties]
+needs_exe_wrapper = true
+sys_root = '${SYSROOT_DIR}'

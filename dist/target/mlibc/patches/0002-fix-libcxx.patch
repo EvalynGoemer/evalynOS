@@ -1,0 +1,30 @@
+diff --git a/options/ansi/include/string.h b/options/ansi/include/string.h
+index 3980418c..807e6a28 100644
+--- a/options/ansi/include/string.h
++++ b/options/ansi/include/string.h
+@@ -5,6 +5,10 @@
+ #include <bits/null.h>
+ #include <bits/size_t.h>
+ 
++#if defined(__cplusplus)
++    #define __CORRECT_ISO_CPP_STRING_H_PROTO
++#endif
++
+ #ifdef __cplusplus
+ extern "C" {
+ #endif
+diff --git a/options/ansi/include/wchar.h b/options/ansi/include/wchar.h
+index 1dc40634..7955c808 100644
+--- a/options/ansi/include/wchar.h
++++ b/options/ansi/include/wchar.h
+@@ -14,6 +14,10 @@ typedef __builtin_va_list va_list;
+ 
+ #define WEOF ((wint_t)0xffffffffU)
+ 
++#if defined(__cplusplus)
++    #define _WCHAR_H_CPLUSPLUS_98_CONFORMANCE_
++#endif
++
+ #ifdef __cplusplus
+ extern "C" {
+ #endif
