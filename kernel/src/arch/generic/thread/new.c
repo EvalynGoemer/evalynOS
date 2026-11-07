@@ -56,7 +56,17 @@ thread_t* create_uthread_from_elf(const char* initramfs_path) {
     uintptr_t ustack_top = TO_HHDM(stack_paddr) + PAGE_SIZE;
     uintptr_t ustack = ustack_top;
 
-    ustack -= 8; *(uintptr_t*)ustack = 0; // auxv
+
+    ustack -= 8; *(uintptr_t*)ustack = 0; // align
+
+    // auxv AT_NULL
+    ustack -= 8; *(uintptr_t*)ustack = 0;
+    ustack -= 8; *(uintptr_t*)ustack = 0;
+
+    // auxv AT_PAGESZ
+    ustack -= 8; *(uintptr_t*)ustack = PAGE_SIZE;
+    ustack -= 8; *(uintptr_t*)ustack = 6;
+
     ustack -= 8; *(uintptr_t*)ustack = 0; // envp
     ustack -= 8; *(uintptr_t*)ustack = 0; // argv
     ustack -= 8; *(uintptr_t*)ustack = 0; // argc

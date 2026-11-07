@@ -9,8 +9,11 @@
 #include <utils/dstruct/rbtree.h>
 #include <utils/locks/ticketlock.h>
 
+#define VMEM_FLAGS_ALLOCATED (1 << 0)
+#define VMEM_FLAGS_NO_FREE   (1 << 1)
+
 typedef struct vmem_segment {
-    bool allocated;
+    uint64_t flags;
 
     uint64_t base;
     uint64_t size;

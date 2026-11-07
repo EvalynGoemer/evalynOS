@@ -25,6 +25,10 @@
 #include <arch/generic/paging/paging.h>
 #include <loader/elf_introspection.h>
 
+#define IS_ALLOCATED(flags) ((flags) & VMEM_FLAGS_ALLOCATED)
+#define SET_ALLOCATED(flags) ((flags) |= VMEM_FLAGS_ALLOCATED)
+#define SET_NOT_ALLOCATED(flags) ((flags) &= ~VMEM_FLAGS_ALLOCATED)
+
 vmem_allocator_t kernel_vmem_allocator = {0};
 
 static uint64_t vmem_segment_get_value(rbtree_node_t* node) {
@@ -223,13 +227,13 @@ uint64_t vmem_alloc(vmem_allocator_t* alloc, uint64_t size, uint64_t addr) {
     if (ret.seg->size != size && (ret.seg->size - size) >= alloc->quantum) {
         vmem_segment_t* new_seg = spalloc_malloc(&alloc->segment_allocator);
         memset(new_seg, 0, sizeof(vmem_segment_t));
-        new_seg->allocated = true;
+        SET_ALLOCATED(new_seg->flags);
         new_seg->base = ret.seg->base;
         new_seg->size = size;
 
         ret.seg->base += size;
         ret.seg->size -= size;
-        ret.seg->allocated = false;
+        SET_NOT_ALLOCATED(ret.seg->flags);
         ret.seg->freelist_node = (llist_node_t){0};
 
         llist_node_prepend(&alloc->segments_list, &ret.seg->segment_list_node, &new_seg->segment_list_node);
@@ -242,7 +246,7 @@ uint64_t vmem_alloc(vmem_allocator_t* alloc, uint64_t size, uint64_t addr) {
     }
 
     // no more splitting needed
-    ret.seg->allocated = true;
+    SET_ALLOCATED(ret.seg->flags);
     ret.seg->segment_tree_node = RBTREE_NODE_INIT;
     rbtree_insert(&alloc->segments_tree, &ret.seg->segment_tree_node);
 
@@ -280,7 +284,7 @@ void vmem_free(vmem_allocator_t* alloc, uint64_t addr, uint64_t size) {
 
         uint64_t seg_end = seg->base + seg->size;
 
-        if (!seg->allocated) {
+        if (!IS_ALLOCATED(seg->flags)) {
             cur_addr = seg->base + seg->size;
             continue;
         }
@@ -293,7 +297,7 @@ void vmem_free(vmem_allocator_t* alloc, uint64_t addr, uint64_t size) {
             memset(left_seg, 0, sizeof(vmem_segment_t));
             left_seg->base = seg->base;
             left_seg->size = cur_addr - seg->base;
-            left_seg->allocated = true;
+            SET_ALLOCATED(left_seg->flags);
 
             seg->base = cur_addr;
             seg->size -= left_seg->size;
@@ -308,7 +312,7 @@ void vmem_free(vmem_allocator_t* alloc, uint64_t addr, uint64_t size) {
             memset(right_seg, 0, sizeof(vmem_segment_t));
             right_seg->base = end_addr;
             right_seg->size = seg_end - end_addr;
-            right_seg->allocated = true;
+            SET_ALLOCATED(right_seg->flags);
 
             seg->size = end_addr - seg->base;
 
@@ -318,13 +322,13 @@ void vmem_free(vmem_allocator_t* alloc, uint64_t addr, uint64_t size) {
 
         cur_addr = MIN(seg_end, end_addr);
 
-        seg->allocated = false;
+        SET_NOT_ALLOCATED(seg->flags);
 
         // left coalesce
         llist_node_t* prev_node = seg->segment_list_node.prev;
         if (prev_node != nullptr) {
             vmem_segment_t* prev_seg = CONTAINER_OF(prev_node, vmem_segment_t, segment_list_node);
-            if (!prev_seg->allocated && prev_seg->base + prev_seg->size == seg->base) {
+            if (!IS_ALLOCATED(prev_seg->flags) && prev_seg->base + prev_seg->size == seg->base) {
                 vmem_flist_del(alloc, prev_seg, log2ull(prev_seg->size));
 
                 llist_node_delete(&alloc->segments_list, &prev_seg->segment_list_node);
@@ -338,7 +342,7 @@ void vmem_free(vmem_allocator_t* alloc, uint64_t addr, uint64_t size) {
         llist_node_t* next_node = seg->segment_list_node.next;
         if (next_node != nullptr) {
             vmem_segment_t* next_seg = CONTAINER_OF(next_node, vmem_segment_t, segment_list_node);
-            if (!next_seg->allocated && seg->base + seg->size == next_seg->base) {
+            if (!IS_ALLOCATED(next_seg->flags) && seg->base + seg->size == next_seg->base) {
                 vmem_flist_del(alloc, next_seg, log2ull(next_seg->size));
 
                 llist_node_delete(&alloc->segments_list, &next_seg->segment_list_node);

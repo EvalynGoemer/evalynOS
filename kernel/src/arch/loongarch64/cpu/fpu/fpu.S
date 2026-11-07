@@ -28,8 +28,8 @@ GEN_FPU_FUNC(restore_lasx_regs, ZERO_TO_31, xvld $xr\i, $a0, (\i * 32))
 
 save_fpu_control:
     movfcsr2gr $t0, $fcsr0
-    st.d       $t0, $a0, 0
-    move       $t1, $zero
+    st.d $t0, $a0, 0
+    move $t1, $zero
     ITER_REGS(ZERO_TO_7, movcf2gr $t0, $fcc\i ; bstrins.d $t1, $t0, \i, \i)
     st.d $t1, $a0, 8
     ret
@@ -37,7 +37,7 @@ save_fpu_control:
 restore_fpu_control:
     ld.d $t1, $a0, 8
     ITER_REGS(ZERO_TO_7, bstrpick.d $t0, $t1, \i, \i ; movgr2cf $fcc\i, $t0)
-    ld.d       $t0, $a0, 0
+    ld.d $t0, $a0, 0
     movgr2fcsr $fcsr0, $t0
     ret
 
