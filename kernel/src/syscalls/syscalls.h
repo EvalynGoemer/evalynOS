@@ -1,6 +1,8 @@
 #pragma once
 #include <stddef.h>
+#include <sched/scheduler.h>
 #include <arch/generic/panic.h>
+#include <arch/intrin/cpulocal.h>
 
 #define SYS_MISC_CTL          0
 #define SYS_ALLOC_ANON        1
@@ -10,6 +12,15 @@
 #define SYS_GET_NS            5
 #define SYS_FUTEX_WAIT        6
 #define SYS_FUTEX_WAKE        7
+#define SYS_PMAP              8
+#define SYS_PUNMAP            9
+#define SYS_PMAP_REMOTE_VADDR 10
+#define SYS_PMAP_REMOTE       11
+#define SYS_PUNMAP_REMOTE     12
+#define SYS_ALLOC_ANON_REMOTE 13
+#define SYS_FREE_ANON_REMOTE  14
+#define SYS_NEW_ADDRSPACE     15
+#define SYS_START_ADDRSPACE   16
 
 typedef struct {
     size_t retval;
@@ -22,6 +33,12 @@ typedef struct {
 #define SYSRET_EINVAL    (sysret_t){0, -3}
 #define SYSRET_EAGAIN    (sysret_t){0, -4}
 #define SYSRET_ETIMEDOUT (sysret_t){0, -5}
+#define SYSRET_ENOENT    (sysret_t){0, -6}
+
+#define SYSCALL_HAS_PERM(perm) (CPU_LOCAL_GET_CURRENT_THREAD()->syscall_perms & (perm))
+#define SYSCALL_REQUIRE_PERM(perm) if (!SYSCALL_HAS_PERM(perm)) return SYSRET_ENOSYS
+#define SYSCALL_PERM_PMAP (1 << 0)
+#define SYSCALL_PERM_ADDRSPACE (1 << 0)
 
 extern sysret_t dispatch_syscall(size_t sysnum, size_t arg1, size_t arg2, size_t arg3, size_t arg4, size_t arg5, size_t arg6, interrupt_frame_t* frame);
 extern sysret_t syscall_misc_ctl(size_t arg1, size_t arg2);
@@ -29,3 +46,12 @@ extern sysret_t syscall_anon_alloc(size_t size);
 extern sysret_t syscall_anon_free(size_t base, size_t len);
 extern sysret_t syscall_futex_wait(uint32_t* uptr, uint32_t expected, uint64_t timeout);
 extern sysret_t syscall_futex_wake(uint32_t* uptr, int count);
+extern sysret_t syscall_pmap(uint64_t paddr, size_t size, int flags);
+extern sysret_t syscall_punmap(size_t base, size_t size);
+extern sysret_t syscall_pmap_remote(uint64_t paddr, size_t size, int flags, uint64_t handle_id);
+extern sysret_t syscall_punmap_remote(size_t base, size_t size, uint64_t handle_id);
+extern sysret_t syscall_pmap_remote_vaddr(size_t remote_addr, size_t size, int attr, uint64_t handle_id);
+extern sysret_t syscall_anon_alloc_remote(size_t size, size_t addr, int attr, uint64_t handle_id);
+extern sysret_t syscall_anon_free_remote(size_t base, size_t len, uint64_t handle_id);
+extern sysret_t syscall_new_addrspace();
+extern sysret_t syscall_start_addrspace(size_t ip, size_t sp, uint64_t handle_id);

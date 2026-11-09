@@ -24,6 +24,7 @@ typedef struct thread {
     uintptr_t user_stack_save;
     uintptr_t user_tls_addr;
 
+    uint64_t syscall_perms;
     struct address_space* addrspace;
     uint32_t preempt_disable_counter;
     thread_state_t state;

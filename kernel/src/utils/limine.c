@@ -97,6 +97,7 @@ uint64_t hhdm_offset = 0;
 uint64_t kernel_virtual_base = 0;
 uint64_t memmap_last_paddr = 0;
 void*    initramfs = nullptr;
+uint64_t initramfs_size = 0;
 void*    kernel_elf_file = nullptr;
 uint64_t kernel_elf_size = 0;
 
@@ -122,6 +123,8 @@ void limine_save_requests() {
     if (executable_address_request.response)
         kernel_virtual_base = executable_address_request.response->virtual_base;
 
-    if (module_request.response && module_request.response->module_count > 0)
+    if (module_request.response && module_request.response->module_count > 0) {
         initramfs = module_request.response->modules[0]->address;
+        initramfs_size = module_request.response->modules[0]->size;
+    }
 }
