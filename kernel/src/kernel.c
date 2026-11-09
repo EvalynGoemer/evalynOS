@@ -1,7 +1,6 @@
 #include "acpi/tables/madt.h"
 #include "arch/generic/timer/timer.h"
 #include <arch/generic/thread/switch.h>
-#include <assert.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -34,27 +33,6 @@
 #include <utils/dstruct/llist.h>
 #include <utils/locks/irqlock.h>
 
-static void test_thread() {
-    thread_t* helloworld = create_uthread_from_elf("./usr/bin/helloworld.elf");
-    assert(helloworld != nullptr);
-    enqueue_thread(helloworld);
-
-    sched_wait_on(nullptr, 100 * 1000000);
-
-    thread_t* hellocxx = create_uthread_from_elf("./usr/bin/hellocxx.elf");
-    assert(hellocxx != nullptr);
-    enqueue_thread(hellocxx);
-
-    sched_wait_on(nullptr, 5200 * 1000000ull);
-
-    while (true) {
-        thread_t* thread = create_uthread_from_elf("./usr/bin/meow.elf");
-        assert(thread != nullptr);
-        enqueue_thread(thread);
-        sched_wait_on(nullptr, 100 * 1000000);
-    }
-}
-
 static void threaded_kmain() {
     // TODO; finish AP init on !x86
 #ifdef __x86_64__
@@ -79,7 +57,8 @@ static void threaded_kmain() {
 
     reclaim_boot_memory();
 
-    thread_t* thread = create_kthread((uintptr_t)test_thread, 0, 0);
+    thread_t* thread = create_uthread_from_elf("./usr/bin/core.elf");
+    thread->syscall_perms = UINT64_MAX;
     enqueue_thread(thread);
 
     thread_exit();

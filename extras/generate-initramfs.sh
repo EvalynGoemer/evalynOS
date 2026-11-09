@@ -20,10 +20,10 @@ PROJECT_DIR="$(realpath ../)"
 ISO_DIR="$(realpath ./iso/)"
 
 PACKAGES=(
-    klib
     meow
     helloworld
     hellocxx
+    core
 )
 
 cd ${PROJECT_DIR}
