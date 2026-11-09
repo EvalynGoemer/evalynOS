@@ -39,20 +39,49 @@
 #define SYSCALL_CLOBBERS
 #endif
 
-#define SYS_MISC_CTL          0
-#define SYS_ALLOC_ANON        1
-#define SYS_FREE_ANON         2
-#define SYS_EXIT              3
+#ifdef __cplusplus
+namespace klib {
+#endif
+
+typedef enum {
+    SYS_MISC_CTL          = 0,
+    SYS_ALLOC_ANON        = 1,
+    SYS_FREE_ANON         = 2,
+    SYS_EXIT              = 3,
+    SYS_SLEEP_NS          = 4,
+    SYS_GET_NS            = 5,
+    SYS_FUTEX_WAIT        = 6,
+    SYS_FUTEX_WAKE        = 7,
+    SYS_PMAP              = 8,
+    SYS_PUNMAP            = 9,
+    SYS_PMAP_REMOTE_VADDR = 10,
+    SYS_PMAP_REMOTE       = 11,
+    SYS_PUNMAP_REMOTE     = 12,
+    SYS_ALLOC_ANON_REMOTE = 13,
+    SYS_FREE_ANON_REMOTE  = 14,
+    SYS_NEW_ADDRSPACE     = 15,
+    SYS_START_ADDRSPACE   = 16,
+} syscall_type;
+
+typedef enum {
+    ERR_NONE      =  0,
+    ERR_ENOSYS    = -1,
+    ERR_ENOMEM    = -2,
+    ERR_EINVAL    = -3,
+    ERR_EAGAIN    = -4,
+    ERR_ETIMEDOUT = -5,
+    ERR_ENOENT    = -6,
+} syscall_error;
 
 typedef struct {
     size_t retval;
     size_t error;
 } sysret_t;
 
-static inline sysret_t syscall0(size_t syscall_num) {
+static inline sysret_t syscall0(syscall_type syscall) {
     register size_t ret asm(SYSCALL_RETVAL_REG);
     register size_t err asm(SYSCALL_ERRVAL_REG);
-    register size_t num asm(SYSCALL_SYSNUM_REG) = syscall_num;
+    register size_t num asm(SYSCALL_SYSNUM_REG) = syscall;
     asm volatile (
         SYSCALL_INST
         : "=r"(ret), "=r"(err)
@@ -62,10 +91,10 @@ static inline sysret_t syscall0(size_t syscall_num) {
     return (sysret_t){ret, err};
 }
 
-static inline sysret_t syscall1(size_t syscall_num, size_t arg1) {
+static inline sysret_t syscall1(syscall_type syscall, size_t arg1) {
     register size_t ret asm(SYSCALL_RETVAL_REG);
     register size_t err asm(SYSCALL_ERRVAL_REG);
-    register size_t num asm(SYSCALL_SYSNUM_REG) = syscall_num;
+    register size_t num asm(SYSCALL_SYSNUM_REG) = syscall;
     register size_t a1  asm(SYSCALL_ARG1_REG)   = arg1;
     asm volatile (
         SYSCALL_INST
@@ -76,10 +105,10 @@ static inline sysret_t syscall1(size_t syscall_num, size_t arg1) {
     return (sysret_t){ret, err};
 }
 
-static inline sysret_t syscall2(size_t syscall_num, size_t arg1, size_t arg2) {
+static inline sysret_t syscall2(syscall_type syscall, size_t arg1, size_t arg2) {
     register size_t ret asm(SYSCALL_RETVAL_REG);
     register size_t err asm(SYSCALL_ERRVAL_REG);
-    register size_t num asm(SYSCALL_SYSNUM_REG) = syscall_num;
+    register size_t num asm(SYSCALL_SYSNUM_REG) = syscall;
     register size_t a1  asm(SYSCALL_ARG1_REG)   = arg1;
     register size_t a2  asm(SYSCALL_ARG2_REG)   = arg2;
     asm volatile (
@@ -92,10 +121,10 @@ static inline sysret_t syscall2(size_t syscall_num, size_t arg1, size_t arg2) {
     return (sysret_t){ret, err};
 }
 
-static inline sysret_t syscall3(size_t syscall_num, size_t arg1, size_t arg2, size_t arg3) {
+static inline sysret_t syscall3(syscall_type syscall, size_t arg1, size_t arg2, size_t arg3) {
     register size_t ret asm(SYSCALL_RETVAL_REG);
     register size_t err asm(SYSCALL_ERRVAL_REG);
-    register size_t num asm(SYSCALL_SYSNUM_REG) = syscall_num;
+    register size_t num asm(SYSCALL_SYSNUM_REG) = syscall;
     register size_t a1  asm(SYSCALL_ARG1_REG)   = arg1;
     register size_t a2  asm(SYSCALL_ARG2_REG)   = arg2;
     register size_t a3  asm(SYSCALL_ARG3_REG)   = arg3;
@@ -108,10 +137,10 @@ static inline sysret_t syscall3(size_t syscall_num, size_t arg1, size_t arg2, si
     return (sysret_t){ret, err};
 }
 
-static inline sysret_t syscall4(size_t syscall_num, size_t arg1, size_t arg2, size_t arg3, size_t arg4) {
+static inline sysret_t syscall4(syscall_type syscall, size_t arg1, size_t arg2, size_t arg3, size_t arg4) {
     register size_t ret asm(SYSCALL_RETVAL_REG);
     register size_t err asm(SYSCALL_ERRVAL_REG);
-    register size_t num asm(SYSCALL_SYSNUM_REG) = syscall_num;
+    register size_t num asm(SYSCALL_SYSNUM_REG) = syscall;
     register size_t a1  asm(SYSCALL_ARG1_REG)   = arg1;
     register size_t a2  asm(SYSCALL_ARG2_REG)   = arg2;
     register size_t a3  asm(SYSCALL_ARG3_REG)   = arg3;
@@ -125,10 +154,10 @@ static inline sysret_t syscall4(size_t syscall_num, size_t arg1, size_t arg2, si
     return (sysret_t){ret, err};
 }
 
-static inline sysret_t syscall5(size_t syscall_num, size_t arg1, size_t arg2, size_t arg3, size_t arg4, size_t arg5) {
+static inline sysret_t syscall5(syscall_type syscall, size_t arg1, size_t arg2, size_t arg3, size_t arg4, size_t arg5) {
     register size_t ret asm(SYSCALL_RETVAL_REG);
     register size_t err asm(SYSCALL_ERRVAL_REG);
-    register size_t num asm(SYSCALL_SYSNUM_REG) = syscall_num;
+    register size_t num asm(SYSCALL_SYSNUM_REG) = syscall;
     register size_t a1  asm(SYSCALL_ARG1_REG)   = arg1;
     register size_t a2  asm(SYSCALL_ARG2_REG)   = arg2;
     register size_t a3  asm(SYSCALL_ARG3_REG)   = arg3;
@@ -143,10 +172,10 @@ static inline sysret_t syscall5(size_t syscall_num, size_t arg1, size_t arg2, si
     return (sysret_t){ret, err};
 }
 
-static inline sysret_t syscall6(size_t syscall_num, size_t arg1, size_t arg2, size_t arg3, size_t arg4, size_t arg5, size_t arg6) {
+static inline sysret_t syscall6(syscall_type syscall, size_t arg1, size_t arg2, size_t arg3, size_t arg4, size_t arg5, size_t arg6) {
     register size_t ret asm(SYSCALL_RETVAL_REG);
     register size_t err asm(SYSCALL_ERRVAL_REG);
-    register size_t num asm(SYSCALL_SYSNUM_REG) = syscall_num;
+    register size_t num asm(SYSCALL_SYSNUM_REG) = syscall;
     register size_t a1  asm(SYSCALL_ARG1_REG)   = arg1;
     register size_t a2  asm(SYSCALL_ARG2_REG)   = arg2;
     register size_t a3  asm(SYSCALL_ARG3_REG)   = arg3;
@@ -161,3 +190,7 @@ static inline sysret_t syscall6(size_t syscall_num, size_t arg1, size_t arg2, si
     );
     return (sysret_t){ret, err};
 }
+
+#ifdef __cplusplus
+}
+#endif

@@ -1,10 +1,12 @@
 project(
-  'klib', 'c',
+  'klib', ['c', 'cpp'],
   version: '0.0.0',
   default_options: [
     'c_std=gnu23',
+    'cpp_std=c++26',
     'warning_level=2',
-    'optimization=2',
+    'optimization=3',
+    'b_lto=true',
     'default_library=static',
   ],
 )
@@ -23,6 +25,11 @@ add_project_arguments(
 
 sources = files(
   'src/klib.c',
+  'src/cxx/misc.cpp',
+  'src/cxx/anon.cpp',
+  'src/cxx/pmap.cpp',
+  'src/cxx/addrspace.cpp',
+  'src/cxx/initramfs.cpp',
 )
 
 libklib = static_library(
