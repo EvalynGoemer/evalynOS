@@ -32,6 +32,7 @@
 #include <arch/intrin/cpulocal.h>
 #include <utils/dstruct/llist.h>
 #include <utils/locks/irqlock.h>
+#include <utils/atomic.h>
 
 static void threaded_kmain() {
     // TODO; finish AP init on !x86
@@ -42,7 +43,7 @@ static void threaded_kmain() {
     uint32_t started = 0;
     for (int i = 100; i > 0; i--) {
         uint32_t old = started;
-        __atomic_load(&cpus_started, &started, __ATOMIC_ACQUIRE);
+        atomic_ptr_load32(&cpus_started, &started, AMO_ACQUIRE);
         if (started == detected_cpus) break;
         if (started > old) i += 10;
         sched_wait_on(nullptr, 25000000);

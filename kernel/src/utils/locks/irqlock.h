@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <utils/atomic.h>
 #include <arch/intrin/interrupts.h>
 #include <arch/intrin/spin.h>
 
@@ -11,7 +12,7 @@ typedef struct {
 } irqlock_t;
 
 static inline void irqlock_init(irqlock_t* irqlock) {
-    __atomic_store_n(&irqlock->flag, 0, __ATOMIC_RELAXED);
+    atomic_store32(&irqlock->flag, 0, AMO_RELAXED);
 }
 
 [[nodiscard]]
@@ -19,15 +20,15 @@ static inline int irqlock_lock(irqlock_t* irqlock) {
     int irqs = interrupts_enabled();
     disable_interrupts();
     while (true) {
-        while (__atomic_load_n(&irqlock->flag, __ATOMIC_RELAXED))
+        while (atomic_load32(&irqlock->flag, AMO_RELAXED))
             spin();
-        if (!__atomic_exchange_n(&irqlock->flag, 1, __ATOMIC_ACQUIRE))
+        if (!atomic_xchg32(&irqlock->flag, 1, AMO_ACQUIRE))
             break;
     }
     return irqs;
 }
 
 static inline void irqlock_unlock(irqlock_t* irqlock, int irqs) {
-    __atomic_store_n(&irqlock->flag, 0, __ATOMIC_RELEASE);
+    atomic_store32(&irqlock->flag, 0, AMO_RELEASE);
     restore_interrupts(irqs);
 }

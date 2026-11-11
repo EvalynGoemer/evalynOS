@@ -1,4 +1,5 @@
 #include "sched/wait.h"
+#include "utils/atomic.h"
 #include <sched/idle.h>
 #include <arch/generic/paging/paging.h>
 #include <arch/generic/thread/init.h>
@@ -87,13 +88,13 @@ void schedule() {
 
 void schedule_finalize(thread_t* prev, thread_t* next) {
     CPU_LOCAL_SET_CURRENT_THREAD(next);
-    if (__atomic_load_n(&next->state, __ATOMIC_RELAXED) != THREAD_IDLE_THREAD)
-        __atomic_store_n(&next->state, THREAD_RUNNING, __ATOMIC_RELAXED);
+    if (atomic_load32(&next->state, AMO_RELAXED) != THREAD_IDLE_THREAD)
+        atomic_store32(&next->state, THREAD_RUNNING, AMO_RELAXED);
 
-    switch (__atomic_load_n(&prev->state, __ATOMIC_RELAXED)) {
+    switch (atomic_load32(&prev->state, AMO_RELAXED)) {
         // if the thread was running it should always be added back to the run queue
         case THREAD_RUNNING: {
-            __atomic_store_n(&prev->state, THREAD_RUNABLE, __ATOMIC_RELAXED);
+            atomic_store32(&prev->state, THREAD_RUNABLE, AMO_RELAXED);
             llist_t* queue = CPU_LOCAL_GET_RUN_QUEUE_PTR();
             llist_push_back(queue, &prev->node);
             break;
@@ -104,7 +105,7 @@ void schedule_finalize(thread_t* prev, thread_t* next) {
             // attempt to commit the state as blocking; if it was unblocked and
             // the thread has become runnable it needs to be added to the queue
             thread_state_t expected = THREAD_BLOCKING;
-            if(!(__atomic_compare_exchange_n(&prev->state, &expected, THREAD_BLOCKED, false, __ATOMIC_RELEASE, __ATOMIC_ACQUIRE))) {
+            if(!(atomic_cas32(&prev->state, &expected, THREAD_BLOCKED, AMO_RELEASE, AMO_ACQUIRE))) {
                 llist_t* queue = CPU_LOCAL_GET_RUN_QUEUE_PTR();
                 llist_push_back(queue, &prev->node);
             }
@@ -116,7 +117,7 @@ void schedule_finalize(thread_t* prev, thread_t* next) {
             llist_node_t* node = llist_pop(&reaper_waiter.threads);
             if (node != nullptr) {
                 thread_t* reaper = CONTAINER_OF(node, waitable_token_t, linkage)->thread;
-                thread_state_t prev_state = __atomic_exchange_n(&reaper->state, THREAD_RUNABLE, __ATOMIC_RELEASE);
+                thread_state_t prev_state = atomic_xchg32(&reaper->state, THREAD_RUNABLE, AMO_RELEASE);
                 if (prev_state == THREAD_BLOCKED) llist_push_back(CPU_LOCAL_GET_RUN_QUEUE_PTR(), &reaper->node);
             }
             irqlock_unlock(&reaper_waiter.lock, lock1r);

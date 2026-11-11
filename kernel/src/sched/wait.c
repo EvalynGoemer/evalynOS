@@ -1,3 +1,4 @@
+#include "utils/atomic.h"
 #include <assert.h>
 #include <sched/wait.h>
 #include <arch/generic/timer/timer.h>
@@ -26,7 +27,7 @@ static wait_status_t wait_impl(waitable_t* waitable_object, wait_cond_t cond, vo
     disable_preemption();
 
     // set our state to be blocking in progress
-    __atomic_store_n(&cur->state, THREAD_BLOCKING, __ATOMIC_RELAXED);
+    atomic_store32(&cur->state, THREAD_BLOCKING, AMO_RELAXED);
 
     waitable_token_t token = {0};
     token.thread = cur;
@@ -38,7 +39,7 @@ static wait_status_t wait_impl(waitable_t* waitable_object, wait_cond_t cond, vo
         // the condition is met; dont block
         if (cond != nullptr && cond(ctx)) {
             irqlock_unlock(&waitable_object->lock, lock1r);
-            __atomic_store_n(&cur->state, THREAD_RUNNING, __ATOMIC_RELAXED);
+            atomic_store32(&cur->state, THREAD_RUNNING, AMO_RELAXED);
             enable_preemption();
             return WAIT_STATUS_CONDITION_MET;
         }
@@ -107,7 +108,7 @@ int sched_wakeup_n_threads(waitable_t* waitable_object, int threads) {
         irqlock_unlock(&waitable_object->lock, lock1r);
         enable_preemption();
 
-        thread_state_t prev = __atomic_exchange_n(&thread->state, THREAD_RUNABLE, __ATOMIC_RELEASE);
+        thread_state_t prev = atomic_xchg32(&thread->state, THREAD_RUNABLE, AMO_RELEASE);
 
         // if the previous state was it being blocked enqueue it
         if (prev == THREAD_BLOCKED)
@@ -136,7 +137,7 @@ void sched_handle_timeouts() {
         pheap_pop(&timeouts);
         irqlock_unlock(&timeouts_lock, lock1r);
 
-        thread_state_t prev = __atomic_exchange_n(&thread->state, THREAD_RUNABLE, __ATOMIC_RELEASE);
+        thread_state_t prev = atomic_xchg32(&thread->state, THREAD_RUNABLE, AMO_RELEASE);
 
         // if the previous state was it being blocked enqueue it
         if (prev == THREAD_BLOCKED)

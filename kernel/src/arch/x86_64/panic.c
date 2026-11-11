@@ -1,3 +1,4 @@
+#include "utils/atomic.h"
 #include <utils/locks/irqlock.h>
 #include <arch/generic/panic.h>
 #include <arch/intrin/interrupts.h>
@@ -9,7 +10,7 @@
 void panic_interrupt(const char* message, interrupt_frame_t* frame) {
     disable_interrupts();
 
-    if (__atomic_exchange_n(&panic_flag, 1, __ATOMIC_SEQ_CST) != 0)
+    if (atomic_xchg32(&panic_flag, 1, AMO_SEQ_CST) != 0)
         hcf();
 
     irqlock_unlock(&stdio_spinlock, IRQLOCK_IRQS_DISABLED);

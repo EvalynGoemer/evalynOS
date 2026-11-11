@@ -1,3 +1,4 @@
+#include "utils/atomic.h"
 #include <arch/x86_64/drivers/mce/mce.h>
 #include <arch/generic/panic.h>
 #include <arch/x86_64/cpu/msr.h>
@@ -12,10 +13,11 @@ bool mca_supported = false;
 
 static uint32_t fatal_mce_flag = 0;
 static inline void do_fatal_mce(interrupt_frame_t* frame) {
-    if (__atomic_exchange_n(&fatal_mce_flag, 1, __ATOMIC_SEQ_CST) != 0)
+    if (atomic_xchg32(&fatal_mce_flag, 1, AMO_SEQ_CST) != 0)
         hcf();
+
     // allow fatal #MCE's to recurse other panics once
-    __atomic_store_n(&panic_flag, 0, __ATOMIC_SEQ_CST);
+    atomic_store32(&panic_flag, 0, AMO_SEQ_CST);
     panic_interrupt("Fatal Machine Check Exception Received", frame);
 }
 
@@ -55,10 +57,8 @@ void setup_mce() {
 }
 
 void handle_exception_mce(interrupt_frame_t* frame) {
-    if (__atomic_load_n(&fatal_mce_flag, __ATOMIC_SEQ_CST) != 0)
-        hcf();
-    if (!mca_supported)
-        do_fatal_mce(frame);
+    if (atomic_load32(&fatal_mce_flag, AMO_SEQ_CST) != 0) hcf();
+    if (!mca_supported) do_fatal_mce(frame);
 
     uint64_t mce_status = rdmsr(MSR_MCE_STATUS);
     bool can_continue = mce_status & MCE_STATUS_RESTART_IP_VALID;

@@ -1,5 +1,6 @@
 #include "sched/scheduler.h"
 #include "syscalls/syscalls.h"
+#include "utils/atomic.h"
 #include <stddef.h>
 #include <utils/lib.h>
 #include <syscalls/handles.h>
@@ -13,12 +14,11 @@
 #include <string.h>
 
 static uint64_t next_id = 0;
-#define GET_NEXT_ID() (__atomic_fetch_add(&next_id, 1, __ATOMIC_RELAXED))
 
 handle_t* new_handle() {
     handle_t* handle = kmalloc(sizeof(handle_t));
     memset(handle, 0, sizeof(handle_t));
-    SET_HANDLE_ID(handle->idtype, GET_NEXT_ID());
+    SET_HANDLE_ID(handle->idtype, atomic_fetch_add64(&next_id, 1, AMO_RELAXED));
 
     rbtree_t* handle_tree = &CPU_LOCAL_GET_CURRENT_THREAD()->addrspace->handles;
     rbtree_insert(handle_tree, &handle->node);

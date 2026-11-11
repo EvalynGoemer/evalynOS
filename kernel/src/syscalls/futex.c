@@ -1,3 +1,4 @@
+#include "utils/atomic.h"
 #include <arch/generic/paging/paging.h>
 #include <sched/wait.h>
 #include <syscalls/syscalls.h>
@@ -41,7 +42,7 @@ static uint64_t futex_tree_von(rbtree_node_t* node) {
 static bool futex_wait_cond(void* ctx) {
     futex_token_t* token = ctx;
     uint32_t* kptr = TO_HHDM_PTR(token->entry->paddr);
-    uint32_t val = __atomic_load_n(kptr, __ATOMIC_RELAXED);
+    uint32_t val = atomic_load32(kptr, AMO_RELAXED);
     return val != token->expected;
 }
 
@@ -71,14 +72,14 @@ sysret_t syscall_futex_wait(uint32_t* uptr, uint32_t expected, uint64_t timeout)
     }
 
     futex_entry_t* entry = CONTAINER_OF(node, futex_entry_t, linkage);
-    __atomic_fetch_add(&entry->refcnt, 1, __ATOMIC_ACQUIRE);
+    atomic_fetch_add32(&entry->refcnt, 1, AMO_ACQUIRE);
     ticketlock_unlock(&futex_tree_lock);
 
     futex_token_t token = {.entry = entry, .expected = expected};
     wait_status_t status = wait_on_cond(&entry->waitable, &futex_wait_cond, &token, timeout);
 
     ticketlock_lock(&futex_tree_lock);
-    if (__atomic_sub_fetch(&entry->refcnt, 1, __ATOMIC_RELEASE) == 0) {
+    if (atomic_sub_fetch32(&entry->refcnt, 1, AMO_RELEASE) == 0) {
         rbtree_remove(&futex_tree, &entry->linkage);
         kfree(entry, sizeof(futex_entry_t));
     }
