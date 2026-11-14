@@ -1,8 +1,14 @@
+#include "arch/riscv64/fdt/cpus.h"
+#include "acpi/tables/madt.h"
+#include "utils/dstruct/llist.h"
 #include <libfdt.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <arch/generic/paging/paging.h>
 #include <arch/riscv64/cpu/isa.h>
 #include <arch/riscv64/timer/timer.h>
+#include <arch/riscv64/cpu/ap.h>
+#include <stdlib.h>
 
 static bool fdt_cpus_parse_timebase_freq(void* fdt, int cpus_node) {
     int len;
@@ -50,6 +56,7 @@ bool fdt_parse_cpus(void* fdt) {
     int harts = 0;
     bool bsp_valid = false;
     int cpu_node;
+
     fdt_for_each_subnode(cpu_node, fdt, cpus_node) {
         const char* dtype = fdt_getprop(fdt, cpu_node, "device_type", &len);
         if (!dtype || strncmp(dtype, "cpu", len) != 0) continue;
@@ -60,36 +67,39 @@ bool fdt_parse_cpus(void* fdt) {
         uint32_t hart_id = fdt_read_u32(reg);
 
         // verify isa string
-        const char *isa = fdt_getprop(fdt, cpu_node, "riscv,isa", NULL);
+        const char* isa = fdt_getprop(fdt, cpu_node, "riscv,isa", NULL);
         if (!isa) CPU_NODE_MALFORMED();
         if (!isa_has_baseline(isa, ISA_BASELINE_RV64GC)) continue;
 
         // verify status
-        const char *status = fdt_getprop(fdt, cpu_node, "status", &len);
+        const char* status = fdt_getprop(fdt, cpu_node, "status", &len);
         bool ok = !status || strncmp(status, "okay", len) == 0;
         if (!ok) continue;
 
         // verify mmu type
-        const char *mmu = fdt_getprop(fdt, cpu_node, "mmu-type", NULL);
+        const char* mmu = fdt_getprop(fdt, cpu_node, "mmu-type", NULL);
         if (!mmu) continue;
 
-        // TODO; get more info on the harts and build a list for AP init
-        // also store the mmu type on them and drop ones not matching
-        // the BSP
-
-        if (strcmp(mmu, "riscv,sv39") == 0) {
-        } else if (strcmp(mmu, "riscv,sv48") == 0) {
-        } else if (strcmp(mmu, "riscv,sv57") == 0) {
-        } else continue;
-
-        harts++;
+        uint8_t mmu_max_level = 0;
+        if (strcmp(mmu, "riscv,sv57") == 0) mmu_max_level = 5;
+        if (strcmp(mmu, "riscv,sv48") == 0) mmu_max_level = 4;
+        if (strcmp(mmu, "riscv,sv39") == 0) mmu_max_level = 3;
+        if (MMU_CONFIG_TOP_LEVEL(mmu_config) > mmu_max_level)
+            continue;
 
         if (hart_id == bsp_hart) {
-            const char *end = strchr(isa, '_');
+            const char* end = strchr(isa, '_');
             int base_len = end ? (int)(end - isa) : (int)strlen(isa);
             LOG_TAGGED("FDT", ANSI_BMAGENTA, "BSP Baseline ISA: %.*s", base_len, isa);
             bsp_valid = true;
         }
+
+        detected_hart_t* hart = malloc(sizeof(detected_hart_t));
+        memset(hart, 0, sizeof(detected_hart_t));
+        hart->hart_id = hart_id;
+        llist_push(&detected_harts, &hart->node);
+
+        harts++;
     }
 
     if (harts == 0) {
@@ -102,6 +112,7 @@ bool fdt_parse_cpus(void* fdt) {
         return false;
     }
 
+    detected_cpus = harts;
     LOG_TAGGED("FDT", ANSI_BMAGENTA, "Found %d Usable HART(s)", harts);
     return true;
 }

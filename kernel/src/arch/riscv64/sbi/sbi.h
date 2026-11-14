@@ -27,6 +27,10 @@ typedef struct sbifunc {
 #define SBI_GET_SPEC_VER  (sbifunc_t){.eid = 0x10, .fid = 0}
 #define SBI_PROBE_SBI_EXT (sbifunc_t){.eid = 0x10, .fid = 3}
 #define SBI_SET_TIMER     (sbifunc_t){.eid = 0x54494D45, .fid = 0}
+#define SBI_HART_START    (sbifunc_t){.eid = 0x48534D, .fid = 0}
+#define SBI_HART_STOP     (sbifunc_t){.eid = 0x48534D, .fid = 1}
+#define SBI_HART_STATUS   (sbifunc_t){.eid = 0x48534D, .fid = 2}
+#define SBI_HART_SUSPEND  (sbifunc_t){.eid = 0x48534D, .fid = 3}
 
 static inline sbiret_t sbi_ecall1(sbifunc_t func, long arg0) {
     register long a7 asm("a7") = func.eid;
@@ -48,6 +52,19 @@ static inline sbiret_t sbi_ecall0(sbifunc_t func) {
     asm volatile ("ecall"
     : "=r"(a0), "=r"(a1)
     : "r"(a7), "r"(a6)
+    : "memory");
+    return (sbiret_t){.error = a0, .value = a1};
+}
+
+static inline sbiret_t sbi_ecall3(sbifunc_t func, long arg0, long arg1, long arg2) {
+    register long a7 asm("a7") = func.eid;
+    register long a6 asm("a6") = func.fid;
+    register long a0 asm("a0") = arg0;
+    register long a1 asm("a1") = arg1;
+    register long a2 asm("a2") = arg2;
+    asm volatile ("ecall"
+    : "+r"(a0), "+r"(a1)
+    : "r"(a7), "r"(a6), "r"(a2)
     : "memory");
     return (sbiret_t){.error = a0, .value = a1};
 }

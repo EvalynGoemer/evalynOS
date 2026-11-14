@@ -66,9 +66,9 @@ static inline uint64_t mmu_flags_to_prot(uint64_t pte, MAYBE_UNUSED int level) {
     return perm;
 }
 
-#define RISCV_SATP_SV39 8
-#define RISCV_SATP_SV48 9
-#define RISCV_SATP_SV57 10
+#define RISCV_SATP_SV39 8ull
+#define RISCV_SATP_SV48 9ull
+#define RISCV_SATP_SV57 10ull
 
 static inline void arch_load_page_table(uint64_t page_table) {
     uint64_t mode;

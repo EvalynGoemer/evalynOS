@@ -35,8 +35,8 @@
 #include <utils/atomic.h>
 
 static void threaded_kmain() {
-    // TODO; finish AP init on !x86
-#ifdef __x86_64__
+    // TODO; finish AP init for loongarch64
+#ifndef __loongarch__
     uint64_t time = timer_get_ns();
     arch_init_aps();
 

@@ -33,7 +33,3 @@ void arch_post_mm_init() {
     }
     setup_timer();
 }
-
-void arch_init_aps() {
-
-}
