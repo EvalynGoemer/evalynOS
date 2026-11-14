@@ -17,6 +17,15 @@ typedef enum: uint8_t {
     MADT_TYPE_IOAPIC_NMI    = 0x03, // ignored
     MADT_TYPE_APIC_ADDR_OVR = 0x05, // ignored
 
+    // loongarch64
+    MADT_TYPE_CORE_PIC = 0x11,
+    MADT_TYPE_LIO_PIC  = 0x12,
+    MADT_TYPE_HT_PIC   = 0x13,
+    MADT_TYPE_EIO_PIC  = 0x14,
+    MADT_TYPE_MSI_PIC  = 0x15,
+    MADT_TYPE_BIO_PIC  = 0x16,
+    MADT_TYPE_LPC_PIC  = 0x17,
+
     // riscv
     MADT_TYPE_RINTC = 0x18,
     MADT_TYPE_IMSIC = 0x19,

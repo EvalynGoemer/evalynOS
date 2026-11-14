@@ -4,10 +4,10 @@
 .global setup_mmu
 .type setup_mmu, @function
 setup_mmu:
-    li.d  $t0,  LA64_PWCL       # load constants into t0 -> t3
-    li.d  $t1,  LA64_PWCH
-    li.d  $t2,  PAGE_SIZE_SHIFT
-    li.d  $t3,  PAGE_SIZE_SHIFT
+    li.d  $t0, LA64_PWCL       # load constants into t0 -> t3
+    li.d  $t1, LA64_PWCH
+    li.d  $t2, PAGE_SIZE_SHIFT
+    li.d  $t3, PAGE_SIZE_SHIFT
     csrwr $t0, CSR_PWCL         # load the constants into CSRs
     csrwr $t1, CSR_PWCH
     csrwr $t2, CSR_STLBPS

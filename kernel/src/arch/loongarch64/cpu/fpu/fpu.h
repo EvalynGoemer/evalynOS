@@ -20,7 +20,7 @@ static const uint8_t la64_fpu_save_alignments[] = {
     [LOONGARCH64_FPU_LASX] = 32,
 };
 
-extern void setup_fpu();
+extern void setup_fpu(bool);
 
 extern void save_fpu_regs(void* fpu_area);
 extern void save_lsx_regs(void* fpu_area);

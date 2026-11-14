@@ -25,6 +25,8 @@
 #define CSR_TLBRSAVE  0x8B
 #define CSR_TLBREHI   0x8E
 
+#define CSR_CPUID 0x20
+
 #define CSR_SAVE0 0x30
 
 #define CSR_TCFG  0x41

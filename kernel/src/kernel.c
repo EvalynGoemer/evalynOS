@@ -35,8 +35,6 @@
 #include <utils/atomic.h>
 
 static void threaded_kmain() {
-    // TODO; finish AP init for loongarch64
-#ifndef __loongarch__
     uint64_t time = timer_get_ns();
     arch_init_aps();
 
@@ -54,7 +52,6 @@ static void threaded_kmain() {
         panic("Failed to start all APs");
 
     LOG_TAGGED("AP/STARTUP", ANSI_BYELLOW, "All APs started in %llu ns", timer_get_ns() - time)
-#endif
 
     reclaim_boot_memory();
 
