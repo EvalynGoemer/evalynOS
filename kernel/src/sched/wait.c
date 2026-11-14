@@ -105,10 +105,9 @@ int sched_wakeup_n_threads(waitable_t* waitable_object, int threads) {
         }
 
         thread_t* thread = CONTAINER_OF(node, waitable_token_t, linkage)->thread;
+        thread_state_t prev = atomic_xchg32(&thread->state, THREAD_RUNABLE, AMO_RELEASE);
         irqlock_unlock(&waitable_object->lock, lock1r);
         enable_preemption();
-
-        thread_state_t prev = atomic_xchg32(&thread->state, THREAD_RUNABLE, AMO_RELEASE);
 
         // if the previous state was it being blocked enqueue it
         if (prev == THREAD_BLOCKED)
@@ -134,10 +133,10 @@ void sched_handle_timeouts() {
             return;
         }
 
+        thread_state_t prev = atomic_xchg32(&thread->state, THREAD_RUNABLE, AMO_RELEASE);
+
         pheap_pop(&timeouts);
         irqlock_unlock(&timeouts_lock, lock1r);
-
-        thread_state_t prev = atomic_xchg32(&thread->state, THREAD_RUNABLE, AMO_RELEASE);
 
         // if the previous state was it being blocked enqueue it
         if (prev == THREAD_BLOCKED)

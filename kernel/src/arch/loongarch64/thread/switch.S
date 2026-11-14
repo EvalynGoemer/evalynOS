@@ -51,11 +51,6 @@ arch_thread_switch:
     dbar 0x12
     st.w $zero, $r21, 56
 
-    # enable interrupts
-    li.d  $t0, (1 << 2)
-    li.d  $t1, (1 << 2)
-    csrxchg $t0, $t1, crmd
-
     ld.d   $s8, $sp,  0
     ld.d   $s7, $sp,  8
     ld.d   $s6, $sp, 16

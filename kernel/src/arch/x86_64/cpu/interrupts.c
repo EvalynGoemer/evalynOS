@@ -1,4 +1,3 @@
-#include "arch/x86_64/intrin/interrupts.h"
 #include "sched/wait.h"
 #include <arch/generic/panic.h>
 #include <arch/x86_64/cpu/interrupts.h>
@@ -32,6 +31,10 @@ void dispatch_interrupt(interrupt_frame_t* frame) {
     skip_fred:
 
     /* Main Interrupt path */
+
+    if (vector != LAPIC_TIMER_VECTOR)
+        enable_interrupts();
+
     switch (vector) {
         case 0xFA:
             LOG("got test vector 0xFA");
@@ -43,7 +46,6 @@ void dispatch_interrupt(interrupt_frame_t* frame) {
             sched_handle_timeouts();
             timer_set_timeout_ms(1);
             arch_send_eoi();
-            enable_interrupts();
             schedule();
             break;
         default: {

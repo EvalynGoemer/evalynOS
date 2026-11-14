@@ -13,4 +13,7 @@ thread_init_trampoline:
     ld t0, 0(sp) # entry
     ld ra, 8(sp) # exit
     addi sp, sp, 16
+
+    # enable interrupts
+    csrsi sstatus, 2
     jr t0

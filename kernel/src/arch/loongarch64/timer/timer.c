@@ -57,11 +57,11 @@ void timer_set_timeout_ms(int ms) {
     uint64_t time = ((__uint128_t)ms * tick_mult) >> tick_shift;
     // time must be a multiple of 4 due to the config bits
     time = ALIGN_UP(time, 4);
+    // clear the old timer irq
+    csrwr(CSR_TICLR, 1);
     // TCFG[0] == 1 enables the timer
     // TCFG[1] == 0 means oneshot mode
     csrwr(CSR_TCFG, time | 0b01);
-    // clear the old timer irq
-    csrwr(CSR_TICLR, 1);
 }
 
 uint64_t timer_get_ns() {

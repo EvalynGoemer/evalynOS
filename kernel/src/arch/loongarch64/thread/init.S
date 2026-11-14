@@ -1,6 +1,8 @@
 .globl thread_init_trampoline
 .type thread_init_trampoline, @function
 
+.equiv crmd, 0x0
+
 thread_init_trampoline:
     move $a0, $s0
     move $a1, $s1
@@ -13,4 +15,9 @@ thread_init_trampoline:
     ld.d $t0, $sp, 0 # entry
     ld.d $ra, $sp, 8 # exit
     addi.d $sp, $sp, 16
+
+    # enable interrupts
+    li.d  $t1, (1 << 2)
+    li.d  $t2, (1 << 2)
+    csrxchg $t1, $t2, crmd
     jr $t0

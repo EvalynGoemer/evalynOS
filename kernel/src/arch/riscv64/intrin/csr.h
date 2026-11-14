@@ -17,6 +17,7 @@
 #define SSTATUS_SPP   (1ull << 8)
 
 #ifndef __ASSEMBLER__
+#include <stdint.h> // IWYU pragma: keep
 
 #define csrw(csr, value) asm volatile("csrw %0, %1" : : "i"(csr), "r"(value) : "memory")
 #define csrs(csr, mask) asm volatile("csrs %0, %1" : : "i"(csr), "r"(mask) : "memory")

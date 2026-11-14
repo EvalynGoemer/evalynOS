@@ -13,6 +13,7 @@
 #include <utils/dstruct/llist.h>
 #include <utils/locks/spinlock.h>
 #include <arch/intrin/cpulocal.h>
+#include <utils/defer.h>
 
 CPU_LOCAL thread_t idle_thread = {};
 
@@ -58,6 +59,9 @@ void schedule() {
     if (current->preempt_disable_counter > 0)
         return;
 
+    int irqs = interrupts_enabled();
+    defer restore_interrupts(irqs);
+
     disable_interrupts();
 
     spinlock_t* lock = CPU_LOCAL_GET_SCHED_LOCK_PTR();
@@ -73,7 +77,6 @@ void schedule() {
         // if we were already idling return
         if (current == idle) {
             spinlock_unlock(lock);
-            enable_interrupts();
             return;
         }
         arch_thread_switch(current, idle);
@@ -81,9 +84,19 @@ void schedule() {
     }
 
     thread_t* next = CONTAINER_OF(next_node, thread_t, node);
-
     arch_thread_switch(current, next);
     return;
+}
+
+static void switch_to_next(thread_t* next) {
+    // next is a user thread
+    if (next->addrspace != nullptr) {
+        arch_fpu_restore(next->fpu_save);
+        arch_load_page_table(next->addrspace->pagetable);
+        arch_finalize_user_switch(next);
+    } else {
+        arch_load_page_table(kernel_page_table);
+    }
 }
 
 void schedule_finalize(thread_t* prev, thread_t* next) {
@@ -112,6 +125,10 @@ void schedule_finalize(thread_t* prev, thread_t* next) {
             break;
         }
         case THREAD_REAPING: {
+            // do the higher level context switch first before reaping to
+            // not have a UAF with the previous threads data being freed
+            switch_to_next(next);
+
             int lock1r = irqlock_lock(&reaper_waiter.lock);
             llist_push_back(&reaper_list, &prev->node);
             llist_node_t* node = llist_pop(&reaper_waiter.threads);
@@ -121,7 +138,7 @@ void schedule_finalize(thread_t* prev, thread_t* next) {
                 if (prev_state == THREAD_BLOCKED) llist_push_back(CPU_LOCAL_GET_RUN_QUEUE_PTR(), &reaper->node);
             }
             irqlock_unlock(&reaper_waiter.lock, lock1r);
-            break;
+            return;
         }
         case THREAD_IDLE_THREAD: break;
         case THREAD_BLOCKED: panic("scheduler reached invalid state");
@@ -132,12 +149,5 @@ void schedule_finalize(thread_t* prev, thread_t* next) {
         arch_fpu_save(prev->fpu_save);
     }
 
-    // next is a user thread
-    if (next->addrspace != nullptr) {
-        arch_fpu_restore(next->fpu_save);
-        arch_load_page_table(next->addrspace->pagetable);
-        arch_finalize_user_switch(next);
-    } else {
-        arch_load_page_table(kernel_page_table);
-    }
+    switch_to_next(next);
 }

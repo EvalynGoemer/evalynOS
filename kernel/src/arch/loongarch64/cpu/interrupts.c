@@ -56,7 +56,6 @@ void dispatch_interrupt(interrupt_frame_t* frame) {
             if (irq_num & IRQNUM_TIMER_INTERRUPT_MASK) {
                 sched_handle_timeouts();
                 timer_set_timeout_ms(5);
-                enable_interrupts();
                 schedule();
                 handled = true;
             }

@@ -81,6 +81,7 @@ static inline void arch_load_page_table(uint64_t page_table) {
 
     csrw(CSR_SATP, (mode << 60) | (page_table >> 12));
     asm volatile("sfence.vma" ::: "memory");
+    asm volatile("fence.i" ::: "memory");
 }
 
 #define arch_large_page_fixup(flags) (flags)

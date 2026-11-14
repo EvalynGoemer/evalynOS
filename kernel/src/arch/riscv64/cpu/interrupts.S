@@ -135,12 +135,18 @@ interrupt_handler_asm:
     ld t0, 264(sp)    # restore sstatus
     csrw sstatus, t0
 
+    # restore tp if returning to user mode
+    andi t0, t0, (1 << 8) # bit 8 = SPP ; nonzero = from kernel ; 0 = from user
+    bnez t0, 2f           # branch if from kernel mode
+    ld tp, 32(sp)         # restore tp from frame.x[4]
+    2:
+
     # restore all registers
     # skip restoring x0
     ld x1,    8(sp)
     # dont restore sp/x2 here
     ld x3,   24(sp)
-    ld x4,   32(sp)
+    # dont restore tp/x4 here
     ld x5,   40(sp)
     ld x6,   48(sp)
     ld x7,   56(sp)

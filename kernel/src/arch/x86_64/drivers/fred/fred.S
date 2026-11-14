@@ -18,8 +18,6 @@ fred_ring3_entry_asm:
     .cfi_signal_frame
     .cfi_def_cfa 7, 0
 
-    sti
-
     # push dummy vector for frame
     # 3 = CPL3
     push 3
@@ -65,6 +63,7 @@ fred_ring3_entry_asm:
     mov  r11, rsp               # save rsp so it can be passed as arg8 per sysv
     push r11                    # push arg8 (rsp/saved registers frame)
     push r10                    # push arg7
+    sti                         # enable interrupts
     call dispatch_syscall
     add rsp, 16
     mov  [rsp + 112], rax       # put the retvals back on the stack to be restored
@@ -103,8 +102,6 @@ fred_ring0_entry_asm:
     .cfi_startproc simple
     .cfi_signal_frame
     .cfi_def_cfa 7, 0
-
-    sti
 
     # push dummy vector for frame
     # 0 = CPL0

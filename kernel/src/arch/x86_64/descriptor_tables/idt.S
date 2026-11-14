@@ -67,7 +67,6 @@ dispatch_interrupt_asm:
     mov rdi, rsp
 
     cld
-    sti
     call dispatch_interrupt
     cli
 

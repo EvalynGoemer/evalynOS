@@ -60,7 +60,7 @@ ifeq ($(ARCH),x86_64)
 endif
 ifeq ($(ARCH),loongarch64)
     override CFLAGS +=    \
-    -mcmodel=extreme      \
+    -mcmodel=normal       \
     -march=la464          \
     -mabi=lp64s           \
     -mfpu=none            \
@@ -83,7 +83,7 @@ ifeq ($(ARCH),riscv64)
     override CFLAGS +=       \
     -march=rv64imac_zbb_zba  \
     -mabi=lp64               \
-    -mcmodel=medany
+    -mcmodel=medlow
     override LDFLAGS +=      \
     -m elf64lriscv           \
     -z max-page-size=0x1000

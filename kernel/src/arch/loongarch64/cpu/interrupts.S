@@ -142,6 +142,12 @@ interrupt_handler_asm:
     ld.d  $t0, $sp, 264 # restore prmd
     csrwr $t0, prmd
 
+    # restore r21 if returning to user mode
+    andi $t0, $t0, 0x3    # bits 1:0 = pplv ; 0 = from kernel ; nonzero = from user
+    beqz $t0, 2f          # branch if from kernel mode
+    ld.d $r21, $sp, 168   # restore r21 from frame.x[21]
+    2:
+
     # restore all registers
     # skip restoring r0
     ld.d  $r1,  $sp, 8
@@ -164,7 +170,7 @@ interrupt_handler_asm:
     ld.d  $r18, $sp, 144
     ld.d  $r19, $sp, 152
     ld.d  $r20, $sp, 160
-    ld.d  $r21, $sp, 168
+    # dont restore r21 here
     ld.d  $r22, $sp, 176
     ld.d  $r23, $sp, 184
     ld.d  $r24, $sp, 192

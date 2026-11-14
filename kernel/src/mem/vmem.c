@@ -88,7 +88,7 @@ vmem_allocator_t* new_vmem_allocator(uint64_t base, uint64_t size, uint32_t quan
 }
 
 void free_vmem_allocator(vmem_allocator_t* alloc) {
-    LLIST_FOR_EACH(alloc->segments_list, node) {
+    LLIST_FOR_EACH_SAFE(alloc->segments_list, node, next) {
         void* seg = CONTAINER_OF(node, vmem_segment_t, segment_list_node);
         spalloc_free(&alloc->segment_allocator, seg);
     }

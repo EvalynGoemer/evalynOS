@@ -53,9 +53,6 @@ arch_thread_switch:
     fence rw, w
     sw zero, 56(tp)
 
-    # enable interrupts
-    csrsi sstatus, 2
-
     ld s11,  0(sp)
     ld s10,  8(sp)
     ld s9,  16(sp)

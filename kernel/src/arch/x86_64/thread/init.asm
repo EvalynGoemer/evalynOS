@@ -7,4 +7,5 @@ thread_init_trampoline:
     mov rcx, r13
     mov r8,  r14
     mov r9,  r15
+    sti
     ret

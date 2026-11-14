@@ -72,7 +72,6 @@ void dispatch_interrupt(interrupt_frame_t* frame) {
         case INTERRUPT_CAUSE_TIMER: {
             sched_handle_timeouts();
             timer_set_timeout_ms(1);
-            enable_interrupts();
             schedule();
             // set the fpu to be clean
             frame->sstatus &= ~(3ull << 13);

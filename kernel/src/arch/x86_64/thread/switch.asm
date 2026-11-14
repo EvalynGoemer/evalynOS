@@ -37,9 +37,6 @@ arch_thread_switch:
     ; unlock the scheduler spinlock
     mov dword [rel gs:fixed_cpu_local + 48], 0
 
-    ; enable interrupts
-    sti
-
     pop r15
     pop r14
     pop r13
