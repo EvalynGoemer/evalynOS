@@ -1,5 +1,5 @@
 #include "arch/riscv64/fdt/cpus.h"
-#include "acpi/tables/madt.h"
+#include "arch/generic/cpu/ap.h"
 #include "utils/dstruct/llist.h"
 #include <libfdt.h>
 #include <stdint.h>
@@ -94,7 +94,7 @@ bool fdt_parse_cpus(void* fdt) {
             bsp_valid = true;
         }
 
-        detected_hart_t* hart = malloc(sizeof(detected_hart_t));
+        detected_hart_t* hart = kmalloc(sizeof(detected_hart_t));
         memset(hart, 0, sizeof(detected_hart_t));
         hart->hart_id = hart_id;
         llist_push(&detected_harts, &hart->node);
@@ -112,7 +112,7 @@ bool fdt_parse_cpus(void* fdt) {
         return false;
     }
 
-    detected_cpus = harts;
+    total_cpus = harts;
     LOG_TAGGED("FDT", ANSI_BMAGENTA, "Found %d Usable HART(s)", harts);
     return true;
 }

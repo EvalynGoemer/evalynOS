@@ -1,13 +1,7 @@
-#include "acpi/tables/madt.h"
-#include "arch/generic/timer/timer.h"
-#include <arch/generic/thread/switch.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
-
 #include <stdlib.h>
-#include <utils/misc/ustar.h>
-#include <loader/elf.h>
 
 #include <arch/intrin/interrupts.h>
 #include <arch/generic/cpu/ap.h>
@@ -21,11 +15,14 @@
 #include <mem/pfndb.h>
 #include <mem/reclaim.h>
 #include <utils/misc/build_id.h>
+#include <utils/misc/ustar.h>
 #include <utils/lib.h>
 #include <utils/limine.h>
+#include <utils/defer.h>
 #include <sched/scheduler.h>
 #include <sched/idle.h>
 #include <sched/wait.h>
+#include <arch/generic/thread/switch.h>
 #include <arch/generic/thread/init.h>
 #include <arch/generic/thread/exit.h>
 #include <arch/generic/thread/new.h>
@@ -33,34 +30,6 @@
 #include <utils/dstruct/llist.h>
 #include <utils/locks/irqlock.h>
 #include <utils/atomic.h>
-
-static void threaded_kmain() {
-    uint64_t time = timer_get_ns();
-    arch_init_aps();
-
-    uint32_t started = 0;
-    for (int i = 100; i > 0; i--) {
-        uint32_t old = started;
-        atomic_ptr_load32(&cpus_started, &started, AMO_ACQUIRE);
-        if (started == detected_cpus) break;
-        if (started > old) i += 10;
-        sched_wait_on(nullptr, 25000000);
-    }
-
-    // TODO; have a way to track which CPUs did not start to remove them from use
-    if (started != detected_cpus)
-        panic("Failed to start all APs");
-
-    LOG_TAGGED("AP/STARTUP", ANSI_BYELLOW, "All APs started in %llu ns", timer_get_ns() - time)
-
-    reclaim_boot_memory();
-
-    thread_t* thread = create_uthread_from_elf("./usr/bin/core.elf");
-    thread->syscall_perms = UINT64_MAX;
-    enqueue_thread(thread);
-
-    thread_exit();
-}
 
 void kmain() {
     if (LIMINE_BASE_REVISION_SUPPORTED(limine_base_revision) == false)
@@ -87,9 +56,9 @@ void kmain() {
 
     arch_post_mm_init();
 
-    thread_t* thread = create_kthread((uintptr_t)threaded_kmain, 0, 0);
     uint64_t idle_stack = TO_HHDM(pmm_alloc_page()) + PAGE_SIZE;
+    defer arch_thread_pivot((uintptr_t)idle_thread_entry, idle_stack);
 
+    thread_t* thread = create_kthread((uintptr_t)setup_aps, 0, 0);
     enqueue_thread(thread);
-    arch_thread_pivot((uintptr_t)idle_thread_entry, idle_stack);
 }

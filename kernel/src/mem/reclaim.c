@@ -5,8 +5,6 @@
 #include <utils/dstruct/stack.h>
 #include <mem/buddy.h>
 
-[[gnu::weak]] void arch_reclaim_ap_memory() {}
-
 typedef struct {
     stack_node_t node;
     uint64_t base;
@@ -14,8 +12,6 @@ typedef struct {
 } boot_range_t;
 
 void reclaim_boot_memory() {
-    arch_reclaim_ap_memory();
-
     stack_t ranges = {0};
     for (uint64_t i = 0; i < memmap_request.response->entry_count; i++) {
         struct limine_memmap_entry* e = memmap_request.response->entries[i];

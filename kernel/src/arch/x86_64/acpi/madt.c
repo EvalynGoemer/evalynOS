@@ -1,23 +1,20 @@
+#include "arch/generic/cpu/ap.h"
 #include <utils/dstruct/llist.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include <acpi/tables/madt.h>
 #include <arch/x86_64/acpi/madt.h>
-#include <mem/spalloc.h>
 #include <utils/lib.h>
-
-rbtree_t detected_apics   = RBTREE_INIT;
-llist_t  detected_ioapics = LLIST_INIT;
-llist_t  irq_overrides    = LLIST_INIT;
-
-static spalloc_allocator_t alloc;
-static uint32_t madt_entries = 0;
-static uint32_t unknown_madt_entries = 0;
 
 static uint64_t detected_apic_get_value(rbtree_node_t* node) {
     detected_apic_t* x = CONTAINER_OF(node, detected_apic_t, node);
     return x->apic_id;
 }
+
+rbtree_t detected_apics   = {.root = nullptr, .value_of_node = detected_apic_get_value};
+llist_t  detected_ioapics = LLIST_INIT;
+llist_t  irq_overrides    = LLIST_INIT;
 
 static void madt_register_lapic(uint32_t apic_id, uint32_t acpi_id, uint32_t flags) {
     // bit one not being set means this CPU is not usable
@@ -32,66 +29,17 @@ static void madt_register_lapic(uint32_t apic_id, uint32_t acpi_id, uint32_t fla
         node->flags   = flags;
         return;
     }
-    detected_apic_t* node = spalloc_malloc(&alloc);
+
+    detected_apic_t* node = kmalloc(sizeof(detected_apic_t));
     memset(node, 0, sizeof(detected_apic_t));
     node->apic_id = apic_id;
     node->acpi_id = acpi_id;
     node->flags   = flags;
     rbtree_insert(&detected_apics, &node->node);
-    detected_cpus++;
-}
-
-static void handle_entry(struct MADTEntryHeader* entry) {
-    madt_entries++;
-    switch (entry->type) {
-        case MADT_TYPE_APIC: {
-            struct MADT_apic* lapic = (struct MADT_apic*)entry;
-            madt_register_lapic(lapic->apic_id, lapic->acpi_id, lapic->flags);
-            break;
-        }
-        case MADT_TYPE_x2APIC: {
-            struct MADT_x2apic* x2apic = (struct MADT_x2apic*)entry;
-            madt_register_lapic(x2apic->x2apic_id, x2apic->acpi_id, x2apic->flags);
-            break;
-        }
-        case MADT_TYPE_IOAPIC: {
-            struct MADT_ioapic* ioapic = (struct MADT_ioapic*)entry;
-            detected_ioapic* entry = spalloc_malloc(&alloc);
-            memset(entry, 0, sizeof(detected_ioapic));
-            entry->ioapic_id = ioapic->ioapic_id;
-            entry->phys_addr = ioapic->ioapic_address;
-            entry->gsi_base  = ioapic->gsi_base;
-            llist_push(&detected_ioapics, &entry->node);
-            break;
-        }
-        case MADT_TYPE_IRQ_OVERRIDE: {
-            struct MADT_irq_override* irq_override = (struct MADT_irq_override*)entry;
-            acpi_irq_override_t* entry = spalloc_malloc(&alloc);
-            memset(entry, 0, sizeof(acpi_irq_override_t));
-            entry->irq = irq_override->irq;
-            entry->gsi = irq_override->gsi;
-            entry->flags = irq_override->flags;
-            llist_push(&irq_overrides, &entry->node);
-            break;
-        }
-        // ignored entries
-        case MADT_TYPE_APIC_NMI:
-        case MADT_TYPE_x2APIC_NMI:
-        case MADT_TYPE_IOAPIC_NMI:
-        case MADT_TYPE_APIC_ADDR_OVR: {
-            break;
-        }
-        default: {
-            unknown_madt_entries++;
-            break;
-        }
-    }
+    total_cpus++;
 }
 
 void acpi_parse_madt() {
-    spalloc_init(&alloc, 64, 8);
-    detected_apics = (rbtree_t){0, detected_apic_get_value};
-
     uint8_t* madt_base = acpi_find_sdt(MADT_SDT_SIGNATURE);
 
     if (!madt_base) {
@@ -99,14 +47,61 @@ void acpi_parse_madt() {
         return;
     }
 
+    uint32_t madt_entries = 0;
+    uint32_t unknown_madt_entries = 0;
+
     struct MADTEntryHeader* entry;
     MADT_FOR_EACH_ENTRY(madt_base, entry) {
-        handle_entry(entry);
+        madt_entries++;
+        switch (entry->type) {
+            case MADT_TYPE_APIC: {
+                struct MADT_apic* lapic = (struct MADT_apic*)entry;
+                madt_register_lapic(lapic->apic_id, lapic->acpi_id, lapic->flags);
+                break;
+            }
+            case MADT_TYPE_x2APIC: {
+                struct MADT_x2apic* x2apic = (struct MADT_x2apic*)entry;
+                madt_register_lapic(x2apic->x2apic_id, x2apic->acpi_id, x2apic->flags);
+                break;
+            }
+            case MADT_TYPE_IOAPIC: {
+                struct MADT_ioapic* ioapic = (struct MADT_ioapic*)entry;
+                detected_ioapic* entry = kmalloc(sizeof(detected_ioapic));
+                memset(entry, 0, sizeof(detected_ioapic));
+                entry->ioapic_id = ioapic->ioapic_id;
+                entry->phys_addr = ioapic->ioapic_address;
+                entry->gsi_base  = ioapic->gsi_base;
+                llist_push(&detected_ioapics, &entry->node);
+                break;
+            }
+            case MADT_TYPE_IRQ_OVERRIDE: {
+                struct MADT_irq_override* irq_override = (struct MADT_irq_override*)entry;
+                acpi_irq_override_t* entry = kmalloc(sizeof(acpi_irq_override_t));
+                memset(entry, 0, sizeof(acpi_irq_override_t));
+                entry->irq = irq_override->irq;
+                entry->gsi = irq_override->gsi;
+                entry->flags = irq_override->flags;
+                llist_push(&irq_overrides, &entry->node);
+                break;
+            }
+            // ignored entries
+            case MADT_TYPE_APIC_NMI:
+            case MADT_TYPE_x2APIC_NMI:
+            case MADT_TYPE_IOAPIC_NMI:
+            case MADT_TYPE_APIC_ADDR_OVR: {
+                break;
+            }
+            default: {
+                unknown_madt_entries++;
+                break;
+            }
+        }
     }
 
     LOG_TAGGED("ACPI/MADT", ANSI_BMAGENTA, "Found %d known entries in the MADT", madt_entries - unknown_madt_entries);
     LOG_TAGGED("ACPI/MADT", ANSI_BMAGENTA, "Found %d unknown entries in the MADT", unknown_madt_entries);
-    LOG_TAGGED("ACPI/MADT", ANSI_BMAGENTA, "Found %d CPU(s)", detected_cpus);
+    LOG_TAGGED("ACPI/MADT", ANSI_BMAGENTA, "Found %d CPU(s)", total_cpus);
+
     LOG_TAGGED("ACPI/MADT", ANSI_BMAGENTA, "Detected IOAPICs:");
     LLIST_FOR_EACH(detected_ioapics, ioapic_node) {
         detected_ioapic* ioapic = CONTAINER_OF(ioapic_node, detected_ioapic, node);

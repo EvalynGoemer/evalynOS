@@ -1,4 +1,5 @@
 #include "arch/riscv64/acpi/madt.h"
+#include "arch/generic/cpu/ap.h"
 #include "arch/riscv64/acpi/rhct.h"
 #include "utils/limine.h"
 #include <arch/riscv64/cpu/isa.h>
@@ -46,7 +47,7 @@ bool acpi_parse_madt() {
                     bsp_valid = true;
                 }
 
-                detected_hart_t* detected_hart = malloc(sizeof(detected_hart_t));
+                detected_hart_t* detected_hart = kmalloc(sizeof(detected_hart_t));
                 memset(detected_hart, 0, sizeof(detected_hart_t));
                 detected_hart->hart_id = rintc->hart_id;
                 llist_push(&detected_harts, &detected_hart->node);
@@ -74,7 +75,7 @@ bool acpi_parse_madt() {
         return false;
     }
 
-    detected_cpus = harts;
+    total_cpus = harts;
 
     LOG_TAGGED("ACPI/MADT", ANSI_BMAGENTA, "Found %d known entries in the MADT", total_entries - unknown_entries);
     LOG_TAGGED("ACPI/MADT", ANSI_BMAGENTA, "Found %d unknown entries in the MADT", unknown_entries);

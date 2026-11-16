@@ -64,11 +64,3 @@ extern llist_t  detected_ioapics;
 extern llist_t  irq_overrides;
 
 extern void acpi_parse_madt();
-
-// ensure these can be allocated by the 64b internal allocator
-_Static_assert(sizeof(detected_apic_t)     <= 64, "detected_apic_t too large");
-_Static_assert(sizeof(detected_ioapic)     <= 64, "detected_ioapic too large");
-_Static_assert(sizeof(acpi_irq_override_t) <= 64, "acpi_irq_override_t too large");
-_Static_assert(alignof(detected_apic_t)     == 8, "detected_apic_t alignment must be 8");
-_Static_assert(alignof(detected_ioapic)     == 8, "detected_ioapic alignment must be 8");
-_Static_assert(alignof(acpi_irq_override_t) == 8, "acpi_irq_override_t alignment must be 8");

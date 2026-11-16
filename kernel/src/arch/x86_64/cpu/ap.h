@@ -30,26 +30,26 @@ typedef struct per_ap_data {
 
 typedef struct global_ap_data {
     uint32_t internal_core_id_counter; // atomic
-    uint32_t total_cores;
-    uint8_t _padding[56];
+    uint64_t size;
+    uint8_t _padding[48];
     per_ap_data_t* per_ap_data_ptrs[];
 } global_ap_data_t;
 
 // static asserts for ap.asm
-_Static_assert(offsetof(trampoline_data_t, gdtr_limit)  ==  0);
-_Static_assert(offsetof(trampoline_data_t, gdtr_base)   ==  2);
-_Static_assert(offsetof(trampoline_data_t, fjmp32_addr) ==  6);
-_Static_assert(offsetof(trampoline_data_t, fjmp32_seg)  == 10);
-_Static_assert(offsetof(trampoline_data_t, fjmp64_addr) == 12);
-_Static_assert(offsetof(trampoline_data_t, fjmp64_seg)  == 16);
-_Static_assert(offsetof(trampoline_data_t, data_ptr)    == 24);
-_Static_assert(offsetof(trampoline_data_t, cr3)         == 32);
-_Static_assert(offsetof(trampoline_data_t, config)      == 36);
+static_assert(offsetof(trampoline_data_t, gdtr_limit)  ==  0);
+static_assert(offsetof(trampoline_data_t, gdtr_base)   ==  2);
+static_assert(offsetof(trampoline_data_t, fjmp32_addr) ==  6);
+static_assert(offsetof(trampoline_data_t, fjmp32_seg)  == 10);
+static_assert(offsetof(trampoline_data_t, fjmp64_addr) == 12);
+static_assert(offsetof(trampoline_data_t, fjmp64_seg)  == 16);
+static_assert(offsetof(trampoline_data_t, data_ptr)    == 24);
+static_assert(offsetof(trampoline_data_t, cr3)         == 32);
+static_assert(offsetof(trampoline_data_t, config)      == 36);
 
-_Static_assert(offsetof(global_ap_data_t, internal_core_id_counter) == 0);
-_Static_assert(offsetof(global_ap_data_t, per_ap_data_ptrs) == 64);
+static_assert(offsetof(global_ap_data_t, internal_core_id_counter) == 0);
+static_assert(offsetof(global_ap_data_t, per_ap_data_ptrs) == 64);
 
-_Static_assert(offsetof(per_ap_data_t, init_thread_stack) == 0);
+static_assert(offsetof(per_ap_data_t, init_thread_stack) == 0);
 
 extern uint8_t ap_trampoline[];
 extern uint64_t ap_trampoline_gdt[];

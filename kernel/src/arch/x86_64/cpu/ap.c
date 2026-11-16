@@ -1,10 +1,11 @@
-#include "arch/x86_64/cpu/CRx.h"
-#include "arch/x86_64/descriptor_tables/gdt.h"
-#include "arch/x86_64/descriptor_tables/idt.h"
-#include "arch/x86_64/drivers/fred/fred.h"
-#include "arch/x86_64/syscall/syscall.h"
-#include "sched/scheduler.h"
-#include "sched/wait.h"
+#include <arch/generic/cpu/ap.h>
+#include <arch/x86_64/cpu/CRx.h>
+#include <arch/x86_64/descriptor_tables/gdt.h>
+#include <arch/x86_64/descriptor_tables/idt.h>
+#include <arch/x86_64/drivers/fred/fred.h>
+#include <arch/x86_64/syscall/syscall.h>
+#include <sched/scheduler.h>
+#include <sched/wait.h>
 #include <arch/generic/thread/new.h>
 #include <arch/generic/thread/exit.h>
 #include <string.h>
@@ -12,6 +13,7 @@
 #include <stdint.h>
 #include <assert.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include <utils/lib.h>
 #include <arch/x86_64/cpu/ap.h>
@@ -20,11 +22,12 @@
 #include <arch/x86_64/cpu/cpuid.h>
 #include <arch/x86_64/acpi/madt.h>
 #include <arch/generic/paging/paging.h>
-#include <mem/spalloc.h>
 #include <mem/pmm.h>
 #include <mem/vmem.h>
 #include <arch/x86_64/timer/timer.h>
 #include <arch/intrin/cpulocal.h>
+
+global_ap_data_t* global_ap_data;
 
 static uint64_t get_nth_lomem_page(uint64_t n) {
     uint64_t count = 0;
@@ -45,14 +48,9 @@ static uint64_t get_nth_lomem_page(uint64_t n) {
     return 0;
 }
 
-global_ap_data_t* global_ap_data;
-static uint64_t ap_page_table;
-static uint64_t global_data_vaddr;
-static uint64_t global_data_pages;
-
 static uint64_t setup_trampoline() {
     // make a 2mb identity map with the first lomem page
-    ap_page_table = get_nth_lomem_page(0);
+    uint64_t ap_page_table = get_nth_lomem_page(0);
     assert(ap_page_table != 0);
     memcpy(TO_HHDM_PTR(ap_page_table), TO_HHDM_PTR(kernel_page_table), PAGE_SIZE);
     paging_map_page(ap_page_table, 0, 0, PAGE_KRWX | PAGE_LARGE);
@@ -80,97 +78,59 @@ static uint64_t setup_trampoline() {
     return trampoline_page;
 }
 
-static spalloc_allocator_t per_ap_data_allocator;
-
 static void setup_global_ap_data() {
-    uint64_t global_data_size = sizeof(global_ap_data_t) + sizeof(per_ap_data_t*) * detected_cpus;
-    global_data_pages = ALIGN_UP(global_data_size, PAGE_SIZE) / PAGE_SIZE;
+    uint64_t global_data_size = ALIGN_UP(sizeof(global_ap_data_t) + (total_cpus * sizeof(uintptr_t)), PAGE_SIZE);
+    uint64_t global_data_vaddr = vmem_alloc(&kernel_vmem_allocator, global_data_size, 0);
 
-    global_data_vaddr = vmem_alloc(&kernel_vmem_allocator, global_data_pages * PAGE_SIZE, 0);
-
-    for (uint64_t i = 0; i < global_data_pages; i++) {
-        uint64_t paddr = pmm_alloc_page();
-        paging_map_page(kernel_page_table, global_data_vaddr + i * PAGE_SIZE, paddr, PAGE_KRW);
-    }
+    for (uint64_t i = 0; i < global_data_size / PAGE_SIZE; i++)
+        paging_map_page(kernel_page_table, global_data_vaddr + i * PAGE_SIZE, pmm_alloc_page(), PAGE_KRW);
 
     global_ap_data = (global_ap_data_t*)global_data_vaddr;
     global_ap_data->internal_core_id_counter = 1;
-    global_ap_data->total_cores = detected_cpus;
+    global_ap_data->size = global_data_size;
 
-    spalloc_init(&per_ap_data_allocator, sizeof(per_ap_data_t), alignof(per_ap_data_t));
+    for (uint32_t i = 1; i < total_cpus; i++) {
+        per_ap_data_t* per_data = kmalloc(sizeof(per_ap_data_t));
 
-    uint64_t cpulocal_size = (uint64_t)__cpu_local_end - (uint64_t)__cpu_local_start;
-    uint64_t cpulocal_pages = cpulocal_size / PAGE_SIZE;
+        thread_t* init_thread = allocate_init_thread();
+        per_data->init_thread = init_thread;
+        per_data->init_thread_stack = init_thread->kstack;
+        per_data->idle_thread_stack = TO_HHDM(pmm_alloc_page()) + PAGE_SIZE;
 
-    for (uint32_t i = 1; i < detected_cpus; i++) {
-        per_ap_data_t* per_data = spalloc_malloc(&per_ap_data_allocator);
-
-        // this is the thread that will be set as running so its inital state is meaningless
-        per_data->init_thread = create_kthread(0, 0, 0);
-
-        uint64_t boot_stack_paddr = pmm_alloc_page();
-        uint64_t idle_stack_paddr = pmm_alloc_page();
-
-        per_data->init_thread_stack = TO_HHDM(boot_stack_paddr) + PAGE_SIZE;
-        per_data->idle_thread_stack = TO_HHDM(idle_stack_paddr) + PAGE_SIZE;
-
-        uint64_t cpulocal_vaddr;
-        if (cpulocal_pages == 1) {
-            cpulocal_vaddr = TO_HHDM(pmm_alloc_page());
-        } else {
-            cpulocal_vaddr = vmem_alloc(&kernel_vmem_allocator, cpulocal_size, 0);
-            for (uint64_t p = 0; p < cpulocal_pages; p++) {
-                uint64_t paddr = pmm_alloc_page();
-                paging_map_page(kernel_page_table, cpulocal_vaddr + p * PAGE_SIZE, paddr, PAGE_KRW);
-            }
-        }
-
-        memcpy((void*)cpulocal_vaddr, (void*)__cpu_local_start, cpulocal_size);
+        uint64_t cpulocal_vaddr = allocate_cpu_local();
+        *(uintptr_t*)cpulocal_vaddr = cpulocal_vaddr; // setup self pointer
         per_data->cpulocal_base = cpulocal_vaddr - (uint64_t)__cpu_local_start;
-        // setup the cpulocal self pointer
-        *(uintptr_t*)cpulocal_vaddr = cpulocal_vaddr;
 
         global_ap_data->per_ap_data_ptrs[i] = per_data;
     }
 }
 
 void arch_reclaim_ap_memory() {
-    if (detected_cpus <= 1)
-        return;
-
+    uint64_t ap_page_table = get_nth_lomem_page(0);
     paging_unmap_range(ap_page_table, 0, PAGE_SIZE_LARGE);
 
-    for (uint32_t i = 1; i < detected_cpus; i++) {
-        per_ap_data_t* per_data = global_ap_data->per_ap_data_ptrs[i];
-        pmm_free_page(FROM_HHDM(per_data->init_thread_stack) - PAGE_SIZE);
-        spalloc_free(&per_ap_data_allocator, per_data);
-    }
+    for (uint32_t i = 1; i < total_cpus; i++)
+        kfree(global_ap_data->per_ap_data_ptrs[i], sizeof(per_ap_data_t));
 
-    for (uint64_t i = 0; i < global_data_pages; i++) {
+    uint64_t global_data_vaddr = (uint64_t)global_ap_data;
+    uint64_t global_data_size = global_ap_data->size;
+
+    for (uint64_t i = 0; i < global_data_size / PAGE_SIZE; i++) {
         uint64_t paddr = paging_get_paddr(kernel_page_table, global_data_vaddr + i * PAGE_SIZE, nullptr);
         pmm_free_page(paddr);
     }
 
-    paging_unmap_range(kernel_page_table, global_data_vaddr, global_data_pages * PAGE_SIZE);
-    vmem_free(&kernel_vmem_allocator, global_data_vaddr, global_data_pages * PAGE_SIZE);
+    paging_unmap_range(kernel_page_table, global_data_vaddr, global_data_size);
+    vmem_free(&kernel_vmem_allocator, global_data_vaddr, global_data_size);
     global_ap_data = nullptr;
 }
 
-static uint64_t start_time;
-
 void arch_init_aps() {
-    if (detected_cpus <= 1) {
-        LOG_TAGGED("AP/STARTUP", ANSI_BYELLOW, "No APs to start")
-        return;
-    }
-
-    start_time = timer_get_ns();
-
     setup_global_ap_data();
     uint64_t trampoline_page = setup_trampoline();
     uint32_t bsp_apic_id = arch_get_local_coreid();
 
-    LOG_TAGGED("AP/INIT", ANSI_BYELLOW, "Sending INIT IPIs to %d APs", detected_cpus - 1)
+    LOG_TAGGED("AP/INIT", ANSI_BYELLOW, "Sending INIT IPIs");
     RBTREE_FOR_EACH(detected_apics, node) {
         detected_apic_t* apic = CONTAINER_OF(node, detected_apic_t, node);
         if (apic->apic_id != bsp_apic_id)
@@ -180,7 +140,7 @@ void arch_init_aps() {
     LOG_TAGGED("AP/INIT", ANSI_BYELLOW, "Waiting to send SIPIs")
     sched_wait_on(nullptr, 10000000);
 
-    LOG_TAGGED("AP/INIT", ANSI_BYELLOW, "Sending SIPI IPIs to %d APs", detected_cpus - 1)
+    LOG_TAGGED("AP/INIT", ANSI_BYELLOW, "Sending SIPI IPIs");
     RBTREE_FOR_EACH(detected_apics, node) {
         detected_apic_t* apic = CONTAINER_OF(node, detected_apic_t, node);
         if (apic->apic_id != bsp_apic_id)
@@ -192,10 +152,9 @@ void x86_ap_entry(uint32_t core_id) {
     LOG_TAGGED("AP/STARTUP", ANSI_BYELLOW, "AP %d started", core_id);
 
     per_ap_data_t* per_data = global_ap_data->per_ap_data_ptrs[core_id];
-    SET_CPU_LOCAL(per_data->cpulocal_base)
+    SET_CPU_LOCAL(per_data->cpulocal_base);
 
     early_sched_init_ap(per_data->init_thread, per_data->idle_thread_stack, PAGE_SIZE);
-
     setup_ap_gdt(per_data->cpulocal_base);
 
     if (fred_enabled)
@@ -209,7 +168,7 @@ void x86_ap_entry(uint32_t core_id) {
     setup_timers(core_id);
     setup_lapic_ap();
 
-    LOG_TAGGED("AP/STARTUP", ANSI_BYELLOW, "AP %d finished setup in %lld ns", core_id, timer_get_ns() - start_time);
+    LOG_TAGGED("AP/STARTUP", ANSI_BYELLOW, "AP %d finished setup in %lld ns", core_id, timer_get_ns() - ap_init_start_time);
 
     thread_exit();
 }
